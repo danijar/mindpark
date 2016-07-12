@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtualenv
+/include
+/lib
+/bin
+/local
+/man
+/share
+
+# Pip
+pip-selfcheck.json
+*.whl
+*.egg
+*.egg-info
+
+# Pytest
+.cache
+.coverage
+.coverage*
+
+# Setuptools
+/build
+/dist
+*.eggs
