@@ -25,3 +25,6 @@ pip-selfcheck.json
 /build
 /dist
 *.eggs
+
+# Gym
+vizdoom.ini
