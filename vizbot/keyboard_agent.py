@@ -168,9 +168,9 @@ def control_episode(env, agent, fps=30):
         state = next_state
         duration = time.time() - start
         time.sleep(max(0, 1 / fps - duration))
-    states = np.array(states, dtype=float)
-    actions = np.array(actions, dtype=float)
-    rewards = np.array(rewards, dtype=float)
+    states = np.array(states)
+    actions = np.array(actions)
+    rewards = np.array(rewards)
     return states, actions, rewards
 
 
