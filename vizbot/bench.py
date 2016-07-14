@@ -13,7 +13,7 @@ def parse_args():
         default=['DoomDeathmatch-v0'])
     parser.add_argument(
         '-a', '--agents', nargs='+',
-        default=['Noop'])
+        default=['Noop', 'Random'])
     parser.add_argument(
         '-r', '--repeats', type=int,
         default='10')

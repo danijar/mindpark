@@ -83,11 +83,14 @@ class Simulator:
         env.monitor.start(directory, None if self._recording else False)
         start, rewards = time.time(), []
         state, reward, done = env.reset(), 0, False
+        agent.begin()
         for episode in range(self._episodes):
             rewards.append(0)
             while not done:
-                action = agent(state, reward)
+                action = agent.step(state)
                 state, reward, done, _ = env.step(action)
+                agent.feedback(reward)
                 rewards[-1] += reward
+        agent.end()
         duration = time.time() - start
         return rewards, duration
