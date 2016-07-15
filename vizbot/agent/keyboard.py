@@ -24,13 +24,16 @@ class Keyboard(Agent):
 
     def step(self, state):
         super().step(state)
-        self._viewer(state)
+        self._viewer(self._process_state(state))
         action = self._initial_action()
         action = self._apply_keyboard(action, self._viewer.pressed_keys())
         delta = self._viewer.delta()
         delta = self._sensitivity * delta[0], self._sensitivity * delta[1]
         action = self._apply_mouse(action, delta)
         return action
+
+    def _process_state(self, state):
+        return state
 
     def _initial_action(self):
         action = np.zeros(self._env.action_space.shape, dtype=int)
@@ -58,11 +61,21 @@ class KeyboardDoom(Keyboard):
         weapon_2=22, weapon_3=23, weapon_4=24, weapon_5=25, weapon_6=26,
         weapon_7=27)
 
+    def __init__(self, env, fps=30, sensitivity=0.3, render_state=True):
+        super().__init__(env, fps, sensitivity)
+        self._render_state = render_state
+
     def step(self, state):
         action = super().step(state)
         allowed = self._env._allowed_actions
         action = [x for i, x in enumerate(action) if i in allowed]
         return action
+
+    def _process_state(self, state):
+        if self._render_state:
+            try: return self._env.game.get_state().image_buffer
+            except: pass
+        return state
 
     def _initial_action(self):
         action = np.zeros(self._env.full_action_space.shape, dtype=int)
