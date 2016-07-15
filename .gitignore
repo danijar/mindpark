@@ -28,3 +28,4 @@ pip-selfcheck.json
 
 # Gym
 vizdoom.ini
+vizdoom-crash.log

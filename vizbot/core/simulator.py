@@ -10,11 +10,12 @@ from vizbot.utility import ensure_directory
 
 class Simulator:
 
-    def __init__(self, root, repeats, episodes, recording=True):
+    def __init__(self, root, repeats, episodes, recording=True, store_states=False):
         self._root = os.path.abspath(os.path.expanduser(root))
         self._repeats = repeats
         self._episodes = episodes
         self._recording = recording
+        self._store_states = store_states
 
     def __call__(self, name, envs, agents):
         """
@@ -61,16 +62,19 @@ class Simulator:
         minimum training duration.
         """
         ensure_directory(directory)
-        rewards, durations = [], []
+        states, rewards, durations = [], [], []
         template = 'repeat-{:0>' + str(len(str(self._repeats - 1))) + '}'
         for repeat in range(self._repeats):
             subdirectory = os.path.join(directory, template.format(repeat))
-            reward, duration = self._simulate(subdirectory, env, agent)
+            state, reward, duration = self._simulate(subdirectory, env, agent)
+            states.append(state)
             rewards.append(reward)
             durations.append(duration)
             print(' ' + '.' * (repeat + 1), end='\r', flush=True)
         print('')
         rewards, durations = np.array(rewards), np.array(durations)
+        if self._store_states:
+            np.savez_compressed(os.path.join(directory, 'states.npz', states))
         np.save(os.path.join(directory, 'rewards.npy'), rewards)
         np.save(os.path.join(directory, 'durations.npy'), durations)
         return rewards, durations
@@ -81,16 +85,19 @@ class Simulator:
         rewards and training duration.
         """
         env.monitor.start(directory, None if self._recording else False)
-        start, rewards = time.time(), []
+        states, rewards, start = [], [], time.time()
         state, reward, done = env.reset(), 0, False
         agent.begin()
         for episode in range(self._episodes):
+            states.append([])
             rewards.append(0)
             while not done:
                 action = agent.step(state)
                 state, reward, done, _ = env.step(action)
                 agent.feedback(reward)
+                if self._store_states:
+                    states[-1].append(state)
                 rewards[-1] += reward
         agent.end()
         duration = time.time() - start
-        return rewards, duration
+        return states, rewards, duration
