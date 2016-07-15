@@ -10,7 +10,7 @@ class Keyboard(Agent):
 
     def __init__(self, env, fps=30, sensitivity=0.3):
         super().__init__(env)
-        self._viewer = Viewer()
+        self._viewer = Viewer(fps=fps)
         self._fps = fps
         self._time = None
         self._sensitivity = sensitivity
@@ -25,7 +25,6 @@ class Keyboard(Agent):
     def step(self, state):
         super().step(state)
         self._viewer(state)
-        self._wait_fps()
         action = self._initial_action()
         action = self._apply_keyboard(action, self._viewer.pressed_keys())
         delta = self._viewer.delta()
@@ -42,14 +41,6 @@ class Keyboard(Agent):
 
     def _apply_mouse(self, action, delta):
         return action
-
-    def _wait_fps(self):
-        if not self._fps:
-            return
-        last = self._time
-        self._time = time.time()
-        duration = self._time - last
-        time.sleep(max(0, 1 / self._fps - duration))
 
 
 class KeyboardDoom(Keyboard):
@@ -96,7 +87,7 @@ class Viewer:
         100: 'd', 97: 'a', 115: 's', 119: 'w', 65293: 'enter', 65505:
         'shift', 65507: 'ctrl', 32: 'space'}
 
-    def __init__(self, width=800, height=600):
+    def __init__(self, width=800, height=600, fps=30):
         self._dx = 0
         self._dy = 0
         self._window = pyglet.window.Window(width, height)
@@ -104,8 +95,9 @@ class Viewer:
         self._window.on_mouse_drag = self._handle_mouse
         self._window.on_close = self._handle_close
         self._window.set_exclusive_mouse()
-        self._fps = collections.deque(maxlen=100)
-        self._last = None
+        self._frame_time = 1 / fps
+        self._frame_times = collections.deque(maxlen=100)
+        self._time = None
 
     def __call__(self, image=None):
         self._update_fps()
@@ -146,10 +138,13 @@ class Viewer:
         self.close()
 
     def _update_fps(self):
-        self._fps.append(1 / (time.time() - self._last) if self._last else 0)
-        fps = sum(self._fps) / len(self._fps)
+        last, self._time = self._time, time.time()
+        if not last:
+            return
+        time.sleep(max(0, self._frame_time - (self._time - last)))
+        self._frame_times.append(time.time() - last)
+        fps = len(self._frame_times) / sum(self._frame_times)
         self._window.set_caption('FPS {}'.format(round(fps)))
-        self._last = time.time()
 
     def _handle_mouse(self, x, y, dx, dy, *args):
         self._dx += dx
