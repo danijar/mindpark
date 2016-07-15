@@ -25,13 +25,13 @@ def parse_args():
         '-o', '--directory',
         default='~/experiment/gym')
     parser.add_argument(
-        '-e', '--experiment',
+        '-l', '--experiment',
         default='experiment')
     parser.add_argument(
-        '-c', '--recording', action='store_true',
+        '-v', '--videos', action='store_true',
         default=False)
     parser.add_argument(
-        '-s', '--store-states', action='store_true',
+        '-c', '--experience', action='store_true',
         default=False)
     args = parser.parse_args()
     return args
@@ -55,8 +55,8 @@ def main():
     args = parse_args()
     validate_args(args)
     simulator = Simulator(
-        args.directory, args.repeats, args.episodes, args.recording,
-        args.store_states)
+        args.directory, args.repeats, args.episodes, args.videos,
+        args.experience)
     agents = [getattr(vizbot.agent, x) for x in args.agents]
     logging.getLogger('gym').setLevel(logging.WARNING)
     experiment, result = simulator(args.experiment, args.envs, agents)

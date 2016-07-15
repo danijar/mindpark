@@ -10,16 +10,17 @@ from vizbot.utility import ensure_directory
 
 class Simulator:
 
-    def __init__(self, root, repeats, episodes, recording=True, store_states=False):
+    def __init__(self, root, repeats, episodes,
+                 videos=True, experience=False):
         self._root = os.path.abspath(os.path.expanduser(root))
         self._repeats = repeats
         self._episodes = episodes
-        self._recording = recording
-        self._store_states = store_states
+        self._videos = videos
+        self._experience = experience
 
     def __call__(self, name, envs, agents):
         """
-        Train each agent on each environment. Store gym monitorings, rewards,
+        Train each agent on each environment. Store gym monitorings, returns,
         and durations into sub directories of the experiment. Return the path
         to the experiment and the results.
         """
@@ -28,14 +29,13 @@ class Simulator:
         experiment = os.path.join(self._root, '{}-{}'.format(timestamp, name))
         ensure_directory(experiment)
         print('Start experiment', experiment)
-        message = 'Min duration {} Mean best reward {}'
-        for env_name, agent_cls in itertools.product(envs, agents):
+        message = 'Min duration {} Mean best return {}'
+        for env, agent in itertools.product(envs, agents):
+            print('Benchmark', agent.__name__, 'on', env)
             directory = os.path.join(
-                experiment, '{}-{}'.format(env_name, agent_cls.__name__))
-            env = gym.make(env_name)
-            print('Benchmark', agent_cls.__name__, 'on', env_name)
-            reward, duration = self._benchmark(directory, env, agent_cls(env))
-            print(message.format(reward.max(axis=1).mean(), duration.min()))
+                experiment, '{}-{}'.format(env, agent.__name__))
+            returns, durations = self._benchmark(directory, env, agent)
+            print(message.format(returns.max(axis=1).mean(), durations.min()))
         result = self.read(experiment)
         return experiment, result
 
@@ -50,54 +50,66 @@ class Simulator:
         result = collections.defaultdict(dict)
         for benchmark in benchmarks:
             env, agent = os.path.basename(benchmark).rsplit('-', 1)
-            reward = np.load(os.path.join(benchmark, 'rewards.npy'))
+            returns = np.load(os.path.join(benchmark, 'returns.npy'))
             durations = np.load(os.path.join(benchmark, 'durations.npy'))
-            result[env][agent] = reward
+            result[env][agent] = returns
         return result
 
-    def _benchmark(self, directory, env, agent):
+    def _benchmark(self, directory, env_name, agent_cls):
         """
         Train an agent for several repeats and store statistics. Return the
-        average and standard deviation of rewards along the episodes, and the
-        minimum training duration.
+        returns and durations of each eposide.
         """
         ensure_directory(directory)
-        states, rewards, durations = [], [], []
+        returns, durations = [], []
         template = 'repeat-{:0>' + str(len(str(self._repeats - 1))) + '}'
         for repeat in range(self._repeats):
             subdirectory = os.path.join(directory, template.format(repeat))
-            state, reward, duration = self._simulate(subdirectory, env, agent)
-            states.append(state)
-            rewards.append(reward)
+            env = gym.make(env_name)
+            agent = agent_cls(env)
+            return_, duration = self._train(subdirectory, env, agent)
+            returns.append(return_)
             durations.append(duration)
             print(' ' + '.' * (repeat + 1), end='\r', flush=True)
         print('')
-        rewards, durations = np.array(rewards), np.array(durations)
-        if self._store_states:
-            np.savez_compressed(os.path.join(directory, 'states.npz', states))
-        np.save(os.path.join(directory, 'rewards.npy'), rewards)
-        np.save(os.path.join(directory, 'durations.npy'), durations)
-        return rewards, durations
+        returns, durations = np.array(returns), np.array(durations)
+        np.save(os.path.join(directory, 'returns.npy'), np.array(returns))
+        np.save(os.path.join(directory, 'durations.npy'), np.array(durations))
+        return returns, durations
 
-    def _simulate(self, directory, env, agent):
+    def _train(self, directory, env, agent):
         """
         Train an agent in an environment and store its gym monitoring. Return
-        rewards and training duration.
+        returns of each episode and the overall duration.
         """
-        env.monitor.start(directory, None if self._recording else False)
-        states, rewards, start = [], [], time.time()
+        env.monitor.start(directory, None if self._videos else False)
+        returns, states, rewards, start = [], [], [], time.time()
+        for episode in range(self._episodes):
+            return_, state, reward = self._episode(env, agent)
+            returns.append(return_)
+            states += state
+            rewards += reward
+        if self._experience:
+            states, rewards = np.array(states), np.array(rewards)
+            filepath = os.path.join(directory, 'experience.npz')
+            np.savez_compressed(filepath, states=states, rewards=rewards)
+        return np.array(returns), time.time() - start
+
+    def _episode(self, env, agent):
+        """
+        Reset the environment and simulate the agent for one episode. Return
+        the return and, if recorded, the experience.
+        """
+        return_, states, rewards = 0, [], []
         state, reward, done = env.reset(), 0, False
         agent.begin()
-        for episode in range(self._episodes):
-            states.append([])
-            rewards.append(0)
-            while not done:
-                action = agent.step(state)
-                state, reward, done, _ = env.step(action)
-                agent.feedback(reward)
-                if self._store_states:
-                    states[-1].append(state)
-                rewards[-1] += reward
+        while not done:
+            action = agent.step(state)
+            state, reward, done, _ = env.step(action)
+            agent.feedback(reward)
+            return_ += reward
+            if self._experience:
+                states.append(state)
+                rewards.append(reward)
         agent.end()
-        duration = time.time() - start
-        return states, rewards, duration
+        return return_, states, rewards
