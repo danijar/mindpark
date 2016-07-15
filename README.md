@@ -8,13 +8,13 @@ Deep Reinforcement Learning agents and their evaluation.
 Benchmark
 
 ```shell
-python3 -m vizbot -c -d Env, ... -a Agent, ... -n 5e6
+python3 -m vizbot -d Env, ... -a Agent, ... -v -n 5e6
 ```
 
 Recording
 
 ```shell
-python3 -m vizbot -s -r 1 -a KeyboardDoom -n 10
+python3 -m vizbot -c -r 1 -a KeyboardDoom -n 10
 ```
 
 ## Setup
