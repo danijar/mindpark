@@ -11,10 +11,11 @@ from vizbot.utility import ensure_directory
 class Simulator:
 
     def __init__(self, root, repeats, episodes,
-                 videos=True, experience=False):
+                 dry_run=False, videos=True, experience=False):
         self._root = os.path.abspath(os.path.expanduser(root))
         self._repeats = repeats
         self._episodes = episodes
+        self._dry_run = dry_run
         self._videos = videos
         self._experience = experience
 
@@ -27,15 +28,18 @@ class Simulator:
         assert all(issubclass(x, Agent) for x in agents)
         timestamp = time.strftime('%Y-%m-%dT%H-%M-%S', time.gmtime())
         experiment = os.path.join(self._root, '{}-{}'.format(timestamp, name))
-        ensure_directory(experiment)
         print('Start experiment', experiment)
         message = 'Min duration {} Mean best return {}'
+        result = collections.defaultdict(dict)
         for env, agent in itertools.product(envs, agents):
             print('Benchmark', agent.__name__, 'on', env)
             directory = os.path.join(
                 experiment, '{}-{}'.format(env, agent.__name__))
             returns, durations = self._benchmark(directory, env, agent)
             print(message.format(returns.max(axis=1).mean(), durations.min()))
+            result[env][agent] = returns
+        if self._dry_run:
+            return None, result
         result = self.read(experiment)
         return experiment, result
 
@@ -60,7 +64,6 @@ class Simulator:
         Train an agent for several repeats and store statistics. Return the
         returns and durations of each eposide.
         """
-        ensure_directory(directory)
         returns, durations = [], []
         template = 'repeat-{:0>' + str(len(str(self._repeats - 1))) + '}'
         for repeat in range(self._repeats):
@@ -73,8 +76,10 @@ class Simulator:
             print(' ' + '.' * (repeat + 1), end='\r', flush=True)
         print('')
         returns, durations = np.array(returns), np.array(durations)
-        np.save(os.path.join(directory, 'returns.npy'), np.array(returns))
-        np.save(os.path.join(directory, 'durations.npy'), np.array(durations))
+        if not self._dry_run:
+            ensure_directory(directory)
+            np.save(os.path.join(directory, 'returns.npy'), returns)
+            np.save(os.path.join(directory, 'durations.npy'), durations)
         return returns, durations
 
     def _train(self, directory, env, agent):
@@ -82,14 +87,18 @@ class Simulator:
         Train an agent in an environment and store its gym monitoring. Return
         returns of each episode and the overall duration.
         """
-        env.monitor.start(directory, None if self._videos else False)
+        if not self._dry_run:
+            ensure_directory(directory)
+            env.monitor.start(directory, None if self._videos else False)
         returns, states, rewards, start = [], [], [], time.time()
         for episode in range(self._episodes):
             return_, state, reward = self._episode(env, agent)
             returns.append(return_)
             states += state
             rewards += reward
-        if self._experience:
+        if not self._dry_run:
+            env.monitor.close()
+        if self._experience and not self._dry_run:
             states, rewards = np.array(states), np.array(rewards)
             filepath = os.path.join(directory, 'experience.npz')
             np.savez_compressed(filepath, states=states, rewards=rewards)
@@ -105,8 +114,10 @@ class Simulator:
         agent.begin()
         while not done:
             action = agent.step(state)
+            previous = state
             state, reward, done, _ = env.step(action)
-            agent.feedback(reward)
+            successor = None if done else state
+            agent.feedback(previous, action, reward, successor)
             return_ += reward
             if self._experience:
                 states.append(state)
