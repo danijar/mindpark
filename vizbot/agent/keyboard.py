@@ -2,15 +2,15 @@ import time
 import collections
 import numpy as np
 import pyglet
-from vizbot.core import Agent, Mixin, Add
-from vizbot.mixin import Image, FrameSkip
+from vizbot.core import Agent
+from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, clamp
 
 
 class Keyboard(Agent):
 
-    def __init__(self, states, actions, fps=30, sensitivity=0.3):
-        super().__init__(states, actions)
+    def __init__(self, env, fps=30, sensitivity=0.3):
+        super().__init__(env)
         self._viewer = Viewer(fps=fps)
         self._fps = fps
         self._time = None
@@ -23,8 +23,8 @@ class Keyboard(Agent):
         super().begin()
         self._time = time.time()
 
-    def step(self, state):
-        super().step(state)
+    def perform(self, state):
+        super().perform(state)
         self._viewer(state)
         action = self._noop()
         action = self._apply_keyboard(action, self._viewer.pressed_keys())
@@ -39,9 +39,6 @@ class Keyboard(Agent):
     def _apply_mouse(self, action, delta):
         return action
 
-
-@Add(Image, 'grayscale', 2)
-@Add(FrameSkip, 3)
 
 class KeyboardDoom(Keyboard):
 
@@ -62,9 +59,8 @@ class KeyboardDoom(Keyboard):
         weapon_2=7, weapon_3=8, weapon_4=9, weapon_5=10, weapon_6=11,
         weapon_7=12, rotate_x=38, rotate_y=39)
 
-    def __init__(self, states, actions,
-                 fps=30, sensitivity=0.3, render_state=True):
-        super().__init__(states, actions, fps, sensitivity)
+    def __init__(self, env, fps=30, sensitivity=0.3, render_state=True):
+        super().__init__(env, fps, sensitivity)
         self._render_state = render_state
 
     def _apply_keyboard(self, action, pressed):

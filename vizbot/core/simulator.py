@@ -4,7 +4,7 @@ import os
 import time
 import numpy as np
 import gym
-from vizbot.core import Agent
+from vizbot.core import Agent, GymEnv
 from vizbot.utility import ensure_directory
 
 
@@ -67,8 +67,8 @@ class Simulator:
         template = 'repeat-{:0>' + str(len(str(self._repeats - 1))) + '}'
         for repeat in range(self._repeats):
             subdirectory = os.path.join(directory, template.format(repeat))
-            env = gym.make(env_name)
-            agent = agent_cls(env.observation_space, env.action_space)
+            env = GymEnv(env_name)
+            agent = agent_cls(env)
             return_, duration = self._train(subdirectory, env, agent)
             returns.append(return_)
             durations.append(duration)
@@ -109,13 +109,10 @@ class Simulator:
         the return and, if recorded, the experience.
         """
         return_, states, rewards = 0, [], []
-        state, reward, done = env.reset(), 0, False
-        agent.begin()
+        done = False
+        env.begin()
         while not done:
-            action = agent.step(state)
-            previous = state
-            state, reward, done, _ = env.step(action)
-            agent.feedback(action, reward)
+            state, reward, done = env.step()
             return_ += reward
             if self._experience:
                 states.append(state)

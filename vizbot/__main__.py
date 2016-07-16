@@ -12,10 +12,10 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-d', '--envs', nargs='+',
-        default=['DoomSimpleDeathmatch-v0'])
+        default=['SimpleDoom-v0'])
     parser.add_argument(
         '-a', '--agents', nargs='+',
-        default=['Random'])
+        default=['Keyboard', 'Random', 'Noop'])
     parser.add_argument(
         '-r', '--repeats', type=nearest_int,
         default='5')
