@@ -13,18 +13,23 @@ class Env:
         raise NotImplementedError
 
     def register(self, agent):
+        if self._agent is not None:
+            message = 'agent {} is already registered to env {}'
+            message = message.format(
+                type(self._agent).__name__, type(self).__name__)
+            raise RuntimeError(message)
         assert self._agent is None
         assert agent is not None
         self._agent = agent
 
-    def begin(self):
+    def start(self):
         assert self.episode is None
         self.episode = 0
-        self._agent.begin()
+        self._agent.start()
 
     def step(self):
         self.episode += 1
 
-    def end(self):
+    def stop(self):
         self.episode = None
-        self._agent.end()
+        self._agent.stop()

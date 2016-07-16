@@ -10,6 +10,10 @@ from vizbot.utility import AttrDict, clamp
 class Keyboard(Agent):
 
     def __init__(self, env, fps=30, sensitivity=0.3):
+        # env = Grayscale(env)
+        # env = Downsample(env, 2)
+        # env = FrameSkip(env, 4)
+        # env = Grayscale(env)
         super().__init__(env)
         self._viewer = Viewer(fps=fps)
         self._fps = fps
@@ -17,10 +21,13 @@ class Keyboard(Agent):
         self._sensitivity = sensitivity
 
     def __del__(self):
-        self._viewer.close()
+        try:
+            self._viewer.close()
+        except AttributeError:
+            pass
 
-    def begin(self):
-        super().begin()
+    def start(self):
+        super().start()
         self._time = time.time()
 
     def perform(self, state):

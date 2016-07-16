@@ -5,18 +5,17 @@ class Agent:
 
     def __init__(self, env):
         self._env = env
-        # self._env.register(self)
+        self._env.register(self)
         self.__state = None
         self.__action = None
         self.__reward = None
 
-    def begin(self):
+    def start(self):
         self.__state = None
         self.__action = None
         self.__reward = None
 
     def perform(self, state):
-        self._env.episode += 1
         if self._env.episode:
             self._experience(self.__state, self.__action, self.__reward, state)
         self.__state = state
@@ -25,7 +24,7 @@ class Agent:
         self.__action = action
         self.__reward = reward
 
-    def end(self):
+    def stop(self):
         if self._env.episode:
             self._experience(self.__state, self.__action, self.__reward, None)
 

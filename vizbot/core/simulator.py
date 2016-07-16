@@ -69,7 +69,6 @@ class Simulator:
             subdirectory = os.path.join(directory, template.format(repeat))
             env = GymEnv(env_name)
             agent = agent_cls(env)
-            env.register(agent)
             return_, duration = self._train(subdirectory, env, agent)
             returns.append(return_)
             durations.append(duration)
@@ -111,12 +110,12 @@ class Simulator:
         """
         return_, states, rewards = 0, [], []
         done = False
-        env.begin()
+        env.start()
         while not done:
             state, reward, done = env.step()
             return_ += reward
             if self._experience:
                 states.append(state)
                 rewards.append(reward)
-        env.end()
+        env.stop()
         return return_, states, rewards

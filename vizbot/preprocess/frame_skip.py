@@ -8,21 +8,23 @@ class FrameSkip(Preprocess):
     def __init__(self, env, amount):
         super().__init__(env)
         self.__amount = amount
-        self.__action = self._agent._noop()
+        self.__action = None
         self.__frames = None
         self.__index = None
 
     @property
     def states(self):
-        return Box(0, 255, self._source.states.shape + (self.__amount,))
+        shape = self._env.states.shape + (self.__amount,)
+        return Box(0, 255, shape)
 
     @property
     def actions(self):
-        return self._source.actions
+        return self._env.actions
 
-    def begin(self):
-        super().begin()
-        self.__frames = np.empty((self.__amount,) + self._source.states.shape)
+    def start(self):
+        super().start()
+        self.__action = self._agent._noop()
+        self.__frames = np.empty((self.__amount,) + self._env.states.shape)
         self.__index = 0
 
     def perform(self, state):

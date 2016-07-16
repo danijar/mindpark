@@ -18,8 +18,8 @@ class GymEnv(Env):
     def actions(self):
         return self._env.action_space
 
-    def begin(self):
-        super().begin()
+    def start(self):
+        super().start()
         self._state = self._env.reset()
 
     def step(self):
@@ -29,8 +29,8 @@ class GymEnv(Env):
         self._agent.feedback(action, reward)
         return self._state, reward, done
 
-    def end(self):
-        super().end()
+    def stop(self):
+        super().stop()
 
     @property
     def monitor(self):

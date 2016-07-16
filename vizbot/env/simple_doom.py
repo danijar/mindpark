@@ -25,9 +25,17 @@ class SimpleDoom(Env):
         self._env.configure(screen_resolution=ScreenResolution.RES_160X120)
 
     @property
+    def observation_space(self):
+        return self._env.observation_space
+
+    @property
     def action_space(self):
         matrix = self._env.action_space.matrix[self.AVAILABLE_ACTIONS]
         return HighLow(matrix)
+
+    @property
+    def monitor(self):
+        return self._env.monitor
 
     def _step(self, action):
         assert len(action) == len(self.AVAILABLE_ACTIONS)
@@ -40,11 +48,3 @@ class SimpleDoom(Env):
 
     def _reset(self):
         return self._env.reset()
-
-    @property
-    def monitor(self):
-        return self._env.monitor
-
-    def __getattr__(self, name):
-        print('Access', name)
-        return getattr(self._env, name)
