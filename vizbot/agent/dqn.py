@@ -2,21 +2,22 @@ import collections
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.layers import convolution2d, fully_connected
-from vizbot.core import Agent
+from vizbot.core import Agent, Mixin, Add
 from vizbot.mixin import Image, FrameSkip
 from vizbot.utility import AttrDict, lazy_property
 
 
-@Image(color='grayscale', subsample=2)
-@FrameSkip(width=4)
+@Add(Image, 'grayscale', 2)
+@Add(FrameSkip, 4)
+
 class DQN(Agent):
 
     def __init__(self, actions, states, config=None):
         super().__init__(actions, states)
         self._config = config or self._default_config()
         self._memory = ReplayMemory(self._config.replay_capacity)
-        self._input = tf.placeholder(
-            tf.float32, (None,) + self._states.shape[: -1] + (self._config.input_frames,))
+        self._input = tf.placeholder(tf.float32,
+            (None,) + self._states.shape[: -1] + (self._config.input_frames,))
         self._action = tf.placeholder(tf.float32, (None, self._actions.shape))
         self._target = tf.placeholder(tf.float32, (None,))
         self._optimize

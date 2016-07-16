@@ -25,7 +25,6 @@ class Simulator:
         and durations into sub directories of the experiment. Return the path
         to the experiment and the results.
         """
-        assert all(issubclass(x, Agent) for x in agents)
         timestamp = time.strftime('%Y-%m-%dT%H-%M-%S', time.gmtime())
         experiment = os.path.join(self._root, '{}-{}'.format(timestamp, name))
         print('Start experiment', experiment)

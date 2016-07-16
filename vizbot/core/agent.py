@@ -4,10 +4,10 @@ import numpy as np
 class Agent:
 
     def __init__(self, states, actions, seed=0):
-        self._states = states
-        self._actions = actions
         self._episode = -1
         self._random = np.random.RandomState(seed)
+        self._states = states
+        self._actions = actions
         self.__state = None
         self.__action = None
         self.__reward = None

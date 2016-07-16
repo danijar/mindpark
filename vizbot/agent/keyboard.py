@@ -2,14 +2,15 @@ import time
 import collections
 import numpy as np
 import pyglet
-from vizbot.core import Agent
+from vizbot.core import Agent, Mixin, Add
+from vizbot.mixin import Image, FrameSkip
 from vizbot.utility import AttrDict, clamp
 
 
 class Keyboard(Agent):
 
-    def __init__(self, env, fps=30, sensitivity=0.3):
-        super().__init__(env)
+    def __init__(self, states, actions, fps=30, sensitivity=0.3):
+        super().__init__(states, actions)
         self._viewer = Viewer(fps=fps)
         self._fps = fps
         self._time = None
@@ -24,19 +25,12 @@ class Keyboard(Agent):
 
     def step(self, state):
         super().step(state)
-        self._viewer(self._process_state(state))
-        action = self._initial_action()
+        self._viewer(state)
+        action = self._noop()
         action = self._apply_keyboard(action, self._viewer.pressed_keys())
         delta = self._viewer.delta()
         delta = self._sensitivity * delta[0], self._sensitivity * delta[1]
         action = self._apply_mouse(action, delta)
-        return action
-
-    def _process_state(self, state):
-        return state
-
-    def _initial_action(self):
-        action = np.zeros(self._env.action_space.shape, dtype=int)
         return action
 
     def _apply_keyboard(self, action, pressed):
@@ -45,6 +39,9 @@ class Keyboard(Agent):
     def _apply_mouse(self, action, delta):
         return action
 
+
+@Add(Image, 'grayscale', 2)
+@Add(FrameSkip, 3)
 
 class KeyboardDoom(Keyboard):
 
@@ -55,42 +52,31 @@ class KeyboardDoom(Keyboard):
         number_4='weapon_4', number_5='weapon_5', number_6='weapon_6',
         number_7='weapon_7')
 
-    ACTIONS = AttrDict(
-        fire=0, jump=2, crouch=3, run=8, right=10, left=11, backward=12,
-        forward=13, rotate_y=38, rotate_x=39, switch=31, weapon_1=21,
-        weapon_2=22, weapon_3=23, weapon_4=24, weapon_5=25, weapon_6=26,
-        weapon_7=27)
+    COMMANDS = (
+        'fire turn_180 speed circle right left backward forward turn_left '
+        'turn_right weapon_1 weapon_2 weapon_3 weapon_4 weapon_5 weapon_6 '
+        'weapon_7 rotate_y rotate_x'.split())
 
-    def __init__(self, env, fps=30, sensitivity=0.3, render_state=True):
-        super().__init__(env, fps, sensitivity)
+    AttrDict(
+        fire=0, run=1, right=2, left=3, bachward=4, forward=5, weapon_1=6,
+        weapon_2=7, weapon_3=8, weapon_4=9, weapon_5=10, weapon_6=11,
+        weapon_7=12, rotate_x=38, rotate_y=39)
+
+    def __init__(self, states, actions,
+                 fps=30, sensitivity=0.3, render_state=True):
+        super().__init__(states, actions, fps, sensitivity)
         self._render_state = render_state
-
-    def step(self, state):
-        action = super().step(state)
-        allowed = self._env._allowed_actions
-        action = [x for i, x in enumerate(action) if i in allowed]
-        return action
-
-    def _process_state(self, state):
-        if self._render_state:
-            try: return self._env.game.get_state().image_buffer
-            except: pass
-        return state
-
-    def _initial_action(self):
-        action = np.zeros(self._env.full_action_space.shape, dtype=int)
-        return action
 
     def _apply_keyboard(self, action, pressed):
         for key in pressed:
-            index = self.ACTIONS.get(self.KEYMAP.get(key))
-            if index is not None:
-                action[index] = 1
+            command = self.KEYMAP.get(key)
+            if command in self.COMMANDS:
+                action[self.COMMANDS.index(command)] = 1
         return action
 
     def _apply_mouse(self, action, delta):
-        action[self.ACTIONS.rotate_x] = int(clamp(delta[0], -10, 10))
-        action[self.ACTIONS.rotate_y] = int(clamp(delta[1], -10, 10))
+        action[self.COMMANDS.index('rotate_x')] = int(clamp(delta[0], -10, 10))
+        action[self.COMMANDS.index('rotate_y')] = int(clamp(delta[1], -10, 10))
         return action
 
 
@@ -168,6 +154,9 @@ class Viewer:
         raise KeyboardInterrupt
 
     def _load(self, image):
+        image = image.astype(np.uint8)
+        if len(image.shape) == 2:
+            image = np.stack([image] * 3, axis=-1).copy()
         image = pyglet.image.ImageData(
             image.shape[0], image.shape[1], 'RGB', image.tobytes(),
             pitch=image.shape[1] * -3)
