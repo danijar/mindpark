@@ -5,7 +5,7 @@ class Agent:
 
     def __init__(self, env):
         self._env = env
-        self._env.register(self)
+        # self._env.register(self)
         self.__state = None
         self.__action = None
         self.__reward = None

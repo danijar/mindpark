@@ -38,6 +38,13 @@ class SimpleDoom(Env):
         full_action[33] = 0
         return self._env._step(full_action)
 
+    def _reset(self):
+        return self._env.reset()
+
+    @property
+    def monitor(self):
+        return self._env.monitor
+
     def __getattr__(self, name):
         print('Access', name)
         return getattr(self._env, name)

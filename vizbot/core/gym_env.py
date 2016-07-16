@@ -24,10 +24,14 @@ class GymEnv(Env):
 
     def step(self):
         super().step()
-        action = self._agent(self._state)
+        action = self._agent.perform(self._state)
         self._state, reward, done, info = self._env.step(action)
         self._agent.feedback(action, reward)
         return self._state, reward, done
 
     def end(self):
         super().end()
+
+    @property
+    def monitor(self):
+        return self._env.monitor
