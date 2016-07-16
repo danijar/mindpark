@@ -2,38 +2,38 @@ import collections
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.layers import convolution2d, fully_connected
-from vizbot.core import Agent, Mixin, Add
-from vizbot.mixin import Image, FrameSkip
+from vizbot.agent import EpsilonGreedy
+from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, lazy_property
 
 
-@Add(Image, 'grayscale', 2)
-@Add(FrameSkip, 4)
+class DQN(EpsilonGreedy):
 
-class DQN(Agent):
-
-    def __init__(self, actions, states, config=None):
-        super().__init__(actions, states)
+    def __init__(self, env, config=None):
+        env = Grayscale(env)
+        env = Downsample(env, 4)
+        env = FrameSkip(env, 4)
         self._config = config or self._default_config()
+        super().__init__(env, **self._config.epsilon)
         self._memory = ReplayMemory(self._config.replay_capacity)
-        self._input = tf.placeholder(tf.float32,
-            (None,) + self._states.shape[: -1] + (self._config.input_frames,))
-        self._action = tf.placeholder(tf.float32, (None, self._actions.shape))
-        self._target = tf.placeholder(tf.float32, (None,))
+        self._init_graph()
+
+    def _init_graph(self):
+        self._input = tf.placeholder(
+            tf.float32, (None,) + self._env.states.shape)
+        self._action = tf.placeholder(
+            tf.float32, (None, self._env.actions.shape))
+        self._target = tf.placeholder(
+            tf.float32, (None,))
         self._optimize
         self._sess = tf.Session()
         # TODO: Not good with multiple agents.
         self._sess.run(tf.initialize_all_variables())
 
-    def step(self, state):
-        super().step(state)
-        epsilon = self._decay(**self._config.epsilon)
-        if self._random.rand() < epsilon:
-            choice = self._random.choice(self._actions.shape)
-        else:
-            choice = self._sess.run(self._predict, {self._input: [state]})
-            choice = np.argmax(choice[0])
-            print('DQN action', choice)
+    def _perform(self, state):
+        outputs = self._sess.run(self._predict, {self._input: [state]})
+        choice = np.argmax(outputs[0])
+        print('DQN action', choice)
         action = self._noop()
         action[choice] = 1
         return action
@@ -63,7 +63,7 @@ class DQN(Agent):
         x = convolution2d(x, 32, 4, 2, 'VALID', tf.nn.relu)
         x = tf.reshape(x, [-1, int(np.prod(x.get_shape()[1:]))])
         x = fully_connected(x, 256, tf.nn.relu)
-        output = fully_connected(x, self._actions.shape)
+        output = fully_connected(x, self._env.actions.shape)
         return output
 
     @lazy_property
@@ -82,7 +82,7 @@ class DQN(Agent):
         batch_size = 32
         learning_rate = 1e4
         optimizer = tf.train.RMSPropOptimizer(learning_rate)
-        epsilon = AttrDict(start=1, end=0.1, over=int(1e6))
+        epsilon = AttrDict(start=1, stop=0.1, over=int(1e6))
         return AttrDict(**locals())
 
 

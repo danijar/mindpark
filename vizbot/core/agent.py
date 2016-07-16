@@ -6,6 +6,7 @@ class Agent:
     def __init__(self, env):
         self._env = env
         self._env.register(self)
+        self._random = np.random.RandomState(seed=0)
         self.__state = None
         self.__action = None
         self.__reward = None
