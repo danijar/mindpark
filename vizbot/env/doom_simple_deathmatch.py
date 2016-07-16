@@ -23,41 +23,21 @@ class DoomSimpleDeathmatch(DoomDeathmatchEnv):
         self.full_action_space = self.action_space
         self._reduce_action_space()
 
-    def _load_level(self):
-        result = super()._load_level()
+    def _load_level(self, *args, **kwargs):
+        result = super()._load_level(*args, **kwargs)
         self._reduce_action_space()
         return result
-
-    def _reset(self):
-        state = super()._reset()
-        state = self._downsample(state)
-        return state
 
     def _step(self, action):
         assert len(action) == len(self._allowed_actions)
         full_action = np.zeros(self.full_action_space.num_rows)
         for index, value in zip(self._allowed_actions, action):
             full_action[index] = value
-        full_action[33] = 0  # Work around drop weapon bug in parent class.
-        state, reward, done, info = super()._step(full_action)
-        state = self._downsample(state)
-        return state, reward, done, info
-
-    def _render(self, *args, **kwargs):
-        image = super()._render(*args, **kwargs)
-        if isinstance(image, np.ndarray):
-            image = self._downsample(image)
-        return image
+        # Work around drop weapon bug in parent class.
+        full_action[33] = 0
+        return super()._step(full_action)
 
     def _reduce_action_space(self):
         self._allowed_actions = sorted(self.ALLOWED_ACTIONS)
         matrix = self.full_action_space.matrix[self._allowed_actions]
         self.action_space = HighLow(matrix)
-
-    @staticmethod
-    def _downsample(state, factor=2):
-        width, height, _ = state.shape
-        shape = width // factor, factor, height // factor, factor, -1
-        state = state.reshape(shape).mean(3).mean(1)
-        state = state.astype(np.uint8)
-        return state

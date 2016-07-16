@@ -69,7 +69,7 @@ class Simulator:
         for repeat in range(self._repeats):
             subdirectory = os.path.join(directory, template.format(repeat))
             env = gym.make(env_name)
-            agent = agent_cls(env)
+            agent = agent_cls(env.observation_space, env.action_space)
             return_, duration = self._train(subdirectory, env, agent)
             returns.append(return_)
             durations.append(duration)
@@ -116,8 +116,7 @@ class Simulator:
             action = agent.step(state)
             previous = state
             state, reward, done, _ = env.step(action)
-            successor = None if done else state
-            agent.feedback(previous, action, reward, successor)
+            agent.feedback(action, reward)
             return_ += reward
             if self._experience:
                 states.append(state)
