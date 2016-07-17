@@ -17,6 +17,15 @@ Recording
 python3 -m vizbot -c -r 1 -a KeyboardDoom -n 10
 ```
 
+## Tips
+
+Monitoring
+
+```
+cd ~/experiment/gym && cd `ls -t | head -n 1`
+watch "{ nvidia-smi; echo; ls; echo; cat *.stats.json; }"
+```
+
 ## Setup
 
 Dependencies
