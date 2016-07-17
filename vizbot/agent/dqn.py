@@ -7,18 +7,6 @@ from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, lazy_property
 
 
-def conv2d(x, filters, size, stride, activation):
-    x = tf.contrib.layers.convolution2d(
-        x, filters, size, stride, 'VALID', activation)
-    return x
-
-
-def dense(x, size, activation):
-    x = tf.reshape(x, (-1, int(np.prod(x.get_shape()[1:]))))
-    x = tf.contrib.layers.fully_connected(x, size, activation)
-    return x
-
-
 class DQN(EpsilonGreedy):
 
     def __init__(self, env, config=None):
@@ -29,10 +17,8 @@ class DQN(EpsilonGreedy):
         # env = OneHotActions(env)
         super().__init__(env, **self._config.epsilon)
         self._memory = ReplayMemory(self._config.replay_capacity)
-        with tf.Graph().as_default():
-            self._actor = self._build_q_network('actor')
-        # with tf.Graph().as_default():
-            self._target = self._build_q_network('target')
+        self._actor = self._build_q_network()
+        self._target = self._build_q_network()
         self._target.variables = self._actor.variables
 
     def _perform(self, state):
@@ -56,9 +42,8 @@ class DQN(EpsilonGreedy):
         self._target.variables = self._actor.variables
         self._actor.train(state=previous, action=action, target=target)
 
-    def _build_q_network(self, name):
-        model = Model(name)
-        with model.scope:
+    def _build_q_network(self):
+        with Model() as model:
             model.placeholder('state', self._env.states.shape)
             model.placeholder('action_')
             model.placeholder('target')
@@ -70,7 +55,7 @@ class DQN(EpsilonGreedy):
             model.action('best', tf.reduce_max(x, 1))
             model.action('choice', tf.argmax(x, 1))
             model.compile(cost, self._config.optimizer)
-        return model
+            return model
 
     @staticmethod
     def _default_config():
@@ -116,3 +101,15 @@ class ReplayMemory:
             reward[index] = self._reward[choice]
             successor[index] = self._successor[choice]
         return previous, action, reward, successor
+
+
+def conv2d(x, filters, size, stride, activation):
+    x = tf.contrib.layers.convolution2d(
+        x, filters, size, stride, 'VALID', activation)
+    return x
+
+
+def dense(x, size, activation):
+    x = tf.reshape(x, (-1, int(np.prod(x.get_shape()[1:]))))
+    x = tf.contrib.layers.fully_connected(x, size, activation)
+    return x

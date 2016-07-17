@@ -5,21 +5,29 @@ import tensorflow as tf
 
 class Model:
 
-    def __init__(self, name):
+    def __init__(self):
         self._placeholders = {}
         self._actions = {}
-        self._graph = tf.get_default_graph()  # tf.Graph()
-        self._name = name
+        self._graph = tf.Graph()
+        self._scope = None
         self._cost = None
         self._optimize = None
         self._sess = None
 
     @property
     def scope(self):
-        # return self._graph.as_default()
-        return tf.variable_scope(self._name)
+        return self._graph.as_default()
+
+    def __enter__(self):
+        self._scope = self._graph.as_default()
+        self._scope.__enter__()
+        return self
+
+    def __exit__(self, type_, value, traceback):
+        self._scope.__exit__(type_, value, traceback)
 
     def placeholder(self, name, shape=None, type_=tf.float16):
+        self._ensure_scope()
         if hasattr(self, name) or name in ('batch_size', 'epochs'):
             raise KeyError('invalid placeholder name ' + name)
         shape = (None,) + shape if shape else (None,)
@@ -28,30 +36,32 @@ class Model:
         setattr(self, name, placeholder)
 
     def action(self, name, action):
+        self._ensure_scope()
         if hasattr(self, name):
             raise KeyError('invalid action name ' + name)
         self._actions[name] = action
         setattr(self, name, functools.partial(self._predict, action))
 
     def compile(self, cost, optimizer=None):
-        with self.scope:
-            self._cost = tf.reduce_sum(cost)
-            optimizer = optimizer or tf.train.RMSPropOptimizer(0.01)
-            self._optimize = optimizer.minimize(self._cost)
+        self._ensure_scope()
+        self._cost = tf.reduce_sum(cost)
+        optimizer = optimizer or tf.train.RMSPropOptimizer(0.01)
+        self._optimize = optimizer.minimize(self._cost)
         self._sess = tf.Session()
         self._sess.run(tf.initialize_all_variables())
 
     @property
     def variables(self):
-        keys, variables = self._variables
-        values = self._sess.run(variables)
-        return keys, values
+        vars_ = self._graph.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        values = self._sess.run(vars_)
+        return values
 
     @variables.setter
-    def variables(self, keys_values):
-        vars_ = {k: v for k, v in zip(*self._variables)}
-        assignments = [
-            tf.assign(vars_[k], v) for k, v in zip(*keys_values) if k in vars_]
+    def variables(self, values):
+        vars_ = self._graph.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        if len(values) != len(vars_):
+            raise ValueError('amount of variables does not fit this model')
+        assignments = [var.assign(val) for var, val in zip(vars_, values)]
         self._sess.run(assignments)
 
     def train(self, batch_size=None, epochs=1, **data):
@@ -64,13 +74,6 @@ class Model:
             for batch in zip(*batches):
                 feed = {k: v for k, v in zip(placeholders, batch)}
                 self._sess.run(self._optimize, feed)
-
-    @property
-    def _variables(self):
-        vars_ = self._graph.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        vars_ = [var for var in vars_ if var.name.startswith(self._name)]
-        keys = [var.name[len(self._name) + 1:] for var in vars_]
-        return keys, vars_
 
     def _predict(self, output, **data):
         single = all(
@@ -87,3 +90,7 @@ class Model:
     def _chunks(self, data, size):
         for index in range(0, len(data), size):
             yield data[index: index + size]
+
+    def _ensure_scope(self):
+        if not self._scope:
+            raise RuntimeError("use 'with' to build the model")
