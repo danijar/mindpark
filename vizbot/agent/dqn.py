@@ -1,15 +1,22 @@
 import collections
 import numpy as np
 import tensorflow as tf
-
-from keras.models import Model
-from keras.layers import Input, Convolution2D, Dense, Flatten, Lambda
-from keras.optimizers import RMSprop
-from keras import backend as K
-
+from vizbot.core import Model
 from vizbot.agent import EpsilonGreedy
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, lazy_property
+
+
+def conv2d(x, filters, size, stride, activation):
+    x = tf.contrib.layers.convolution2d(
+        x, filters, size, stride, 'VALID', activation)
+    return x
+
+
+def dense(x, size, activation):
+    x = tf.reshape(x, (-1, int(np.prod(x.get_shape()[1:]))))
+    x = tf.contrib.layers.fully_connected(x, size, activation)
+    return x
 
 
 class DQN(EpsilonGreedy):
@@ -22,17 +29,15 @@ class DQN(EpsilonGreedy):
         # env = OneHotActions(env)
         super().__init__(env, **self._config.epsilon)
         self._memory = ReplayMemory(self._config.replay_capacity)
-        # K.set_session(tf.Session())
-        self._actor = self._build_q_network(trainable=True)
-        self._target = self._build_q_network(trainable=False)
-        self._sync_target()
+        with tf.Graph().as_default():
+            self._actor = self._build_q_network('actor')
+        # with tf.Graph().as_default():
+            self._target = self._build_q_network('target')
+        self._target.variables = self._actor.variables
 
     def _perform(self, state):
         action = self._noop()
-        q_values = self._actor.predict(np.array([state]))[0]
-        choice = q_values.argmax()
-        # print('Choice', choice)
-        action[choice] = 1
+        action[self._actor.choice(state=state)] = 1
         return action
 
     def feedback(self, action, reward):
@@ -45,31 +50,26 @@ class DQN(EpsilonGreedy):
         self._memory.append(state, action, reward, successor)
         if len(self._memory) < self._config.batch_size:
             return
-        self._train(*self._memory.sample(self._config.batch_size))
-
-    def _train(self, previous, action, reward, successor):
-        future = self._target.predict(successor, action).max(1)
+        future = self._target.best(state=successor)
         future[np.equal(successor, None)] = 0
         target = reward + self._config.discount * future
-        self._sync_target()
-        # TODO: Only train output node of the real action.
-        self._actor.train(previous, target)
+        self._target.variables = self._actor.variables
+        self._actor.train(state=previous, action=action, target=target)
 
-    def _sync_target(self):
-        self._target.set_weights(self._actor.get_weights())
-
-    def _build_q_network(self, trainable):
-        state = Input(shape=self._env.states.shape)
-        x = Convolution2D(16, 8, 8, subsample=(4, 4), activation='relu',
-            trainable=trainable, dim_ordering='tf')(state)
-        x = Convolution2D(32, 4, 4, subsample=(2, 2), activation='relu',
-            trainable=trainable, dim_ordering='tf')(x)
-        x = Flatten()(x)
-        x = Dense(256, activation='relu', trainable=trainable)(x)
-        q_values = Dense(self._env.actions.shape, activation='relu',
-            trainable=trainable)(x)
-        model = Model(input=state, output=q_values)
-        model.compile(self._config.optimizer, 'mse')
+    def _build_q_network(self, name):
+        model = Model(name)
+        with model.scope:
+            model.placeholder('state', self._env.states.shape)
+            model.placeholder('action_')
+            model.placeholder('target')
+            x = conv2d(model.state, 16, 8, 4, tf.nn.relu)
+            x = conv2d(x, 32, 4, 3, tf.nn.relu)
+            x = dense(x, 256, tf.nn.relu)
+            x = dense(x, self._env.actions.shape, tf.nn.relu)
+            cost = ((model.action_ * x) - model.target) ** 2
+            model.action('best', tf.reduce_max(x, 1))
+            model.action('choice', tf.argmax(x, 1))
+            model.compile(cost, self._config.optimizer)
         return model
 
     @staticmethod
@@ -78,7 +78,8 @@ class DQN(EpsilonGreedy):
         frame_skip = 4
         replay_capacity = int(1e4)
         batch_size = 32
-        optimizer = RMSprop(1e-2)
+        learning_rate = 1e-2
+        optimizer = tf.train.RMSPropOptimizer(learning_rate)
         epsilon = AttrDict(start=0.3, stop=0.05, over=200)
         return AttrDict(**locals())
 
