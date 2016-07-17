@@ -34,6 +34,10 @@ class SimpleDoom(Env):
         return HighLow(matrix)
 
     @property
+    def metadata(self):
+        return self._env.metadata
+
+    @property
     def monitor(self):
         return self._env.monitor
 
@@ -46,5 +50,14 @@ class SimpleDoom(Env):
         full_action[33] = 0
         return self._env._step(full_action)
 
+    def _close(self):
+        return self._env._close()
+
+    def _seed(self, seed=None):
+        return self._env._seed(seed)
+
     def _reset(self):
-        return self._env.reset()
+        return self._env._reset()
+
+    def _render(self, mode='human', close=False):
+        return self._env._render(mode, close)

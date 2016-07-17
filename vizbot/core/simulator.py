@@ -93,16 +93,15 @@ class Simulator:
         for epoch in range(self._epochs):
             episodes, timestep, returns = 0, 0, []
             while timestep < self._timesteps:
-                duration, return_, state, reward = self._episode(
-                    env, agent, self._timesteps - timestep)
+                print('Epoch {} episode {} timestep {}'.format(
+                    epoch, episodes, timestep))
+                duration, return_, state, reward = self._episode(env, agent)
                 timestep += duration
                 returns.append(return_)
                 states += state
                 rewards += reward
                 episodes += 1
             score.append(sum(returns) / episodes)
-            print(' ' + '.' * (epoch + 1), end='\r', flush=True)
-        print('')
         if not self._dry_run:
             env.monitor.close()
         if self._experience and not self._dry_run:
@@ -111,7 +110,7 @@ class Simulator:
             np.savez_compressed(filepath, states=states, rewards=rewards)
         return np.array(score), time.time() - start
 
-    def _episode(self, env, agent, maxlen):
+    def _episode(self, env, agent):
         """
         Reset the environment and simulate the agent for one episode. Return
         the number of time steps, the return, and the experience if recorded.
@@ -119,14 +118,12 @@ class Simulator:
         duration, return_, states, rewards = 0, 0, [], []
         done = False
         env.start()
-        for _ in range(maxlen):
+        while not done:
             state, reward, done = env.step()
             duration += 1
             return_ += reward
             if self._experience:
                 states.append(state)
                 rewards.append(reward)
-            if done:
-                break
         env.stop()
         return duration, return_, states, rewards
