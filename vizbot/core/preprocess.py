@@ -16,6 +16,14 @@ class Preprocess(Env, Agent):
         Env.start(self)
         Agent.start(self)
 
+    def perform(self, state):
+        super().perform(state)
+        super().step()
+
+    def feedback(self, action, reward):
+        super().feedback(action, reward)
+        self._agent.feedback(action, reward)
+
     def stop(self):
-        Env.stop(self)
         Agent.stop(self)
+        Env.stop(self)

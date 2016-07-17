@@ -30,8 +30,12 @@ class Model:
         self._ensure_scope()
         if hasattr(self, name) or name in ('batch_size', 'epochs'):
             raise KeyError('invalid placeholder name ' + name)
-        shape = shape if hasattr(shape, '__len__') else (shape,)
-        shape = (None,) + shape if shape else (None,)
+        if shape is None:
+            shape = (None,)
+        elif not hasattr(shape, '__len__'):
+            shape = (None, shape)
+        else:
+            shape = (None,) + shape
         placeholder = tf.placeholder(type_, shape)
         self._placeholders[name] = placeholder
         setattr(self, name, placeholder)
@@ -66,11 +70,13 @@ class Model:
         self._sess.run(assignments)
 
     def train(self, batch_size=None, epochs=1, **data):
-        data = self._resolve_only_input(data)
+        for key in data:
+            if not key in self._placeholders:
+                raise KeyError("invalid placeholder '{}'".format(key))
         keys = sorted(data.keys())
         data = [data[x] for x in keys]
         placeholders = [self._placeholders[x] for x in keys]
-        batches = [self._chunks(x, batch_size) for x in data]
+        batches = [self._chunks(x, batch_size or len(data)) for x in data]
         for _ in range(epochs):
             for batch in zip(*batches):
                 feed = {k: v for k, v in zip(placeholders, batch)}

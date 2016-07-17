@@ -1,3 +1,4 @@
+import numpy as np
 from vizbot.core import Agent
 
 
@@ -17,7 +18,7 @@ class EpsilonGreedy(Agent):
             # action = self._noop()
             # action[self._random.choice(self._env.actions.shape)] = 1
             # return action
-            return self._env.actions.sample()
+            return np.array(self._env.actions.sample())
         return self._perform(state)
 
     def _perform(self, state):

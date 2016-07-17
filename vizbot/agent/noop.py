@@ -1,4 +1,5 @@
 from vizbot.core import Agent
+from vizbot.preprocess import Downsample
 
 
 class Noop(Agent):

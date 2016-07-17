@@ -1,7 +1,8 @@
 class Env:
 
     def __init__(self):
-        self.episode = None
+        self.episode = -1
+        self.timestep = None
         self._agent = None
 
     @property
@@ -13,23 +14,29 @@ class Env:
         raise NotImplementedError
 
     def register(self, agent):
+        assert agent is not None
         if self._agent is not None:
-            message = 'agent {} is already registered to env {}'
+            message = 'there is already agent {} registered to env {}'
             message = message.format(
                 type(self._agent).__name__, type(self).__name__)
             raise RuntimeError(message)
-        assert self._agent is None
-        assert agent is not None
         self._agent = agent
 
     def start(self):
-        assert self.episode is None
-        self.episode = 0
+        assert self.timestep is None
+        self.episode += 1
+        self.timestep = -1
         self._agent.start()
 
     def step(self):
-        self.episode += 1
+        self.timestep += 1
+
+    # def perform(self, state):
+    #     return self._agent.perform(state)
+
+    # def feedback(self, action, reward):
+    #     return self._agent.feedback(action, reward)
 
     def stop(self):
-        self.episode = None
         self._agent.stop()
+        self.timestep = None

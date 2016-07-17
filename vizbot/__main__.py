@@ -1,9 +1,10 @@
+import sys
 import argparse
 import logging
 import os
 import vizbot.agent
 import vizbot.env
-from vizbot.utility import DeviationFigure
+from vizbot.utility import DeviationFigure, color_stack_trace
 from vizbot.core import Simulator
 
 
@@ -15,7 +16,7 @@ def parse_args():
         default=['SimpleDoom-v0'])
     parser.add_argument(
         '-a', '--agents', nargs='+',
-        default=['Keyboard', 'Random', 'Noop'])
+        default=['KeyboardDoom', 'Random', 'Noop'])
     parser.add_argument(
         '-r', '--repeats', type=nearest_int,
         default='5')
@@ -56,6 +57,7 @@ def plot_result(directory, rewards):
 
 
 def main():
+    sys.excepthook = color_stack_trace
     args = parse_args()
     validate_args(args)
     simulator = Simulator(

@@ -17,20 +17,24 @@ class Agent:
         self.__reward = None
 
     def perform(self, state):
-        if self._env.episode:
+        if self._env.timestep > 0:
             self._experience(self.__state, self.__action, self.__reward, state)
         self.__state = state
 
     def feedback(self, action, reward):
+        assert action is not None
+        assert reward is not None
         self.__action = action
         self.__reward = reward
 
     def stop(self):
-        if self._env.episode:
+        if self._env.timestep > 0:
             self._experience(self.__state, self.__action, self.__reward, None)
 
     def _experience(self, state, action, reward, successor):
-        pass
+        assert state is not None
+        assert action is not None
+        assert reward is not None
 
     def _noop(self):
         return np.zeros(self._env.actions.shape)

@@ -27,11 +27,14 @@ class DQN(EpsilonGreedy):
         self._memory.append(state, action, reward, successor)
         if len(self._memory) < self._config.batch_size:
             return
+        state, action, reward, successor = \
+            self._memory.sample(self._config.batch_size)
         future = self._target.best(state=successor)
-        future[np.equal(successor, None)] = 0
+        final = np.isnan(successor.reshape((len(successor), -1))).any(1)
+        future[final] = 0
         target = reward + self._config.discount * future
         self._target.variables = self._actor.variables
-        self._actor.train(state=previous, action=action, target=target)
+        self._actor.train(state=state, action_=action, target=target)
 
     def _build_q_network(self):
         with Model() as model:
@@ -42,7 +45,7 @@ class DQN(EpsilonGreedy):
             x = conv2d(x, 32, 4, 3, tf.nn.relu)
             x = dense(x, 256, tf.nn.relu)
             x = dense(x, self._env.actions.shape, tf.nn.relu)
-            cost = ((model.action_ * x) - model.target) ** 2
+            cost = (tf.reduce_sum(model.action_ * x, 1) - model.target) ** 2
             model.action('best', tf.reduce_max(x, 1))
             model.action('perform',
                 tf.one_hot(tf.argmax(x, 1), self._env.actions.shape))
@@ -55,9 +58,9 @@ class DQN(EpsilonGreedy):
         frame_skip = 4
         replay_capacity = int(1e4)
         batch_size = 32
-        learning_rate = 1e-2
+        learning_rate = 1e-3
         optimizer = tf.train.RMSPropOptimizer(learning_rate)
-        epsilon = AttrDict(start=0.3, stop=0.05, over=200)
+        epsilon = AttrDict(start=0.8, stop=0, over=400)
         return AttrDict(**locals())
 
 

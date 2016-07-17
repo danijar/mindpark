@@ -25,6 +25,8 @@ class GymEnv(Env):
     def step(self):
         super().step()
         action = self._agent.perform(self._state)
+        if action is None:
+            raise ValueError('invalid action')
         self._state, reward, done, info = self._env.step(action)
         self._agent.feedback(action, reward)
         return self._state, reward, done
