@@ -15,6 +15,11 @@ class Grayscale(Preprocess):
         return self._env.actions
 
     def perform(self, state):
+        super().step()
         super().perform(state)
         state = state.mean(-1).astype(np.uint8)
         return self._agent.perform(state)
+
+    def feedback(self, action, reward):
+        super().feedback(action, reward)
+        self._agent.feedback(action, reward)

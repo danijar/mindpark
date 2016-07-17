@@ -1,6 +1,6 @@
 import numpy as np
 from gym.spaces import Box
-from vizbot.core import Preprocess
+from vizbot.core import Agent, Preprocess
 
 
 class FrameSkip(Preprocess):
@@ -10,7 +10,7 @@ class FrameSkip(Preprocess):
         self.__amount = amount
         self.__action = None
         self.__frames = None
-        self.__index = None
+        self.__timestep = None
 
     @property
     def states(self):
@@ -23,15 +23,24 @@ class FrameSkip(Preprocess):
 
     def start(self):
         super().start()
-        self.__action = self._agent._noop()
+        self.__action = self._noop()
         self.__frames = np.empty((self.__amount,) + self._env.states.shape)
-        self.__index = 0
+        self.__timestep = 0
 
     def perform(self, state):
         super().perform(state)
-        self.__frames[self.__index % self.__amount] = state
-        self.__index += 1
-        if self.__index and self.__index % self.__amount:
+        self.__frames[self.__timestep % self.__amount] = state
+        if self._batch_collected():
+            super().step()
             frames = np.moveaxis(self.__frames, 0, -1)
             self.__action = self._agent.perform(frames)
+        self.__timestep += 1
         return self.__action
+
+    def feedback(self, action, reward):
+        super().feedback(action, reward)
+        if self._batch_collected():
+            self._agent.feedback(action, reward)
+
+    def _batch_collected(self):
+        return self.__timestep and not self.__timestep % self.__amount

@@ -31,12 +31,6 @@ class Env:
     def step(self):
         self.timestep += 1
 
-    # def perform(self, state):
-    #     return self._agent.perform(state)
-
-    # def feedback(self, action, reward):
-    #     return self._agent.feedback(action, reward)
-
     def stop(self):
         self._agent.stop()
         self.timestep = None

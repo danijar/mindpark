@@ -23,11 +23,17 @@ class Downsample(Preprocess):
         return self._env.actions
 
     def perform(self, state):
+        super().step()
         super().perform(state)
         (width, height), factor = state.shape[:2], self.__factor
         shape = width // factor, factor, height // factor, factor, -1
-        state = np.squeeze(state.reshape(shape).mean(3).mean(1)).astype(np.uint8)
+        state = state.reshape(shape).mean(3).mean(1)
+        state = np.squeeze(state).astype(np.uint8)
         return self._agent.perform(state)
+
+    def feedback(self, action, reward):
+        super().feedback(action, reward)
+        self._agent.feedback(action, reward)
 
     @staticmethod
     def _is_power_of_two(value):

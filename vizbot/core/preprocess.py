@@ -4,8 +4,10 @@ from vizbot.core.env import Env
 
 class Preprocess(Env, Agent):
     """
-    Wrap environments and change their state and action spaces. Get triggered
-    by self._source and should forward most actions to self._agent.
+    Wrap environments and change their state and action spaces. A preprocessing
+    step is handled like an agent from the outside. It is responsibility of the
+    subclass to treat the agent according to its interface and call
+    self._agent.perform(state) and self._agent.feedback().
     """
 
     def __init__(self, env):
@@ -15,14 +17,6 @@ class Preprocess(Env, Agent):
     def start(self):
         Env.start(self)
         Agent.start(self)
-
-    def perform(self, state):
-        super().perform(state)
-        super().step()
-
-    def feedback(self, action, reward):
-        super().feedback(action, reward)
-        self._agent.feedback(action, reward)
 
     def stop(self):
         Agent.stop(self)

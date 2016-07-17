@@ -10,18 +10,19 @@ from vizbot.utility import ensure_directory
 
 class Simulator:
 
-    def __init__(self, root, repeats, episodes,
+    def __init__(self, root, repeats, epochs, timesteps,
                  dry_run=False, videos=True, experience=False):
         self._root = os.path.abspath(os.path.expanduser(root))
         self._repeats = repeats
-        self._episodes = episodes
+        self._epochs = epochs
+        self._timesteps = timesteps
         self._dry_run = dry_run
         self._videos = videos
         self._experience = experience
 
     def __call__(self, name, envs, agents):
         """
-        Train each agent on each environment. Store gym monitorings, returns,
+        Train each agent on each environment. Store gym monitorings, scores,
         and durations into sub directories of the experiment. Return the path
         to the experiment and the results.
         """
@@ -53,69 +54,79 @@ class Simulator:
         result = collections.defaultdict(dict)
         for benchmark in benchmarks:
             env, agent = os.path.basename(benchmark).rsplit('-', 1)
-            returns = np.load(os.path.join(benchmark, 'returns.npy'))
+            scores = np.load(os.path.join(benchmark, 'scores.npy'))
             durations = np.load(os.path.join(benchmark, 'durations.npy'))
-            result[env][agent] = returns
+            result[env][agent] = scores
         return result
 
     def _benchmark(self, directory, env_name, agent_cls):
         """
         Train an agent for several repeats and store statistics. Return the
-        returns and durations of each eposide.
+        scores of each repeat and episode, and the durations of each repeat.
         """
-        returns, durations = [], []
+        scores, durations = [], []
         template = 'repeat-{:0>' + str(len(str(self._repeats - 1))) + '}'
         for repeat in range(self._repeats):
             subdirectory = os.path.join(directory, template.format(repeat))
             env = GymEnv(env_name)
             agent = agent_cls(env)
-            return_, duration = self._train(subdirectory, env, agent)
-            returns.append(return_)
+            score, duration = self._train(subdirectory, env, agent)
+            scores.append(score)
             durations.append(duration)
-            print(' ' + '.' * (repeat + 1), end='\r', flush=True)
-        print('')
-        returns, durations = np.array(returns), np.array(durations)
+        scores, durations = np.array(scores), np.array(durations)
         if not self._dry_run:
             ensure_directory(directory)
-            np.save(os.path.join(directory, 'returns.npy'), returns)
+            np.save(os.path.join(directory, 'scores.npy'), scores)
             np.save(os.path.join(directory, 'durations.npy'), durations)
-        return returns, durations
+        return scores, durations
 
     def _train(self, directory, env, agent):
         """
         Train an agent in an environment and store its gym monitoring. Return
-        returns of each episode and the overall duration.
+        the average reward per each episode for each epoch and and the overall
+        wall clock duration.
         """
         if not self._dry_run:
             ensure_directory(directory)
             env.monitor.start(directory, None if self._videos else False)
-        returns, states, rewards, start = [], [], [], time.time()
-        for episode in range(self._episodes):
-            return_, state, reward = self._episode(env, agent)
-            returns.append(return_)
-            states += state
-            rewards += reward
+        score, states, rewards, start = [], [], [], time.time()
+        for epoch in range(self._epochs):
+            episodes, timestep, returns = 0, 0, []
+            while timestep < self._timesteps:
+                duration, return_, state, reward = self._episode(
+                    env, agent, self._timesteps - timestep)
+                timestep += duration
+                returns.append(return_)
+                states += state
+                rewards += reward
+                episodes += 1
+            score.append(sum(returns) / episodes)
+            print(' ' + '.' * (epoch + 1), end='\r', flush=True)
+        print('')
         if not self._dry_run:
             env.monitor.close()
         if self._experience and not self._dry_run:
             states, rewards = np.array(states), np.array(rewards)
             filepath = os.path.join(directory, 'experience.npz')
             np.savez_compressed(filepath, states=states, rewards=rewards)
-        return np.array(returns), time.time() - start
+        return np.array(score), time.time() - start
 
-    def _episode(self, env, agent):
+    def _episode(self, env, agent, maxlen):
         """
         Reset the environment and simulate the agent for one episode. Return
-        the return and, if recorded, the experience.
+        the number of time steps, the return, and the experience if recorded.
         """
-        return_, states, rewards = 0, [], []
+        duration, return_, states, rewards = 0, 0, [], []
         done = False
         env.start()
-        while not done:
+        for _ in range(maxlen):
             state, reward, done = env.step()
+            duration += 1
             return_ += reward
             if self._experience:
                 states.append(state)
                 rewards.append(reward)
+            if done:
+                break
         env.stop()
-        return return_, states, rewards
+        return duration, return_, states, rewards

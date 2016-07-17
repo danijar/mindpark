@@ -23,11 +23,18 @@ class FrameWindow(Preprocess):
     def start(self):
         super().start()
         self.__frames = collections.deque(maxlen=self.__width)
-        self.__index = 0
+        self.__timestep = 0
 
     def perform(self, state):
         super().perform(state)
         self.__frames.append(state)
-        self.__index += 1
+        self.__timestep += 1
+        if self.__timestep < self.__width:
+            return self._noop()
+        super().step()
         frames = np.moveaxis(np.array(self.__frames), 0, -1)
         return self._agent.perform(frames)
+
+    def feedback(self, action, reward):
+        super().feedback(action, reward)
+        self._agent.feedback(action, reward)
