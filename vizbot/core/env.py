@@ -2,7 +2,7 @@ class Env:
 
     def __init__(self):
         self.episode = -1
-        self.timestep = None
+        self.timestep = -1
         self._agent = None
 
     @property
@@ -23,9 +23,7 @@ class Env:
         self._agent = agent
 
     def start(self):
-        assert self.timestep is None
         self.episode += 1
-        self.timestep = -1
         self._agent.start()
 
     def step(self):
@@ -33,4 +31,3 @@ class Env:
 
     def stop(self):
         self._agent.stop()
-        self.timestep = None

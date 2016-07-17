@@ -7,18 +7,21 @@ class Agent:
         self._env = env
         self._env.register(self)
         self._random = np.random.RandomState(seed=0)
+        self.__timestep = None
         self.__state = None
         self.__action = None
         self.__reward = None
 
     def start(self):
+        self.__timestep = 0
         self.__state = None
         self.__action = None
         self.__reward = None
 
     def perform(self, state):
-        if self._env.timestep > 0:
+        if self.__timestep > 0:
             self._experience(self.__state, self.__action, self.__reward, state)
+        self.__timestep += 1
         self.__state = state
 
     def feedback(self, action, reward):
@@ -28,7 +31,7 @@ class Agent:
         self.__reward = reward
 
     def stop(self):
-        if self._env.timestep > 0:
+        if self.__timestep > 0:
             self._experience(self.__state, self.__action, self.__reward, None)
 
     def _experience(self, state, action, reward, successor):
@@ -40,5 +43,5 @@ class Agent:
         return np.zeros(self._env.actions.shape)
 
     def _decay(self, start, end, over):
-        progress = min(self._env.episode, over) / over
+        progress = min(self._env.timestep, over) / over
         return (1 - progress) * start + progress * end

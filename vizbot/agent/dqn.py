@@ -12,7 +12,7 @@ class DQN(EpsilonGreedy):
     def __init__(self, env, config=None):
         self._config = config or self._default_config()
         env = Grayscale(env)
-        env = Downsample(env, 4)
+        env = Downsample(env, self._config.downsample)
         env = FrameSkip(env, self._config.frame_skip)
         super().__init__(env, **self._config.epsilon)
         self._memory = ReplayMemory(self._config.replay_capacity)
@@ -55,12 +55,15 @@ class DQN(EpsilonGreedy):
     @staticmethod
     def _default_config():
         discount = 0.99
+        downsample = 4
         frame_skip = 4
-        replay_capacity = int(1e4)
+        # replay_capacity = int(1e6)
+        replay_capacity = int(1e5)
         batch_size = 32
-        learning_rate = 1e-3
+        learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer(learning_rate)
-        epsilon = AttrDict(start=0.8, stop=0, over=400)
+        # epsilon = AttrDict(start=1, stop=0.1, over=int(1e6))
+        epsilon = AttrDict(start=0.8, stop=0, over=int(1e5))
         return AttrDict(**locals())
 
 

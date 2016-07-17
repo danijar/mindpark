@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument(
         '-a', '--agents', nargs='+',
         help='list of agents from vizbot.agent module',
-        default=['KeyboardDoom', 'Random', 'Noop'])
+        default=['DQN', 'Random'])
     parser.add_argument(
         '-r', '--repeats', type=nearest_int,
         help='repeat training to estimate deviation',
@@ -27,11 +27,11 @@ def parse_args():
     parser.add_argument(
         '-e', '--epochs', type=nearest_int,
         help='how long to train an agent on an environment',
-        default=100)
+        default=10)  # 100
     parser.add_argument(
         '-n', '--timesteps', type=nearest_int,
         help='the number of timesteps per epoch',
-        default=50000)
+        default=5000)  # 1e4
     parser.add_argument(
         '-o', '--directory',
         help='root folder for all experiments',
@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument(
         '-v', '--videos', action='store_true',
         help='store videos in mp4 format every few episodes',
-        default=False)
+        default=True)
     parser.add_argument(
         '-c', '--experience', action='store_true',
         help='store all transition tuples in numpy format',
