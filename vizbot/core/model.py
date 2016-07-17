@@ -30,6 +30,7 @@ class Model:
         self._ensure_scope()
         if hasattr(self, name) or name in ('batch_size', 'epochs'):
             raise KeyError('invalid placeholder name ' + name)
+        shape = shape if hasattr(shape, '__len__') else (shape,)
         shape = (None,) + shape if shape else (None,)
         placeholder = tf.placeholder(type_, shape)
         self._placeholders[name] = placeholder

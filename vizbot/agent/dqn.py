@@ -4,7 +4,7 @@ import tensorflow as tf
 from vizbot.core import Model
 from vizbot.agent import EpsilonGreedy
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, lazy_property
+from vizbot.utility import AttrDict, lazy_property, dense, conv2d
 
 
 class DQN(EpsilonGreedy):
@@ -14,7 +14,6 @@ class DQN(EpsilonGreedy):
         env = Grayscale(env)
         env = Downsample(env, 4)
         env = FrameSkip(env, self._config.frame_skip)
-        # env = OneHotActions(env)
         super().__init__(env, **self._config.epsilon)
         self._memory = ReplayMemory(self._config.replay_capacity)
         self._actor = self._build_q_network()
@@ -22,17 +21,9 @@ class DQN(EpsilonGreedy):
         self._target.variables = self._actor.variables
 
     def _perform(self, state):
-        action = self._noop()
-        action[self._actor.choice(state=state)] = 1
-        return action
-
-    def feedback(self, action, reward):
-        super().feedback(action, reward)
-        if reward:
-            print('Reward', reward)
+        return self._actor.perform(state=state)
 
     def _experience(self, state, action, reward, successor):
-        super()._experience(state, action, reward, successor)
         self._memory.append(state, action, reward, successor)
         if len(self._memory) < self._config.batch_size:
             return
@@ -45,7 +36,7 @@ class DQN(EpsilonGreedy):
     def _build_q_network(self):
         with Model() as model:
             model.placeholder('state', self._env.states.shape)
-            model.placeholder('action_')
+            model.placeholder('action_', self._env.actions.shape)
             model.placeholder('target')
             x = conv2d(model.state, 16, 8, 4, tf.nn.relu)
             x = conv2d(x, 32, 4, 3, tf.nn.relu)
@@ -53,7 +44,8 @@ class DQN(EpsilonGreedy):
             x = dense(x, self._env.actions.shape, tf.nn.relu)
             cost = ((model.action_ * x) - model.target) ** 2
             model.action('best', tf.reduce_max(x, 1))
-            model.action('choice', tf.argmax(x, 1))
+            model.action('perform',
+                tf.one_hot(tf.argmax(x, 1), self._env.actions.shape))
             model.compile(cost, self._config.optimizer)
             return model
 
@@ -71,12 +63,12 @@ class DQN(EpsilonGreedy):
 
 class ReplayMemory:
 
-    def __init__(self, maxlen=None, seed=0):
+    def __init__(self, maxlen=None):
         self._previous = collections.deque(maxlen=maxlen)
         self._action = collections.deque(maxlen=maxlen)
         self._reward = collections.deque(maxlen=maxlen)
         self._successor = collections.deque(maxlen=maxlen)
-        self._random = np.random.RandomState(seed)
+        self._random = np.random.RandomState(seed=0)
         self._length = 0
 
     def __len__(self):
@@ -101,15 +93,3 @@ class ReplayMemory:
             reward[index] = self._reward[choice]
             successor[index] = self._successor[choice]
         return previous, action, reward, successor
-
-
-def conv2d(x, filters, size, stride, activation):
-    x = tf.contrib.layers.convolution2d(
-        x, filters, size, stride, 'VALID', activation)
-    return x
-
-
-def dense(x, size, activation):
-    x = tf.reshape(x, (-1, int(np.prod(x.get_shape()[1:]))))
-    x = tf.contrib.layers.fully_connected(x, size, activation)
-    return x
