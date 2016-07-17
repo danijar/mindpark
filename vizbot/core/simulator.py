@@ -35,7 +35,7 @@ class Simulator:
             directory = os.path.join(
                 experiment, '{}-{}'.format(env, agent.__name__))
             returns, durations = self._benchmark(directory, env, agent)
-            print(message.format(returns.max(axis=1).mean(), durations.min()))
+            print(message.format(returns.max(1).mean(), durations.min()))
             result[env][agent] = returns
         if self._dry_run:
             return None, result

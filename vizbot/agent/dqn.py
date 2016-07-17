@@ -1,7 +1,12 @@
 import collections
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib.layers import convolution2d, fully_connected
+
+from keras.models import Model
+from keras.layers import Input, Convolution2D, Dense, Flatten, Lambda
+from keras.optimizers import RMSprop
+from keras import backend as K
+
 from vizbot.agent import EpsilonGreedy
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, lazy_property
@@ -10,79 +15,71 @@ from vizbot.utility import AttrDict, lazy_property
 class DQN(EpsilonGreedy):
 
     def __init__(self, env, config=None):
+        self._config = config or self._default_config()
         env = Grayscale(env)
         env = Downsample(env, 4)
-        env = FrameSkip(env, 4)
-        self._config = config or self._default_config()
+        env = FrameSkip(env, self._config.frame_skip)
+        # env = OneHotActions(env)
         super().__init__(env, **self._config.epsilon)
         self._memory = ReplayMemory(self._config.replay_capacity)
-        self._init_graph()
-
-    def _init_graph(self):
-        self._input = tf.placeholder(
-            tf.float32, (None,) + self._env.states.shape)
-        self._action = tf.placeholder(
-            tf.float32, (None, self._env.actions.shape))
-        self._target = tf.placeholder(
-            tf.float32, (None,))
-        self._optimize
-        self._sess = tf.Session()
-        # TODO: Not good with multiple agents.
-        self._sess.run(tf.initialize_all_variables())
+        # K.set_session(tf.Session())
+        self._actor = self._build_q_network(trainable=True)
+        self._target = self._build_q_network(trainable=False)
+        self._sync_target()
 
     def _perform(self, state):
-        outputs = self._sess.run(self._predict, {self._input: [state]})
-        choice = np.argmax(outputs[0])
-        print('DQN action', choice)
         action = self._noop()
+        q_values = self._actor.predict(np.array([state]))[0]
+        choice = q_values.argmax()
+        # print('Choice', choice)
         action[choice] = 1
         return action
 
     def feedback(self, action, reward):
         super().feedback(action, reward)
         if reward:
-            print('DQN reward', reward)
+            print('Reward', reward)
 
     def _experience(self, state, action, reward, successor):
+        super()._experience(state, action, reward, successor)
         self._memory.append(state, action, reward, successor)
         if len(self._memory) < self._config.batch_size:
             return
-        previous, action, reward, successor = \
-            self._memory.sample(self._config.batch_size)
-        feed = {self._input: [0 if x is None else x for x in successor]}
-        future = self._sess.run(self._predict, feed).max(1)
+        self._train(*self._memory.sample(self._config.batch_size))
+
+    def _train(self, previous, action, reward, successor):
+        future = self._target.predict(successor, action).max(1)
         future[np.equal(successor, None)] = 0
         target = reward + self._config.discount * future
-        feed = {self._input: previous, self._action: action, self._target: target}
-        self._sess.run(self._optimize, feed)
+        self._sync_target()
+        # TODO: Only train output node of the real action.
+        self._actor.train(previous, target)
 
-    @lazy_property
-    def _predict(self):
-        x = self._input
-        x = convolution2d(x, 16, 8, 4, 'VALID', tf.nn.relu)
-        x = convolution2d(x, 32, 4, 2, 'VALID', tf.nn.relu)
-        x = tf.reshape(x, [-1, int(np.prod(x.get_shape()[1:]))])
-        x = fully_connected(x, 256, tf.nn.relu)
-        output = fully_connected(x, self._env.actions.shape)
-        return output
+    def _sync_target(self):
+        self._target.set_weights(self._actor.get_weights())
 
-    @lazy_property
-    def _optimize(self):
-        prediction = tf.reduce_sum(self._predict * self._action, 1)
-        cost = (self._predict - self._target) ** 2
-        cost = tf.reduce_sum(cost)
-        return self._config.optimizer.minimize(cost)
+    def _build_q_network(self, trainable):
+        state = Input(shape=self._env.states.shape)
+        x = Convolution2D(16, 8, 8, subsample=(4, 4), activation='relu',
+            trainable=trainable, dim_ordering='tf')(state)
+        x = Convolution2D(32, 4, 4, subsample=(2, 2), activation='relu',
+            trainable=trainable, dim_ordering='tf')(x)
+        x = Flatten()(x)
+        x = Dense(256, activation='relu', trainable=trainable)(x)
+        q_values = Dense(self._env.actions.shape, activation='relu',
+            trainable=trainable)(x)
+        model = Model(input=state, output=q_values)
+        model.compile(self._config.optimizer, 'mse')
+        return model
 
     @staticmethod
     def _default_config():
-        # TODO: Find correct discount factor in the paper.
-        discount = 0.95
-        input_frames=4
-        replay_capacity = int(1e6)
+        discount = 0.99
+        frame_skip = 4
+        replay_capacity = int(1e4)
         batch_size = 32
-        learning_rate = 1e4
-        optimizer = tf.train.RMSPropOptimizer(learning_rate)
-        epsilon = AttrDict(start=1, stop=0.1, over=int(1e6))
+        optimizer = RMSprop(1e-2)
+        epsilon = AttrDict(start=0.3, stop=0.05, over=200)
         return AttrDict(**locals())
 
 

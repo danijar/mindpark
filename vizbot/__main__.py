@@ -51,7 +51,7 @@ def validate_args(args):
 def plot_result(directory, rewards):
     plot = DeviationFigure(len(rewards), os.path.basename(directory))
     for env, agents in rewards.items():
-        plot.add(env, 'Training Episode', 'Cumulative Reward', **agents)
+        plot.add(env, 'Training Episode', 'Average Reward', **agents)
     plot.save(os.path.join(directory, 'comparison.pdf'))
 
 

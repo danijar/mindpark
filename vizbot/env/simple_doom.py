@@ -9,13 +9,13 @@ class SimpleDoom(Env):
 
     AVAILABLE_ACTIONS = sorted([
         0,                           # Fire
-        4,                           # Turn 180
-        8,                           # Speed
-        9,                           # Move sideways in a circle
+        # 4,                           # Turn 180
+        # 8,                           # Speed
+        # 9,                           # Move sideways in a circle
         10, 11, 12, 13,              # Move
         14, 15,                      # Turn
-        21, 22, 23, 24, 25, 26, 27,  # Select weapon
-        38, 39,                      # Mouse look
+        # 21, 22, 23, 24, 25, 26, 27,  # Select weapon
+        # 38, 39,                      # Mouse look
     ])
 
     def __init__(self, env='DoomDeathmatch-v0'):

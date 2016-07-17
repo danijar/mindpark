@@ -57,7 +57,7 @@ class DeviationFigure:
         return ax
 
     def _plot(self, ax, label, line, color):
-        means = np.cumsum(line.mean(axis=0))
+        means = line.mean(axis=0)
         stds = line.std(axis=0)
         area = np.arange(len(means)), means - stds, means + stds
         ax.fill_between(*area, color=color, alpha=0.15)
