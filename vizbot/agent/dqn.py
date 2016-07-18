@@ -4,17 +4,19 @@ import tensorflow as tf
 from vizbot.core import Model
 from vizbot.agent import EpsilonGreedy
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience, lazy_property, dense, conv2d
+from vizbot.utility import AttrDict, Experience, lazy_property
+from vizbot.utility import dense, conv2d, conv3d
 
 
 class DQN(EpsilonGreedy):
 
     def __init__(self, trainer, config=None):
         self._config = config or self._default_config()
-        # trainer.add_preprocess(Grayscale)
+        trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, self._config.downsample)
-        # trainer.add_preprocess(FrameSkip, self._config.frame_skip)
+        trainer.add_preprocess(FrameSkip, self._config.frame_skip)
         super().__init__(trainer, **self._config.epsilon)
+        print(self.states.shape)
         self._memory = Experience(self._config.replay_capacity)
         with Model() as model:
             self._actor = self._build_q_network(model)
@@ -54,10 +56,12 @@ class DQN(EpsilonGreedy):
         model.placeholder('state', self.states.shape)
         model.placeholder('action_', self.actions.shape)
         model.placeholder('target')
-        x = conv2d(model.state, 16, 8, 4, tf.nn.relu)
-        x = conv2d(x, 32, 4, 3, tf.nn.relu)
-        x = dense(x, 256, tf.nn.relu)
-        x = dense(x, self.actions.shape, tf.nn.relu)
+        activation = tf.nn.elu
+        x = conv2d(model.state, 16, 4, 2, activation, 2)
+        x = conv2d(x, 32, 2, 1, activation)
+        x = dense(x, 256, activation)
+        x = dense(x, 256, activation)
+        x = dense(x, self.actions.shape, activation)
         cost = (tf.reduce_sum(model.action_ * x, 1) - model.target) ** 2
         model.action('best', tf.reduce_max(x, 1))
         model.action('perform',
@@ -70,10 +74,9 @@ class DQN(EpsilonGreedy):
         discount = 0.99
         downsample = 4
         frame_skip = 4
-        replay_capacity = int(5e5)
+        replay_capacity = int(1e5)
         batch_size = 32
         learning_rate = 3e-5
         optimizer = tf.train.RMSPropOptimizer(learning_rate)
-        # epsilon = AttrDict(start=1, stop=0.1, over=int(1e6))
         epsilon = AttrDict(start=0.5, stop=0, over=int(5e5))
         return AttrDict(**locals())
