@@ -1,7 +1,8 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from vizbot.utility import ensure_directory, AttrDict
+from vizbot.utility.attrdict import AttrDict
+from vizbot.utility.other import ensure_directory
 
 
 class DeviationFigure:

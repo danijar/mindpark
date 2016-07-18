@@ -26,7 +26,7 @@ class Model:
     def __exit__(self, type_, value, traceback):
         self._scope.__exit__(type_, value, traceback)
 
-    def placeholder(self, name, shape=None, type_=tf.float16):
+    def placeholder(self, name, shape=None, type_=tf.float32):
         self._ensure_scope()
         if hasattr(self, name) or name in ('batch_size', 'epochs'):
             raise KeyError('invalid placeholder name ' + name)
@@ -76,11 +76,14 @@ class Model:
         keys = sorted(data.keys())
         data = [data[x] for x in keys]
         placeholders = [self._placeholders[x] for x in keys]
-        batches = [self._chunks(x, batch_size or len(data)) for x in data]
+        batches = [self._chunks(x, batch_size) for x in data]
+        costs = []
         for _ in range(epochs):
             for batch in zip(*batches):
                 feed = {k: v for k, v in zip(placeholders, batch)}
-                self._sess.run(self._optimize, feed)
+                cost, _ = self._sess.run((self._cost, self._optimize), feed)
+                costs.append(cost)
+        return costs
 
     def _predict(self, output, **data):
         single = all(
@@ -94,7 +97,10 @@ class Model:
             result = np.squeeze(result, 0)
         return result
 
-    def _chunks(self, data, size):
+    def _chunks(self, data, size=None):
+        if not size:
+            yield data
+            return
         for index in range(0, len(data), size):
             yield data[index: index + size]
 

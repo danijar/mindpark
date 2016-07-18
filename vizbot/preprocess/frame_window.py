@@ -25,12 +25,10 @@ class FrameWindow(Preprocess):
     def reset(self):
         self._offset = 0
         self._push_frame(self._env.reset())
-        rewards = 0
         for _ in range(1, self._width):
-            state, reward = self._env.step(self._noop)
+            state, _ = self._env.step(self._noop)
             self._push_frame(state)
-            rewards += reward
-        return self._window(), rewards
+        return self._window()
 
     def step(self, action):
         state, reward = self._env.step(action)

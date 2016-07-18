@@ -26,7 +26,7 @@ class Benchmark:
         monitorings and scores into sub directories of the experiment. Return
         the path to the experiment and the scores.
         """
-        experiment = self._start_experiment(self)
+        experiment = self._start_experiment(name)
         result = collections.defaultdict(dict)
         for env, agent in itertools.product(envs, agents):
             print('Benchmark', agent.__name__, 'on', env)
@@ -35,7 +35,7 @@ class Benchmark:
                 directory = os.path.join(
                     experiment, '{}-{}'.format(env, agent.__name__))
             scores = self._benchmark(directory, env, agent)
-            print('Mean best return {}'.format(scores.max(1).mean())
+            print('Mean best return {}'.format(scores.max(1).mean()))
             result[env][agent] = scores
         if not experiment:
             return None, result
@@ -50,7 +50,7 @@ class Benchmark:
         for benchmark in self._get_subdirs(experiment):
             env, agent = os.path.basename(benchmark).rsplit('-', 1)
             result[env][agent] = []
-            for repeat in self._get_subdirs(benchmark)
+            for repeat in self._get_subdirs(benchmark):
                 scores = np.load(os.path.join(repeat, 'scores.npy'))
                 result[env][agent].append(scores)
         return result
@@ -73,7 +73,7 @@ class Benchmark:
                 scores.append(trainer.scores)
         return scores
 
-    def _start_experiment(self):
+    def _start_experiment(self, name):
         if not self._directory:
             print('Start experiment. Dry run, no results will be saved.')
             return None

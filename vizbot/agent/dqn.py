@@ -23,11 +23,16 @@ class DQN(EpsilonGreedy):
         self._target.variables = self._actor.variables
 
     def _step(self, state):
+        # print(self._trainer.timestep)
         return self._actor.perform(state=state)
 
     def experience(self, state, action, reward, successor):
-        self._memory.append(state, action, reward, successor)
-        print('Replay memory size', self._memory.nbytes / 1024 / 1024, 'MB')
+        if reward > 0:
+            print(['DQN', 'Greedy'][self._was_greedy], 'reward', reward)
+        self._memory.append((state, action, reward, successor))
+        if len(self._memory) == 1:
+            size = round(self._memory.nbytes / 1024 / 1024)
+            print('Replay memory size', size, 'MB')
         if len(self._memory) < self._config.batch_size:
             return
         state, action, reward, successor = \
@@ -37,20 +42,22 @@ class DQN(EpsilonGreedy):
         future[final] = 0
         target = reward + self._config.discount * future
         self._target.variables = self._actor.variables
-        self._actor.train(state=state, action_=action, target=target)
+        costs = self._actor.train(state=state, action_=action, target=target)
+        if not self._trainer.timestep % 100:
+            print('DQN cost', sum(costs) / len(costs))
 
     def _build_q_network(self, model):
-        model.placeholder('state', self._env.states.shape)
-        model.placeholder('action_', self._env.actions.shape)
+        model.placeholder('state', self.states.shape)
+        model.placeholder('action_', self.actions.shape)
         model.placeholder('target')
         x = conv2d(model.state, 16, 8, 4, tf.nn.relu)
         x = conv2d(x, 32, 4, 3, tf.nn.relu)
         x = dense(x, 256, tf.nn.relu)
-        x = dense(x, self._env.actions.shape, tf.nn.relu)
+        x = dense(x, self.actions.shape, tf.nn.relu)
         cost = (tf.reduce_sum(model.action_ * x, 1) - model.target) ** 2
         model.action('best', tf.reduce_max(x, 1))
         model.action('perform',
-            tf.one_hot(tf.argmax(x, 1), self._env.actions.shape))
+            tf.one_hot(tf.argmax(x, 1), self.actions.shape))
         model.compile(cost, self._config.optimizer)
         return model
 
@@ -61,7 +68,7 @@ class DQN(EpsilonGreedy):
         frame_skip = 4
         replay_capacity = int(1e5)
         batch_size = 32
-        learning_rate = 1e-4
+        learning_rate = 1e-5
         optimizer = tf.train.RMSPropOptimizer(learning_rate)
         # epsilon = AttrDict(start=1, stop=0.1, over=int(1e6))
         epsilon = AttrDict(start=0.8, stop=0, over=int(1e5))

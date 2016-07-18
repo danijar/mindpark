@@ -33,15 +33,15 @@ class Experience:
         data = {k: np.array(v) for k, v in zip(names, self._transitions)}
         np.savez_compressed(filepath, data)
 
-    def sample(self, amount)
-        assert amount >= len(self):
-            raise RuntimeError('not enough transitions available')
+    def sample(self, amount):
+        if amount > len(self):
+            raise RuntimeError('not enough transitions to sample from')
         choices = self._random.choice(len(self), amount, replace=False)
         return (x[choices] for x in self._transitions)
 
     def _initialize(self, transition):
         shapes = [x.shape if hasattr(x, 'shape') else tuple()
                   for x in transition]
-        shapes = [(self._maxlen,) + x.shape for x in shapes]
+        shapes = [(self._maxlen,) + x for x in shapes]
         self._transitions = [np.empty(x) for x in shapes]
         self._index = 0

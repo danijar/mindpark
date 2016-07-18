@@ -32,8 +32,8 @@ class Agent:
         pass
 
     def _noop(self):
-        return np.zeros(self._env.actions.shape)
+        return np.zeros(self.actions.shape)
 
     def _decay(self, start, end, over):
-        progress = min(self._env.timestep, over) / over
+        progress = min(self._trainer.timestep, over) / over
         return (1 - progress) * start + progress * end

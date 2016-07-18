@@ -13,7 +13,7 @@ class FrameSkip(Preprocess):
 
     @property
     def states(self):
-        shape = self._env.states.shape + (self.__amount,)
+        shape = self._env.states.shape + (self._amount,)
         return Box(0, 255, shape)
 
     @property
@@ -23,10 +23,14 @@ class FrameSkip(Preprocess):
     def reset(self):
         self._frames[0] = self._env.reset()
         for index in range(1, self._amount):
-            self._frames[index] = self._env.step(self._noop)
+            state, _ = self._env.step(self._noop)
+            self._frames[index] = state
         return np.moveaxis(self._frames, 0, -1)
 
     def step(self, action):
+        rewards = 0
         for index in range(self._amount):
-            self._frames[index] = self._env.step(action)
-        return np.moveaxis(self._frames, 0, -1)
+            state, reward = self._env.step(self._noop)
+            self._frames[index] = state
+            rewards += reward
+        return np.moveaxis(self._frames, 0, -1), rewards

@@ -2,9 +2,10 @@ import sys
 import argparse
 import logging
 import os
+import vizbot.env
 import vizbot.agent
 from vizbot.utility import DeviationFigure, color_stack_trace
-from vizbot.core import Trainer
+from vizbot.core import Benchmark
 
 
 def parse_args():
@@ -79,13 +80,13 @@ def main():
     sys.excepthook = color_stack_trace
     args = parse_args()
     validate_args(args)
-    simulator = Simulator(
+    benchmark = Benchmark(
         args.directory, args.repeats, args.timesteps,
         args.videos, args.experience)
     agents = [getattr(vizbot.agent, x) for x in args.agents]
     logging.getLogger('gym').setLevel(logging.WARNING)
     experiment = None if args.dry_run else args.experiment
-    experiment, result = simulator(experiment, args.envs, agents)
+    experiment, result = benchmark(experiment, args.envs, agents)
     if not args.dry_run:
         plot_result(experiment, result, args.epoch_length)
 

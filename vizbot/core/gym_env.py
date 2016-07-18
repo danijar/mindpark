@@ -10,7 +10,7 @@ class GymEnv(Env):
         self._env.seed(0)
         self._directory = directory
         if self._directory:
-            videos = None if self._videos else False
+            videos = None if videos else False
             self._env.monitor.start(self._directory, videos)
         self._state = None
 
@@ -28,7 +28,7 @@ class GymEnv(Env):
     def step(self, action):
         state, reward, done, info = self._env.step(action)
         if done:
-            raise StopEpisode
+            raise StopEpisode(self)
         return state, reward
 
     def close(self):
