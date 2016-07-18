@@ -70,23 +70,27 @@ class Trainer:
         self._preprocesses.append((preprocess_cls, args, kwargs))
 
     def run_episode(self, agent):
-        # print('Estimated amount of envs in pool', self._envs.qsize())
         if self._timestep > self._timesteps:
             self._close_envs()
             self._store_scores()
             raise StopTraining(self)
         with self._get_env() as env:
+            episode = self.episode
             score = self._run_episode(env, agent)
-            self._scores.append(score)
+        self._scores.append(score)
+        message = 'Episode {} timestep {} reward {}'
+        print(message.format(episode, self.timestep, score))
 
     def _run_episode(self, env, agent):
         episode = self._episode
         self._episode += 1
-        score, state = 0, env.reset()
         if self._directory and self._experience:
             experience = Experience(self._experience_maxlen)
-        while True:
-            try:
+        score = 0
+        agent.start()
+        try:
+            state = env.reset()
+            while True:
                 action = agent.step(state)
                 successor, reward = env.step(action)
                 transition = (state, action, reward, successor)
@@ -96,8 +100,9 @@ class Trainer:
                 state = successor
                 score += reward
                 self._timestep += 1
-            except StopEpisode:
-                break
+        except StopEpisode:
+            pass
+        agent.stop()
         if self._directory and self._experience:
             experience.save(os.path.join(
                 self._directory, 'experience-{}.npz'.format(episode)))

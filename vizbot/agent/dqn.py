@@ -23,8 +23,10 @@ class DQN(EpsilonGreedy):
         self._target.variables = self._actor.variables
 
     def _step(self, state):
-        # print(self._trainer.timestep)
         return self._actor.perform(state=state)
+
+    def start(self):
+        self._costs = []
 
     def experience(self, state, action, reward, successor):
         if reward > 0:
@@ -43,8 +45,10 @@ class DQN(EpsilonGreedy):
         target = reward + self._config.discount * future
         self._target.variables = self._actor.variables
         costs = self._actor.train(state=state, action_=action, target=target)
-        if not self._trainer.timestep % 100:
-            print('DQN cost', sum(costs) / len(costs))
+        self._costs += costs
+
+    def stop(self):
+        print('DQN cost', sum(self._costs) / len(self._costs))
 
     def _build_q_network(self, model):
         model.placeholder('state', self.states.shape)
