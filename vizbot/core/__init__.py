@@ -1,6 +1,7 @@
 from .agent import Agent
-from .env import Env
+from .env import Env, StopEpisode
 from .gym_env import GymEnv
 from .preprocess import Preprocess
-from .simulator import Simulator
+from .traner import Trainer, StopTraining
+from .benchmark import Benchmark
 from .model import Model

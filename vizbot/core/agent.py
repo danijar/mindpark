@@ -3,41 +3,33 @@ import numpy as np
 
 class Agent:
 
-    def __init__(self, env):
-        self._env = env
-        self._env.register(self)
+    def __init__(self, trainer):
+        self._trainer = trainer
         self._random = np.random.RandomState(seed=0)
-        self.__timestep = None
-        self.__state = None
-        self.__action = None
-        self.__reward = None
+
+    def __call__(self):
+        while True:
+            self._trainer.run_episode(self)
+
+    @property
+    def states(self):
+        return self._trainer.states
+
+    @property
+    def actions(self):
+        return self._trainer.actions
 
     def start(self):
-        self.__timestep = 0
-        self.__state = None
-        self.__action = None
-        self.__reward = None
+        pass
 
-    def perform(self, state):
-        if self.__timestep > 0:
-            self._experience(self.__state, self.__action, self.__reward, state)
-        self.__timestep += 1
-        self.__state = state
-
-    def feedback(self, action, reward):
-        assert action is not None
-        assert reward is not None
-        self.__action = action
-        self.__reward = reward
+    def step(self, state):
+        pass
 
     def stop(self):
-        if self.__timestep > 0:
-            self._experience(self.__state, self.__action, self.__reward, None)
+        pass
 
-    def _experience(self, state, action, reward, successor):
-        assert state is not None
-        assert action is not None
-        assert reward is not None
+    def experience(self, state, action, reward, successor):
+        pass
 
     def _noop(self):
         return np.zeros(self._env.actions.shape)

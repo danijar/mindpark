@@ -1,16 +1,15 @@
 import numpy as np
 from gym.spaces import Box
-from vizbot.core import Agent, Preprocess
+from vizbot.core import Preprocess
 
 
 class FrameSkip(Preprocess):
 
     def __init__(self, env, amount):
         super().__init__(env)
-        self.__amount = amount
-        self.__action = None
-        self.__frames = None
-        self.__timestep = None
+        self._amount = amount
+        self._frames = np.empty((self._amount,) + self._env.states.shape)
+        self._noop = np.zeros(self._env.actions.shape)
 
     @property
     def states(self):
@@ -21,26 +20,13 @@ class FrameSkip(Preprocess):
     def actions(self):
         return self._env.actions
 
-    def start(self):
-        super().start()
-        self.__action = self._noop()
-        self.__frames = np.empty((self.__amount,) + self._env.states.shape)
-        self.__timestep = 0
+    def reset(self):
+        self._frames[0] = self._env.reset()
+        for index in range(1, self._amount):
+            self._frames[index] = self._env.step(self._noop)
+        return np.moveaxis(self._frames, 0, -1)
 
-    def perform(self, state):
-        super().perform(state)
-        self.__frames[self.__timestep % self.__amount] = state
-        if self._batch_collected():
-            super().step()
-            frames = np.moveaxis(self.__frames, 0, -1)
-            self.__action = self._agent.perform(frames)
-        self.__timestep += 1
-        return self.__action
-
-    def feedback(self, action, reward):
-        super().feedback(action, reward)
-        if self._batch_collected():
-            self._agent.feedback(action, reward)
-
-    def _batch_collected(self):
-        return self.__timestep and not self.__timestep % self.__amount
+    def step(self, action):
+        for index in range(self._amount):
+            self._frames[index] = self._env.step(action)
+        return np.moveaxis(self._frames, 0, -1)

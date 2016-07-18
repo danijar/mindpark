@@ -1,9 +1,11 @@
-class Env:
+class StopEpisode(Exception):
 
-    def __init__(self):
-        self.episode = -1
-        self.timestep = -1
-        self._agent = None
+    def __init__(self, env):
+        super().__init__(self)
+        self.env = env
+
+
+class Env:
 
     @property
     def states(self):
@@ -13,21 +15,24 @@ class Env:
     def actions(self):
         raise NotImplementedError
 
-    def register(self, agent):
-        assert agent is not None
-        if self._agent is not None:
-            message = 'there is already agent {} registered to env {}'
-            message = message.format(
-                type(self._agent).__name__, type(self).__name__)
-            raise RuntimeError(message)
-        self._agent = agent
+    def reset(self):
+        """
+        Initialize the environment from new or used state. Return an initial
+        state.
+        """
+        raise NotImplementedError
 
-    def start(self):
-        self.episode += 1
-        self._agent.start()
+    def step(self, action):
+        """
+        Apply the action and simulate one time step in the environment. Return
+        the new state and reward. Raise StopEpisode(self) when the episode
+        ends.
+        """
+        raise NotImplementedError
 
-    def step(self):
-        self.timestep += 1
+    def close(self):
+        """
+        Optional hook for cleanup before the object gets destoyed.
+        """
+        pass
 
-    def stop(self):
-        self._agent.stop()

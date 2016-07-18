@@ -3,9 +3,8 @@ import argparse
 import logging
 import os
 import vizbot.agent
-import vizbot.env
 from vizbot.utility import DeviationFigure, color_stack_trace
-from vizbot.core import Simulator
+from vizbot.core import Trainer
 
 
 def parse_args():
@@ -25,13 +24,13 @@ def parse_args():
         help='repeat training to estimate deviation',
         default=5)
     parser.add_argument(
-        '-e', '--epochs', type=nearest_int,
-        help='how long to train an agent on an environment',
-        default=10)  # 100
-    parser.add_argument(
         '-n', '--timesteps', type=nearest_int,
-        help='the number of timesteps per epoch',
-        default=5000)  # 1e4
+        help='the number of timesteps to train an agent',
+        default=5e6)
+    parser.add_argument(
+        '-e', '--epoch-length', type=nearest_int,
+        help='how to group average scores in the plot',
+        default=5e4)
     parser.add_argument(
         '-o', '--directory',
         help='root folder for all experiments',
@@ -57,13 +56,16 @@ def parse_args():
 
 
 def validate_args(args):
-    timesteps = args.repeats * args.epochs * args.timesteps
+    def warn(message):
+        print('Warning:', message)
+        input('Press return to continue.')
+    timesteps = args.repeats * args.timesteps
     if args.experience and timesteps >= 10000:
-        print('Warning:', 'Storing 10000+ timesteps consumes a lot of disk space.')
-        input('Press return to continue.')
+        warn('Storing 10000+ timesteps consumes a lot of disk space.')
     if not args.videos and timesteps >= 10000:
-        print('Warning:', 'Training 10000+ timesteps. Consider capturing videos.')
-        input('Press return to continue.')
+        warn('Training 10000+ timesteps. Consider capturing videos.')
+    if args.epoch_length > args.timesteps:
+        warn('Less than one epoch of timesteps.')
 
 
 def plot_result(directory, rewards):
@@ -78,13 +80,14 @@ def main():
     args = parse_args()
     validate_args(args)
     simulator = Simulator(
-        args.directory, args.repeats, args.epochs, args.timesteps,
-        args.dry_run, args.videos, args.experience)
+        args.directory, args.repeats, args.timesteps,
+        args.videos, args.experience)
     agents = [getattr(vizbot.agent, x) for x in args.agents]
     logging.getLogger('gym').setLevel(logging.WARNING)
-    experiment, result = simulator(args.experiment, args.envs, agents)
+    experiment = None if args.dry_run else args.experiment
+    experiment, result = simulator(experiment, args.envs, agents)
     if not args.dry_run:
-        plot_result(experiment, result)
+        plot_result(experiment, result, args.epoch_length)
 
 
 if __name__ == '__main__':

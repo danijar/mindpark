@@ -8,8 +8,10 @@ class FrameWindow(Preprocess):
 
     def __init__(self, env, width):
         super().__init__(env)
-        self.__width = width
-        self.__frames = None
+        self._width = width
+        self._frames = np.empty((self._amount,) + self._env.states.shape)
+        self._noop = np.zeros(self._env.actions.shape)
+        self._offset = None
 
     @property
     def states(self):
@@ -20,21 +22,26 @@ class FrameWindow(Preprocess):
     def actions(self):
         return self._env.actions
 
-    def start(self):
-        super().start()
-        self.__frames = collections.deque(maxlen=self.__width)
-        self.__timestep = 0
+    def reset(self):
+        self._offset = 0
+        self._push_frame(self._env.reset())
+        rewards = 0
+        for _ in range(1, self._width):
+            state, reward = self._env.step(self._noop)
+            self._push_frame(state)
+            rewards += reward
+        return self._window(), rewards
 
-    def perform(self, state):
-        super().perform(state)
-        self.__frames.append(state)
-        self.__timestep += 1
-        if self.__timestep < self.__width:
-            return self._noop()
-        super().step()
-        frames = np.moveaxis(np.array(self.__frames), 0, -1)
-        return self._agent.perform(frames)
+    def step(self, action):
+        state, reward = self._env.step(action)
+        self._push_frame(state)
+        return self._window(), reward
 
-    def feedback(self, action, reward):
-        super().feedback(action, reward)
-        self._agent.feedback(action, reward)
+    def _push_frame(self, state):
+        self._frames[self._offset] = state
+        self._offset += 1
+
+    def _window(self):
+        order = [(x + self._offset) % self._width for x in range(self._width)]
+        state = np.moveaxis(self._frames[order], 0, -1)
+        return state

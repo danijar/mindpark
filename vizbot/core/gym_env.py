@@ -1,13 +1,17 @@
 import gym
-from vizbot.core.env import Env
+from vizbot.core.env import Env, StopEpisode
 
 
 class GymEnv(Env):
 
-    def __init__(self, name):
+    def __init__(self, name, directory=None, videos=False):
         super().__init__()
         self._env = gym.make(name)
         self._env.seed(0)
+        self._directory = directory
+        if self._directory:
+            videos = None if self._videos else False
+            self._env.monitor.start(self._directory, videos)
         self._state = None
 
     @property
@@ -18,22 +22,15 @@ class GymEnv(Env):
     def actions(self):
         return self._env.action_space
 
-    def start(self):
-        super().start()
-        self._state = self._env.reset()
+    def reset(self):
+        return self._env.reset()
 
-    def step(self):
-        super().step()
-        action = self._agent.perform(self._state)
-        if action is None:
-            raise ValueError('invalid action')
-        self._state, reward, done, info = self._env.step(action)
-        self._agent.feedback(action, reward)
-        return self._state, reward, done
+    def step(self, action):
+        state, reward, done, info = self._env.step(action)
+        if done:
+            raise StopEpisode
+        return state, reward
 
-    def stop(self):
-        super().stop()
-
-    @property
-    def monitor(self):
-        return self._env.monitor
+    def close(self):
+        if self._directory:
+            self._env.monitor.stop()

@@ -4,22 +4,21 @@ from vizbot.core import Agent
 
 class EpsilonGreedy(Agent):
 
-    def __init__(self, env, start, stop, over):
-        super().__init__(env)
-        self.__start = start
-        self.__stop = stop
-        self.__over = over
+    def __init__(self, trainer, start, stop, over):
+        super().__init__(trainer)
+        self._start = start
+        self._stop = stop
+        self._over = over
 
-    def perform(self, state):
-        super().perform(state)
-        epsilon = self._decay(self.__start, self.__stop, self.__over)
+    def step(self, state):
+        epsilon = self._decay(self._start, self._stop, self._over)
         if self._random.rand() < epsilon:
             # TODO: Compare performance to single actions:
             # action = self._noop()
             # action[self._random.choice(self._env.actions.shape)] = 1
             # return action
-            return np.array(self._env.actions.sample())
-        return self._perform(state)
+            return np.array(self.actions.sample())
+        return self._step(state)
 
-    def _perform(self, state):
+    def _step(self, state):
         raise NotImplementedError
