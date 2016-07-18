@@ -63,7 +63,9 @@ class Benchmark:
         scores = []
         template = 'repeat-{:0>' + str(len(str(self._repeats - 1))) + '}'
         for repeat in range(self._repeats):
-            subdirectory = os.path.join(directory, template.format(repeat))
+            subdirectory = None
+            if directory:
+                subdirectory = os.path.join(directory, template.format(repeat))
             trainer = Trainer(
                 subdirectory, env, self._timesteps,
                 self._videos, self._experience)

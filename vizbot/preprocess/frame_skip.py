@@ -30,7 +30,7 @@ class FrameSkip(Preprocess):
     def step(self, action):
         rewards = 0
         for index in range(self._amount):
-            state, reward = self._env.step(self._noop)
+            state, reward = self._env.step(action)
             self._frames[index] = state
             rewards += reward
         return np.moveaxis(self._frames, 0, -1), rewards

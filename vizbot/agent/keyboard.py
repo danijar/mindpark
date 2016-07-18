@@ -9,12 +9,11 @@ from vizbot.utility import AttrDict, clamp
 
 class Keyboard(Agent):
 
-    def __init__(self, env, fps=30, sensitivity=0.3):
-        # env = Grayscale(env)
-        # env = Downsample(env, 2)
-        # env = FrameSkip(env, 4)
-        # env = Grayscale(env)
-        super().__init__(env)
+    def __init__(self, trainer, fps=30, sensitivity=0.3):
+        super().__init__(trainer)
+        self._trainer.add_preprocess(Downsample, 2)
+        self._trainer.add_preprocess(FrameSkip, 1)
+        self._trainer.add_preprocess(Grayscale)
         self._viewer = Viewer(fps=fps)
         self._fps = fps
         self._time = None
@@ -27,11 +26,9 @@ class Keyboard(Agent):
             pass
 
     def start(self):
-        super().start()
         self._time = time.time()
 
-    def perform(self, state):
-        super().perform(state)
+    def step(self, state):
         self._viewer(state)
         action = self._noop()
         action = self._apply_keyboard(action, self._viewer.pressed_keys())
@@ -56,19 +53,12 @@ class KeyboardDoom(Keyboard):
         number_4='weapon_4', number_5='weapon_5', number_6='weapon_6',
         number_7='weapon_7')
 
-    COMMANDS = (
-        'fire turn_180 speed circle right left backward forward turn_left '
-        'turn_right weapon_1 weapon_2 weapon_3 weapon_4 weapon_5 weapon_6 '
-        'weapon_7 rotate_y rotate_x'.split())
+    COMMANDS = ((
+        'fire right left backward forward turn_left turn_right rotate_y '
+        'rotate_x').split())
 
-    AttrDict(
-        fire=0, run=1, right=2, left=3, bachward=4, forward=5, weapon_1=6,
-        weapon_2=7, weapon_3=8, weapon_4=9, weapon_5=10, weapon_6=11,
-        weapon_7=12, rotate_x=38, rotate_y=39)
-
-    def __init__(self, env, fps=30, sensitivity=0.3, render_state=True):
-        super().__init__(env, fps, sensitivity)
-        self._render_state = render_state
+    def __init__(self, trainer, fps=30, sensitivity=0.3, render_state=True):
+        super().__init__(trainer, fps, sensitivity)
 
     def _apply_keyboard(self, action, pressed):
         for key in pressed:

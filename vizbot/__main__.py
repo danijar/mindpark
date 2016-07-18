@@ -27,7 +27,7 @@ def parse_args():
     parser.add_argument(
         '-n', '--timesteps', type=nearest_int,
         help='the number of timesteps to train an agent',
-        default=5e6)
+        default=1e6)  # 5e6
     parser.add_argument(
         '-e', '--epoch-length', type=nearest_int,
         help='how to group average scores in the plot',
@@ -80,8 +80,9 @@ def main():
     sys.excepthook = color_stack_trace
     args = parse_args()
     validate_args(args)
+    directory = args.directory if not args.dry_run else None
     benchmark = Benchmark(
-        args.directory, args.repeats, args.timesteps,
+        directory, args.repeats, args.timesteps,
         args.videos, args.experience)
     agents = [getattr(vizbot.agent, x) for x in args.agents]
     logging.getLogger('gym').setLevel(logging.WARNING)
