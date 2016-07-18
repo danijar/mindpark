@@ -33,6 +33,7 @@ class Trainer:
         self._timestep = 0
         self._states = None
         self._actions = None
+        self._running = True
 
     @property
     def states(self):
@@ -49,6 +50,10 @@ class Trainer:
                 self._states = env.states
                 self._actions = env.actions
         return self._actions
+
+    @property
+    def running(self):
+        return self._running
 
     @property
     def episode(self):
@@ -71,9 +76,7 @@ class Trainer:
         self._preprocesses.append((preprocess_cls, args, kwargs))
 
     def run_episode(self, agent):
-        if self._timestep > self._timesteps:
-            self._close_envs()
-            self._store_scores()
+        if not self._running:
             raise StopTraining(self)
         with self._get_env() as env:
             episode = self.episode
@@ -81,6 +84,10 @@ class Trainer:
         self._scores.append(score)
         message = 'Episode {} timestep {} reward {}'
         print(message.format(episode, self.timestep, score))
+        if self._timestep > self._timesteps:
+            self._running = False
+            self._close_envs()
+            self._store_scores()
 
     def _run_episode(self, env, agent):
         episode = self._episode

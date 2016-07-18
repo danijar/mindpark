@@ -8,7 +8,7 @@ class Agent:
         self._random = np.random.RandomState(seed=0)
 
     def __call__(self):
-        while True:
+        while self._trainer.running:
             self._trainer.run_episode(self)
 
     @property

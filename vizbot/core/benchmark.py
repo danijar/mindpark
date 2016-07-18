@@ -72,7 +72,8 @@ class Benchmark:
             try:
                 agent(trainer)()
             except StopTraining:
-                scores.append(trainer.scores)
+                pass
+            scores.append(trainer.scores)
         return scores
 
     def _start_experiment(self, name):
