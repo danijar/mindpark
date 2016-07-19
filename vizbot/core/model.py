@@ -58,7 +58,7 @@ class Model:
                 feed = {k: v for k, v in zip(placeholders, batch)}
                 cost, _ = self._sess.run(ops, feed)
                 costs.append(cost)
-        return costs
+        return sum(costs) / len(costs)
 
     def compute(self, output, **data):
         feed, single = self._prepare_data(data)

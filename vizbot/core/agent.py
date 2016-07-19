@@ -6,18 +6,19 @@ class Agent:
     def __init__(self, trainer):
         self._trainer = trainer
         self._random = np.random.RandomState(seed=0)
+        self._env = trainer.create_env()
 
     def __call__(self):
         while self._trainer.running:
-            self._trainer.run_episode(self)
+            self._trainer.run_episode(self, self._env)
 
     @property
     def states(self):
-        return self._trainer.states
+        return self._env.states
 
     @property
     def actions(self):
-        return self._trainer.actions
+        return self._env.actions
 
     def start(self):
         pass

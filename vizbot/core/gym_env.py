@@ -10,7 +10,7 @@ class GymEnv(Env):
         self._env.seed(0)
         self._directory = directory
         if self._directory:
-            self._env.monitor.start(self._directory, videos)
+            self._env.monitor.start(self._directory, videos, resume=True)
         self._done = None
 
     @property

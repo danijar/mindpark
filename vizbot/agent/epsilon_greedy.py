@@ -14,7 +14,7 @@ class EpsilonGreedy(Agent):
     def step(self, state):
         epsilon = self._decay(self._start, self._stop, self._over)
         if not self._trainer.timestep % 1000:
-            print('Epsilon', epsilon)
+            print('Epsilon', round(epsilon, 4))
         if self._random.rand() < epsilon:
             self._was_greedy = True
             # TODO: Compare performance to single actions:

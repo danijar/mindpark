@@ -5,7 +5,7 @@ import tensorflow as tf
 from vizbot.core import Agent, Model
 from vizbot.agent import EpsilonGreedy
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience, lazy_property, dense, conv2d
+from vizbot.utility import AttrDict, Experience, dense, conv2d, rnn
 
 
 class Async(Agent):
@@ -16,36 +16,25 @@ class Async(Agent):
         downsample = 4
         frame_skip = 4
         sync_target = 40000
-        heads = 16
+        heads = 32
         apply_gradient = 5
         epsilon = [
-            AttrDict(start=0.7, stop=0.10, over=1e5),
-            AttrDict(start=0.2, stop=0.01, over=1e5),
-            AttrDict(start=0.5, stop=0.50, over=1e5)]
-        # epsilon = [
-        #     AttrDict(start=1, stop=0.10, over=4e6),
-        #     AttrDict(start=1, stop=0.01, over=4e6),
-        #     AttrDict(start=1, stop=0.50, over=4e6)]
+            AttrDict(start=1, stop=0.10, over=4e6),
+            AttrDict(start=1, stop=0.01, over=4e6),
+            AttrDict(start=1, stop=0.50, over=4e6)]
         optimizer = (tf.train.RMSPropOptimizer, 1e-4, 0.99)
         return AttrDict(**locals())
 
     def __init__(self, trainer):
-        super().__init__(trainer)
         self._config = self._config()
         trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, self._config.downsample)
         trainer.add_preprocess(FrameSkip, self._config.frame_skip)
+        super().__init__(trainer)
+        self.actor = Model(self._create_network, self._config.optimizer)
+        self.target = Model(self._create_network)
+        self.target.weights = self.actor.weights
         self._threads = self._create_threads()
-
-    @lazy_property
-    def actor(self):
-        return Model(self._create_network, self._config.optimizer)
-
-    @lazy_property
-    def target(self):
-        target = Model(self._create_network)
-        target.weights = self.actor.weights
-        return target
 
     def __call__(self):
         for thread in self._threads:
@@ -53,6 +42,7 @@ class Async(Agent):
         while self._trainer.running:
             if self._trainer.timestep % self._config.sync_target == 0:
                 self.target.weights = self.actor.weights
+                print('Update target network')
             time.sleep(0.01)
         for thread in self._threads:
             thread.join()
@@ -67,13 +57,13 @@ class Async(Agent):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        x = conv2d(state, 16, 4, 3, tf.nn.elu, 2)
-        x = conv2d(x, 32, 2, 1, tf.nn.elu)
-        x = dense(x, 256, tf.nn.elu)
-        x = dense(x, 256, tf.nn.elu)
-        x = dense(x, self.actions.shape, tf.nn.elu)
+        x = conv2d(state, 16, 4, 3, pool=2)
+        x = conv2d(x, 32, 2, 1)
+        x = dense(x, 256)
+        x = dense(x, 256)
+        x = dense(x, self.actions.shape, tf.identity)
         model.add_output('best', tf.reduce_max(x, 1))
-        model.add_output('act', tf.one_hot(tf.argmax(x, 1), self.actions.shape))
+        model.add_output('act', tf.one_hot(tf.argmax(x,1), self.actions.shape))
         model.add_cost('cost', (tf.reduce_sum(action * x, 1) - target) ** 2)
 
 
@@ -92,7 +82,7 @@ class Head(EpsilonGreedy):
         return self._master.actor.compute('act', state=state)
 
     def stop(self):
-        print('Async batch cost', sum(self._costs) / len(self._costs))
+        print('Average cost', sum(self._costs) / len(self._costs))
         self._costs = []
 
     def experience(self, state, action, reward, successor):

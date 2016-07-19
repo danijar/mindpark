@@ -23,11 +23,11 @@ def parse_args():
     parser.add_argument(
         '-r', '--repeats', type=nearest_int,
         help='repeat training to estimate deviation',
-        default=5)
+        default=1)  # 5
     parser.add_argument(
         '-n', '--timesteps', type=nearest_int,
         help='the number of timesteps to train an agent',
-        default=1e6)  # 5e6
+        default=5e6)
     parser.add_argument(
         '-e', '--epoch-length', type=nearest_int,
         help='how to group average scores in the plot',
@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument(
         '-v', '--videos', type=int,
         help='if and every how many episodes to store videos',
-        default=0)
+        default=250)
     parser.add_argument(
         '-c', '--experience', action='store_true',
         help='store all transition tuples in numpy format',
