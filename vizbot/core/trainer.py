@@ -16,7 +16,22 @@ class StopTraining(Exception):
 class Trainer:
 
     def __init__(self, directory, env_name, timesteps,
-                 videos=False, experience=False, experience_maxlen=1e6):
+                 videos=0, experience=False, experience_maxlen=5e4):
+        """
+        Provide an interface to agents to train on an environment.
+
+        Args:
+            directory (path): Where to store results. Can be None for dry run.
+            env_name (str): The name of a registered Gym environment.
+            timesteps (int): The overall training duration in frames.
+            videos (int): Every how many episodes to record a video. Zero
+                disables recording.
+            experience (bool): Whether to store transition tuples as Numpy
+                arrays. Requires a lot of disk space.
+            experience_maxlen (int): Maxmium amount of transitions to store per
+                episode. Usually much higher than the normal episode length.
+                Needed to allocate memory beforehand.
+        """
         if directory:
             ensure_directory(directory)
         self._directory = directory
@@ -120,7 +135,7 @@ class Trainer:
         try:
             env = self._envs.get(timeout=0.1)
         except queue.Empty:
-            env = GymEnv(self._env_name, self._directory, self._videos)
+            env = GymEnv(self._env_name, self._directory, self._video_callback)
             for preprocess, args, kwargs in self._preprocesses:
                 env = preprocess(env, *args, **kwargs)
         yield env
@@ -134,3 +149,8 @@ class Trainer:
         if self._directory:
             scores = np.array(self._scores)
             np.save(os.path.join(self._directory, 'scores.npy'), scores)
+
+    def _video_callback(self, env_episode):
+        if not self._videos:
+            return False
+        return self.episode % self._videos == 0

@@ -45,9 +45,9 @@ def parse_args():
         help='no not monitor or store results',
         default=False)
     parser.add_argument(
-        '-v', '--videos', action='store_true',
-        help='store videos in mp4 format every few episodes',
-        default=True)
+        '-v', '--videos', type=int,
+        help='if and every how many episodes to store videos',
+        default=0)
     parser.add_argument(
         '-c', '--experience', action='store_true',
         help='store all transition tuples in numpy format',

@@ -10,7 +10,6 @@ class GymEnv(Env):
         self._env.seed(0)
         self._directory = directory
         if self._directory:
-            videos = lambda i: i % 10 == 0 if videos else False
             self._env.monitor.start(self._directory, videos)
         self._done = None
 

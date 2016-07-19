@@ -39,6 +39,14 @@ class Experience:
         choices = self._random.choice(len(self), amount, replace=False)
         return (x[choices] for x in self._transitions)
 
+    def access(self):
+        used = [x[:self._index] for x in self._transitions]
+        states, actions, rewards, successors = used
+        return states, actions, rewards, successors
+
+    def clear(self):
+        self._index = 0
+
     def _initialize(self, transition):
         shapes = [x.shape if hasattr(x, 'shape') else tuple()
                   for x in transition]

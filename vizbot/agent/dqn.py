@@ -17,7 +17,7 @@ class DQN(EpsilonGreedy):
         replay_capacity = int(1e5)
         batch_size = 32
         learning_rate = 1e-4
-        optimizer = tf.train.RMSPropOptimizer(learning_rate, decay=0.99)
+        optimizer = (tf.train.RMSPropOptimizer, 1e-4, 0.99)
         epsilon = AttrDict(start=0.5, stop=0, over=int(5e5))
         return AttrDict(**locals())
 

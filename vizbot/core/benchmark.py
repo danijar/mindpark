@@ -11,7 +11,21 @@ from vizbot.utility import ensure_directory
 class Benchmark:
 
     def __init__(self, directory, repeats, timesteps,
-                 videos=False, experience=False):
+                 videos=0, experience=False):
+        """
+        Train multiple agents on multiple environments and plot a comparison
+        chart. Store all results in an unique experiment directory.
+
+        Args:
+            directory (path): Root directory for experiments.
+            repeats (int): How often to train the agent on the same
+                environment. Used to estimate the standard deviation.
+            timesteps (int): Training time per repeat in frames.
+            videos (int): Every how many episodes to record a video. Zero
+                disables recording.
+            experience (bool): Whether to store transition tuples as Numpy
+                arrays. Requires a lot of disk space.
+        """
         if directory:
             directory = os.path.abspath(os.path.expanduser(directory))
         self._directory = directory

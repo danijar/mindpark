@@ -6,11 +6,12 @@ from vizbot.utility import AttrDict, lazy_property
 class Model:
 
     def __init__(self, creator, optimizer=None):
+        optimizer = optimizer or (tf.train.RMSPropOptimizer, 0.01)
         self._graph = tf.Graph()
         self._node = AttrDict(
             input_={}, output={}, cost={}, minimize={}, delta={})
         with self._graph.as_default():
-            self._optimizer = optimizer or tf.train.RMSPropOptimizer(0.01)
+            self._optimizer = optimizer[0](*optimizer[1:])
             creator(self)
             self._create_apply_weight()
             self._create_apply_delta()
