@@ -1,10 +1,10 @@
 import collections
 import numpy as np
 import tensorflow as tf
-from vizbot.core import Model
 from vizbot.agent import EpsilonGreedy
+from vizbot.model import Model, dense, conv2d
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience, dense, conv2d
+from vizbot.utility import AttrDict, Experience
 
 
 class DQN(EpsilonGreedy):
@@ -23,21 +23,19 @@ class DQN(EpsilonGreedy):
 
     def __init__(self, trainer):
         self._config = self._config()
-        super().__init__(trainer, **self._config.epsilon)
         trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, self._config.downsample)
         trainer.add_preprocess(FrameSkip, self._config.frame_skip)
+        super().__init__(trainer, **self._config.epsilon)
         self._memory = Experience(self._config.replay_capacity)
         self._actor = Model(self._create_network, self._config.optimizer)
         self._target = Model(self._create_network)
         self._target.weights = self._actor.weights
         print(str(self._actor))
+        self._costs = []
 
     def _step(self, state):
         return self._actor.compute('act', state=state)
-
-    def start(self):
-        self._costs = []
 
     def experience(self, state, action, reward, successor):
         if reward > 0:
@@ -60,10 +58,11 @@ class DQN(EpsilonGreedy):
         self._target.weights = self._actor.weights
         costs = self._actor.train(
             'cost', state=state, action=action, target=target)
-        self._costs += costs
+        self._costs.append(costs)
 
     def stop(self):
         print('DQN cost {:.4f}'.format(sum(self._costs) / len(self._costs)))
+        self._costs = []
 
     def _create_network(self, model):
         state = model.add_input('state', self.states.shape)

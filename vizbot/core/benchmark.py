@@ -49,7 +49,8 @@ class Benchmark:
                 directory = os.path.join(
                     experiment, '{}-{}'.format(env, agent.__name__))
             scores = self._benchmark(directory, env, agent)
-            print('Mean best return {}'.format(scores.max(1).mean()))
+            best = [max(x) for x in scores]
+            print('Mean best score {}'.format(round(sum(best) / len(best), 3)))
             result[env][agent] = scores
         if not experiment:
             return None, result

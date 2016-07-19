@@ -2,10 +2,11 @@ import time
 from threading import Thread
 import numpy as np
 import tensorflow as tf
-from vizbot.core import Agent, Model
+from vizbot.core import Agent
 from vizbot.agent import EpsilonGreedy
+from vizbot.model import Model, dense, conv2d
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience, dense, conv2d, rnn
+from vizbot.utility import AttrDict, Experience
 
 
 class Async(Agent):
