@@ -5,7 +5,7 @@ from vizbot.core import Model
 from vizbot.agent import EpsilonGreedy
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, Experience, lazy_property
-from vizbot.utility import dense, conv2d, conv3d
+from vizbot.utility import dense, conv2d
 
 
 class DQN(EpsilonGreedy):
@@ -17,7 +17,7 @@ class DQN(EpsilonGreedy):
         frame_skip = 4
         replay_capacity = int(1e5)
         batch_size = 32
-        learning_rate = 3e-5
+        learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer(learning_rate)
         epsilon = AttrDict(start=0.5, stop=0, over=int(5e5))
         return AttrDict(**locals())
@@ -28,16 +28,15 @@ class DQN(EpsilonGreedy):
         trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, self._config.downsample)
         trainer.add_preprocess(FrameSkip, self._config.frame_skip)
-        print(self.states.shape)
         self._memory = Experience(self._config.replay_capacity)
-        with Model() as model:
-            self._actor = self._build_q_network(model)
-        with Model() as model:
-            self._target = self._build_q_network(model)
-        self._target.variables = self._actor.variables
+        self._actor = Model(self._build_network, self._config.optimizer)
+        self._target = Model(self._build_network)
+        self._target.weights = self._actor.weights
+        print('States', self.states.shape)
+        print(str(self._actor))
 
     def _step(self, state):
-        return self._actor.act(state=state)
+        return self._actor.compute('act', state=state)
 
     def start(self):
         self._costs = []
@@ -53,30 +52,29 @@ class DQN(EpsilonGreedy):
             return
         state, action, reward, successor = \
             self._memory.sample(self._config.batch_size)
-        print('Final states in batch:', len(x for x in successor if x is None))
-        future = self._target.best(state=successor)
+        # print('Final states in batch:',
+        #       len(list(x for x in successor if x is None)))
+        future = self._target.compute('best', state=successor)
         final = np.isnan(successor.reshape((len(successor), -1))).any(1)
         future[final] = 0
         target = reward + self._config.discount * future
-        self._target.variables = self._actor.variables
-        costs = self._actor.train(state=state, action_=action, target=target)
+        self._target.weights = self._actor.weights
+        costs = self._actor.train(
+            'cost', state=state, action=action, target=target)
         self._costs += costs
 
     def stop(self):
         print('DQN cost', sum(self._costs) / len(self._costs))
 
-    def _build_q_network(self, model):
-        model.placeholder('state', self.states.shape)
-        model.placeholder('action_', self.actions.shape)
-        model.placeholder('target')
-        activation = tf.nn.elu
-        x = conv2d(model.state, 16, 4, 3, activation, 2)
-        x = conv2d(x, 32, 2, 1, activation)
-        x = dense(x, 256, activation)
-        x = dense(x, 256, activation)
-        x = dense(x, self.actions.shape, activation)
-        cost = (tf.reduce_sum(model.action_ * x, 1) - model.target) ** 2
-        model.action('best', tf.reduce_max(x, 1))
-        model.action('act', tf.one_hot(tf.argmax(x, 1), self.actions.shape))
-        model.compile(cost, self._config.optimizer)
-        return model
+    def _build_network(self, model):
+        state = model.add_input('state', self.states.shape)
+        action = model.add_input('action', self.actions.shape)
+        target = model.add_input('target')
+        x = conv2d(state, 16, 4, 3, tf.nn.elu, 2)
+        x = conv2d(x, 32, 2, 1, tf.nn.elu)
+        x = dense(x, 256, tf.nn.elu)
+        x = dense(x, 256, tf.nn.elu)
+        x = dense(x, self.actions.shape, tf.nn.elu)
+        model.add_output('best', tf.reduce_max(x, 1))
+        model.add_output('act', tf.one_hot(tf.argmax(x, 1), self.actions.shape))
+        model.add_cost('cost', (tf.reduce_sum(action * x, 1) - target) ** 2)

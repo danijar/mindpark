@@ -4,7 +4,7 @@ import tensorflow as tf
 
 def conv2d(x, filters, size, stride, activation, pooling=None):
     shape = [size, size, int(x.get_shape()[3]), filters]
-    weight = tf.Variable(tf.truncated_normal(shape, 0.1))
+    weight = tf.Variable(tf.truncated_normal(shape, 0.1), name='conv2d')
     stride = [1, stride, stride, 1]
     x = tf.nn.conv2d(x, weight, stride, 'VALID')
     if pooling:
@@ -15,7 +15,7 @@ def conv2d(x, filters, size, stride, activation, pooling=None):
 
 def conv3d(x, filters, size, stride, activation, pooling=None):
     shape = [size, size, 1, int(x.get_shape()[4]), filters]
-    weight = tf.Variable(tf.truncated_normal(shape, 0.1))
+    weight = tf.Variable(tf.truncated_normal(shape, 0.1), name='conv3d')
     stride = [1, stride, stride, 1, 1]
     x = tf.nn.conv3d(x, weight, stride, 'VALID')
     if pooling:
