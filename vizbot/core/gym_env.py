@@ -1,4 +1,5 @@
 import gym
+from threading import Lock
 from vizbot.core.env import Env, StopEpisode
 
 
@@ -12,6 +13,7 @@ class GymEnv(Env):
         if self._directory:
             self._env.monitor.start(self._directory, videos, resume=True)
         self._done = None
+        self._lock = Lock()
 
     @property
     def states(self):

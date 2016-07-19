@@ -1,4 +1,5 @@
 import os
+from threading import Lock
 import numpy as np
 from vizbot.core import GymEnv, StopEpisode
 from vizbot.utility import Experience, ensure_directory
@@ -50,6 +51,7 @@ class Trainer:
         self._states = None
         self._actions = None
         self._running = True
+        self._lock = Lock()
 
     @property
     def running(self):
@@ -82,18 +84,20 @@ class Trainer:
     def run_episode(self, agent, env):
         if not self._running:
             raise StopTraining(self)
-        episode = self.episode
-        score = self._run_episode(env, agent)
+        with self._lock:
+            episode = self._episode
+            self._episode += 1
+        with env.lock:
+            score = self._run_episode(env, agent, episode)
         self._scores.append(score)
-        if self._timestep >= (self._epoch + 1) * self._epoch_size:
-            self._log_epoch()
-            self._epoch += 1
-        if self._timestep >= self._timesteps:
-            self._stop_training()
+        with self._lock:
+            epoch_end = (self._epoch + 1) * self._epoch_size
+            if self._running and self._timestep >= epoch_end:
+                self._next_epoch()
+            if self._timestep >= self._timesteps:
+                self._stop_training()
 
-    def _run_episode(self, env, agent):
-        episode = self._episode
-        self._episode += 1
+    def _run_episode(self, env, agent, episode):
         if self._directory and self._experience:
             experience = Experience(self._experience_maxlen)
         score = 0
@@ -118,7 +122,8 @@ class Trainer:
                 self._directory, 'experience-{}.npz'.format(episode)))
         return score
 
-    def _log_epoch(self):
+    def _next_epoch(self):
+        self._epoch += 1
         message = 'Epoch {} timestep {} average score {}'
         score = self._scores[-self._epoch_size:]
         score = sum(score) / len(score)
@@ -127,7 +132,8 @@ class Trainer:
     def _stop_training(self):
         self._running = False
         for env in self._envs:
-            env.close()
+            with env.lock:
+                env.close()
         self._store_scores()
 
     def _store_scores(self):

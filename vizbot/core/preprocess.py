@@ -8,4 +8,5 @@ class Preprocess(Env):
     """
 
     def __init__(self, env):
+        super().__init__()
         self._env = env

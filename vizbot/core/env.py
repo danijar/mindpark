@@ -1,3 +1,6 @@
+from threading import Lock
+
+
 class StopEpisode(Exception):
 
     def __init__(self, env):
@@ -7,6 +10,9 @@ class StopEpisode(Exception):
 
 class Env:
 
+    def __init__(self):
+        self._lock = Lock()
+
     @property
     def states(self):
         raise NotImplementedError
@@ -14,6 +20,13 @@ class Env:
     @property
     def actions(self):
         raise NotImplementedError
+
+    @property
+    def lock(self):
+        """
+        Must be aquired for to reset, step, and close the environment.
+        """
+        return self._lock
 
     def reset(self):
         """
@@ -35,4 +48,3 @@ class Env:
         Optional hook for cleanup before the object gets destoyed.
         """
         pass
-

@@ -1,5 +1,5 @@
 import time
-from threading import Thread
+from threading import Thread, Lock
 import numpy as np
 import tensorflow as tf
 from vizbot.core import Agent
@@ -17,13 +17,13 @@ class Async(Agent):
         downsample = 4
         frame_skip = 4
         sync_target = 40000
-        heads = 32
+        heads = 16
         apply_gradient = 5
         epsilon = [
             AttrDict(start=1, stop=0.10, over=4e6),
             AttrDict(start=1, stop=0.01, over=4e6),
             AttrDict(start=1, stop=0.50, over=4e6)]
-        optimizer = (tf.train.RMSPropOptimizer, 1e-4, 0.99)
+        optimizer = (tf.train.RMSPropOptimizer, 5e-4, 0.99)
         return AttrDict(**locals())
 
     def __init__(self, trainer):
@@ -35,17 +35,22 @@ class Async(Agent):
         self.actor = Model(self._create_network, self._config.optimizer)
         self.target = Model(self._create_network)
         self.target.weights = self.actor.weights
+        self.lock = Lock()
         self._threads = self._create_threads()
         print(str(self.actor))
 
     def __call__(self):
+        print('Launch threads')
         for thread in self._threads:
             thread.start()
+        print('Start training')
         while self._trainer.running:
             if self._trainer.timestep % self._config.sync_target == 0:
-                self.target.weights = self.actor.weights
                 print('Update target network')
+                with self.lock:
+                    self.target.weights = self.actor.weights
             time.sleep(0.01)
+        print('Close threads')
         for thread in self._threads:
             thread.join()
 
@@ -84,7 +89,9 @@ class Head(EpsilonGreedy):
         return self._master.actor.compute('act', state=state)
 
     def stop(self):
-        print('Average cost', sum(self._costs) / len(self._costs))
+        if len(self._costs) < 100:
+            return
+        print('Cost', sum(self._costs) / len(self._costs))
         self._costs = []
 
     def experience(self, state, action, reward, successor):
@@ -96,12 +103,14 @@ class Head(EpsilonGreedy):
         state, action, reward, successor = self._batch.access()
         self._batch.clear()
         target = self._compute_target(reward, successor)
-        cost = self._master.actor.train(
-            'cost', state=state, action=action, target=target)
+        with self._master.lock:
+            cost = self._master.actor.train(
+                'cost', state=state, action=action, target=target)
         self._costs.append(cost)
 
     def _compute_target(self, reward, successor):
-        future = self._master.target.compute('best', state=successor)
+        with self._master.lock:
+            future = self._master.target.compute('best', state=successor)
         final = np.isnan(successor.reshape((len(successor), -1))).any(1)
         future[final] = 0
         target = reward + self._config.discount * future
