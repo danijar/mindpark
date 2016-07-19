@@ -13,7 +13,7 @@ class StopTraining(Exception):
 
 class Trainer:
 
-    def __init__(self, directory, env_name, timesteps,
+    def __init__(self, directory, env_name, timesteps, epoch_size=None,
                  videos=0, experience=False, experience_maxlen=5e4):
         """
         Provide an interface to agents to train on an environment.
@@ -22,6 +22,8 @@ class Trainer:
             directory (path): Where to store results. Can be None for dry run.
             env_name (str): The name of a registered Gym environment.
             timesteps (int): The overall training duration in frames.
+            epoch_size (int): Every how many frames to print statistics.
+                Defaults to timesteps / 100.
             videos (int): Every how many episodes to record a video. Zero
                 disables recording.
             experience (bool): Whether to store transition tuples as Numpy
@@ -35,12 +37,14 @@ class Trainer:
         self._directory = directory
         self._env_name = env_name
         self._timesteps = timesteps
+        self._epoch_size = epoch_size or timesteps // 100
         self._videos = videos
         self._experience = experience
         self._experience_maxlen = experience_maxlen
         self._envs = []
         self._preprocesses = []
         self._scores = []
+        self._epoch = 0
         self._episode = 0
         self._timestep = 0
         self._states = None
@@ -81,13 +85,11 @@ class Trainer:
         episode = self.episode
         score = self._run_episode(env, agent)
         self._scores.append(score)
-        message = 'Episode {} timestep {} reward {}'
-        print(message.format(episode, self.timestep, score))
-        if self._timestep > self._timesteps:
-            self._running = False
-            for env in self._envs:
-                env.close()
-            self._store_scores()
+        if self._timestep >= (self._epoch + 1) * self._epoch_size:
+            self._log_epoch()
+            self._epoch += 1
+        if self._timestep >= self._timesteps:
+            self._stop_training()
 
     def _run_episode(self, env, agent):
         episode = self._episode
@@ -115,6 +117,18 @@ class Trainer:
             experience.save(os.path.join(
                 self._directory, 'experience-{}.npz'.format(episode)))
         return score
+
+    def _log_epoch(self):
+        message = 'Epoch {} timestep {} average score {}'
+        score = self._scores[-self._epoch_size:]
+        score = sum(score) / len(score)
+        print(message.format(self._epoch, self.timestep, score))
+
+    def _stop_training(self):
+        self._running = False
+        for env in self._envs:
+            env.close()
+        self._store_scores()
 
     def _store_scores(self):
         if self._directory:

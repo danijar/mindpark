@@ -29,8 +29,8 @@ def parse_args():
         help='the number of timesteps to train an agent',
         default=5e6)
     parser.add_argument(
-        '-e', '--epoch-length', type=nearest_int,
-        help='how to group average scores in the plot',
+        '-e', '--epoch-size', type=nearest_int,
+        help='how to group average scores in chart and prints',
         default=5e4)
     parser.add_argument(
         '-o', '--directory',
@@ -65,7 +65,7 @@ def validate_args(args):
         warn('Storing 10000+ timesteps consumes a lot of disk space.')
     if not args.videos and timesteps >= 10000:
         warn('Training 10000+ timesteps. Consider capturing videos.')
-    if args.epoch_length > args.timesteps:
+    if args.epoch_size > args.timesteps:
         warn('Less than one epoch of timesteps.')
 
 
@@ -82,8 +82,11 @@ def main():
     validate_args(args)
     directory = args.directory if not args.dry_run else None
     benchmark = Benchmark(
-        directory, args.repeats, args.timesteps,
-        args.videos, args.experience)
+        directory, args.repeats,
+        timesteps=args.timesteps,
+        epoch_size=args.epoch_size,
+        videos=args.videos,
+        experience=args.experience)
     agents = [getattr(vizbot.agent, x) for x in args.agents]
     logging.getLogger('gym').setLevel(logging.WARNING)
     experiment = None if args.dry_run else args.experiment

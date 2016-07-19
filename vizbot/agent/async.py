@@ -36,6 +36,7 @@ class Async(Agent):
         self.target = Model(self._create_network)
         self.target.weights = self.actor.weights
         self._threads = self._create_threads()
+        print(str(self.actor))
 
     def __call__(self):
         for thread in self._threads:
