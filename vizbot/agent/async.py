@@ -85,28 +85,35 @@ class Head(EpsilonGreedy):
         super().__init__(trainer, **epsilon)
         self._master = master
         self._timestep = 0
-        self._delta = None
+        self._batch = Experience(self._config.apply_gradient)
+        self._costs = []
 
     def _step(self, state):
         return self._master.actor.compute('act', state=state)
 
+    def stop(self):
+        print('Async batch cost', sum(self._costs) / len(self._costs))
+        self._costs = []
+
     def experience(self, state, action, reward, successor):
         self._timestep += 1
+        self._batch.append((state, action, reward, successor))
+        done = (successor is None)
+        if not done and len(self._batch) < self._config.apply_gradient:
+            return
+        state, action, reward, successor = self._batch.access()
+        self._batch.clear()
         target = self._compute_target(reward, successor)
-        gradient = self._master.actor.delta(
+        cost = self._master.actor.train(
             'cost', state=state, action=action, target=target)
-        self._collect_delta(gradient)
-        terminal = (successor is None)
-        if self._timestep % self._config.apply_gradient == 0 or terminal:
-            self._master.actor.apply_delta(self._delta)
-            self._delta = None
+        self._costs.append(cost)
 
     def _compute_target(self, reward, successor):
-        if successor is None:
-            return reward
-        else:
-            future = self._master.target.compute('best', state=successor)
-            return reward + self._config.discount * future
+        future = self._master.target.compute('best', state=successor)
+        final = np.isnan(successor.reshape((len(successor), -1))).any(1)
+        future[final] = 0
+        target = reward + self._config.discount * future
+        return target
 
     def _collect_delta(self, gradient):
         if not self._delta:
