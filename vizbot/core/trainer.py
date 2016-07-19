@@ -20,7 +20,6 @@ class Trainer:
         if directory:
             ensure_directory(directory)
         self._directory = directory
-        print(self._directory)
         self._env_name = env_name
         self._timesteps = timesteps
         self._videos = videos

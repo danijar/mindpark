@@ -4,8 +4,7 @@ import tensorflow as tf
 from vizbot.core import Model
 from vizbot.agent import EpsilonGreedy
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience, lazy_property
-from vizbot.utility import dense, conv2d
+from vizbot.utility import AttrDict, Experience, dense, conv2d
 
 
 class DQN(EpsilonGreedy):
@@ -18,7 +17,7 @@ class DQN(EpsilonGreedy):
         replay_capacity = int(1e5)
         batch_size = 32
         learning_rate = 1e-4
-        optimizer = tf.train.RMSPropOptimizer(learning_rate)
+        optimizer = tf.train.RMSPropOptimizer(learning_rate, decay=0.99)
         epsilon = AttrDict(start=0.5, stop=0, over=int(5e5))
         return AttrDict(**locals())
 
@@ -29,10 +28,9 @@ class DQN(EpsilonGreedy):
         trainer.add_preprocess(Downsample, self._config.downsample)
         trainer.add_preprocess(FrameSkip, self._config.frame_skip)
         self._memory = Experience(self._config.replay_capacity)
-        self._actor = Model(self._build_network, self._config.optimizer)
-        self._target = Model(self._build_network)
+        self._actor = Model(self._create_network, self._config.optimizer)
+        self._target = Model(self._create_network)
         self._target.weights = self._actor.weights
-        print('States', self.states.shape)
         print(str(self._actor))
 
     def _step(self, state):
@@ -52,8 +50,9 @@ class DQN(EpsilonGreedy):
             return
         state, action, reward, successor = \
             self._memory.sample(self._config.batch_size)
-        # print('Final states in batch:',
-        #       len(list(x for x in successor if x is None)))
+        finals = len(list(x for x in successor if x is None))
+        if finals:
+            print(finals, 'terminal states in current batch')
         future = self._target.compute('best', state=successor)
         final = np.isnan(successor.reshape((len(successor), -1))).any(1)
         future[final] = 0
@@ -64,9 +63,9 @@ class DQN(EpsilonGreedy):
         self._costs += costs
 
     def stop(self):
-        print('DQN cost', sum(self._costs) / len(self._costs))
+        print('DQN cost {:.4f}'.format(sum(self._costs) / len(self._costs)))
 
-    def _build_network(self, model):
+    def _create_network(self, model):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')

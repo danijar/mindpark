@@ -60,13 +60,7 @@ class Model:
         return costs
 
     def compute(self, output, **data):
-        self._assert_finalized()
-        single = all(
-            len(value.shape) + 1 == len(self._node.input_[key].get_shape())
-            for key, value in data.items())
-        if single:
-            data = {k: np.expand_dims(v, 0) for k, v in data.items()}
-        feed = {self._node.input_[k]: v for k, v in data.items()}
+        feed, single = self._prepare_data(data)
         result = self._sess.run(self._node.output[output], feed)
         if single:
             result = np.squeeze(result, 0)
@@ -90,11 +84,11 @@ class Model:
         self._sess.run(self._apply_weight, feed)
 
     def delta(self, cost, **data):
-        self._assert_finalized()
+        feed, _ = self._prepare_data(data)
         vars_ = self._weight_variables
         delta = [self._node.delta[cost][var] for var in vars_]
-        values = self._sess.run(delta, data)
-        delta = {var: val for var, val in zip(vars_, values)}
+        values = self._sess.run(delta, feed)
+        delta = {var.name: val for var, val in zip(vars_, values)}
         return delta
 
     def apply_delta(self, delta):
@@ -103,7 +97,6 @@ class Model:
             raise KeyError('unrecognized weight name')
         feed = {self._apply_delta_ins[name]: value
                 for name, value in delta.items()}
-        print('Update', len(feed))
         self._sess.run(self._apply_delta, feed)
 
     def __str__(self):
@@ -128,6 +121,17 @@ class Model:
     def _weight_names(self):
         self._assert_finalized()
         return {x.name for x in self._weight_variables}
+
+    def _prepare_data(self, data):
+        self._assert_finalized()
+        single = all(
+            len(value.shape) + 1 == len(self._node.input_[key].get_shape())
+            for key, value in data.items()
+        )
+        if single:
+            data = {k: np.expand_dims(v, 0) for k, v in data.items()}
+        feed = {self._node.input_[k]: v for k, v in data.items()}
+        return feed, single
 
     def _format_section(self, title, nodes):
         string = '\n{}:'.format(title)
