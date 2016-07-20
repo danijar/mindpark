@@ -37,21 +37,12 @@ def network_dqn(x):
     return x
 
 
-def network_my_1(x):
-    activation = tf.nn.relu
-    x = conv2d(x, 16, 4, 2, activation, pool=2)
-    x = conv2d(x, 32, 3, 1, activation, pool=2)
-    x = conv2d(x, 64, 2, 1, activation)
-    x = dense(x, 256, activation)
-    x = dense(x, 256, activation)
-    return x
-
-
 def network_my_2(x):
     activation = tf.nn.relu
-    x = conv2d(x, 16, 8, 1, activation, pool=2)
-    x = conv2d(x, 32, 4, 1, activation, pool=2)
+    x = conv2d(x, 16, 8, 2, activation, pool=2)
+    x = conv2d(x, 32, 3, 1, activation, pool=2)
     x = conv2d(x, 64, 2, 1, activation)
+    x = dense(x, 512, activation)
     x = dense(x, 512, activation)
     return x
 

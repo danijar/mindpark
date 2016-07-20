@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 from vizbot.model.graph import Graph

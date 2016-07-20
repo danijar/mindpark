@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from vizbot.core import Agent
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, dense, default_network
+from vizbot.model import Model, DivergedError, dense, default_network
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, Experience, Every
 
@@ -94,7 +94,7 @@ class A3C(Agent):
         critic = sum(self.critic_costs) / len(self.critic_costs)
         self.actor_costs = []
         self.critic_costs = []
-        print('Cost actor {:12.2f} critic {:12.2f}'.format(actor, critic))
+        print('Cost actor {:12.2f} critic {:12.8f}'.format(actor, critic))
 
 
 class Head(EpsilonGreedy):
@@ -125,12 +125,18 @@ class Head(EpsilonGreedy):
             return_ = reward + self._config.discount * return_
             returns.append(return_)
         returns = np.array(list(reversed(returns)))
-        actor_cost = self._master.model.train('actor',
-            action=actions, state=states, return_=returns)
-        critic_cost = self._master.model.train('critic',
-            state=states, return_=returns)
-        self._master.actor_costs.append(actor_cost)
-        self._master.critic_costs.append(critic_cost)
+        try:
+            actor_cost = self._master.model.train('actor',
+                action=actions, state=states, return_=returns)
+            self._master.actor_costs.append(actor_cost)
+        except DivergedError:
+            print('Actor diverged')
+        try:
+            critic_cost = self._master.model.train('critic',
+                state=states, return_=returns)
+            self._master.critic_costs.append(critic_cost)
+        except DivergedError:
+            print('Critic diverged')
 
     def _estimate(self, output, **data):
         return self._master.model.compute(output, **data)

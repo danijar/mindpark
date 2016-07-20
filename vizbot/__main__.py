@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument(
         '-a', '--agents', nargs='+',
         help='list of agents from vizbot.agent module',
-        default=['Q', 'SARSA', 'DQN', 'Random'])
+        default=['A3C', 'Random'])
     parser.add_argument(
         '-r', '--repeats', type=nearest_int,
         help='repeat training to estimate deviation',
