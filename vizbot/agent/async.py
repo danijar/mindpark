@@ -7,22 +7,7 @@ from vizbot.core import Agent
 from vizbot.agent import EpsilonGreedy
 from vizbot.model import Model, dense, conv2d
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience
-
-
-class Every:
-
-    def __init__(self, every):
-        self._every = every
-        self._last = None
-
-    def __call__(self, current):
-        if self._last is None:
-            self._last = current
-        if current - self._last < self._every:
-            return False
-        self._last += self._every
-        return True
+from vizbot.utility import AttrDict, Experience, Every
 
 
 class Async(Agent):
@@ -32,20 +17,16 @@ class Async(Agent):
         discount = 0.99
         downsample = 4
         frame_skip = 4
-        # sync_target = 40000
-        sync_target = 2000
-        heads = 16
-        apply_gradient = 5
+        sync_target = int(4e4)
+        heads = 48  # 16
+        apply_gradient = 10  # 5
         epsilon = [
             AttrDict(start=1, stop=0.10, over=4e6),
             AttrDict(start=1, stop=0.01, over=4e6),
             AttrDict(start=1, stop=0.50, over=4e6)]
         optimizer = (tf.train.RMSPropOptimizer, 5e-4, 0.99)
-        # save_model = int(1e5)
-        save_model = 2000
-        load_dir = \
-            '~/experiment/gym/2016-07-20T00-56-57-experiment/' \
-            'SimpleDoom-v0-Async/repeat-0/actor'
+        save_model = int(1e5)
+        load_dir = ''
         return AttrDict(**locals())
 
     def __init__(self, trainer):
@@ -62,21 +43,16 @@ class Async(Agent):
         print(str(self.actor))
 
     def __call__(self):
-        print('Launch threads')
         for thread in self._threads:
             thread.start()
-        print('Start training')
         sync_target = Every(self._config.sync_target)
         save_model = Every(self._config.save_model)
         while self._trainer.running:
             if sync_target(self._trainer.timestep):
-                print('Update target network')
                 self.target.weights = self.actor.weights
             if save_model(self._trainer.timestep) and self._trainer.directory:
-                print('Store model')
                 self.actor.save(os.path.join(self._trainer.directory, 'actor'))
             time.sleep(0.01)
-        print('Close threads')
         for thread in self._threads:
             thread.join()
 
@@ -92,9 +68,10 @@ class Async(Agent):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        x = conv2d(state, 16, 4, 3, pool=2)
-        x = conv2d(x, 32, 2, 1)
-        x = dense(x, 256)
+        x = conv2d(state, 16, 8, 4)
+        # x = conv2d(state, 16, 8, 2, pool=2)
+        x = conv2d(x, 32, 4, 2)
+        # x = dense(x, 256)
         x = dense(x, 256)
         x = dense(x, self.actions.shape, tf.identity)
         model.add_output('best', tf.reduce_max(x, 1))

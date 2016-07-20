@@ -91,7 +91,6 @@ class Trainer:
         with self._lock:
             episode = self._episode
             self._episode += 1
-            print('New episode', episode)
         with env.lock:
             score = self._run_episode(env, agent, episode)
         self._scores.append(score)
@@ -132,7 +131,7 @@ class Trainer:
         message = 'Epoch {} timestep {} average score {}'
         score = self._scores[-self._epoch_size:]
         score = sum(score) / len(score)
-        print(message.format(self._epoch, self.timestep, score))
+        print(message.format(self._epoch, self.timestep, round(score, 4)))
 
     def _stop_training(self):
         self._running = False

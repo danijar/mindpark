@@ -46,7 +46,7 @@ def parse_args():
         help='no not monitor or store results',
         default=False)
     parser.add_argument(
-        '-v', '--videos', type=int,
+        '-v', '--videos', type=nearest_int,
         help='if and every how many episodes to store videos',
         default=250)
     parser.add_argument(
