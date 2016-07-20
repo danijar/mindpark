@@ -25,6 +25,16 @@ def merge_dicts(*mappings):
     return merged
 
 
+def sum_dicts(*mappings):
+    summed = {}
+    for key, value in mappings.items():
+        if key not in summed:
+            summed[key] = value
+        else:
+            summed[key] = summed[key] + value
+    return summed
+
+
 def lazy_property(function):
     attribute = '_' + function.__name__
 

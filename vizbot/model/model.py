@@ -46,8 +46,8 @@ class Model:
             self._create_set_weight()
             self._create_apply_delta()
 
-    def save(self, save_path):
-        self._graph.save(save_path)
+    def save(self, *path):
+        self._graph.save(os.path.join(*path))
 
     def add_input(self, name, shape=None, type_=tf.float32):
         if name in ('cost', 'output', 'batch', 'epochs'):
@@ -67,6 +67,8 @@ class Model:
         self._graph['cost/' + name] = node
         clip = self._clip_delta
         for gradient, variable in self._optimizer.compute_gradients(node):
+            if gradient is None:
+                continue
             clipped = tf.clip_by_value(gradient, -clip, clip)
             self._graph['delta/' + name + '/' + variable.name] = clipped
         return node
@@ -139,6 +141,7 @@ class Model:
                 raise KeyError('unrecognized weight name ' + name)
 
     def _prepare_data(self, data):
+        data = {k: np.array(v) for k, v in data.items()}
         for name, values in data.items():
             if not np.isfinite(values).all():
                 raise ValueError('non finite values in training input ' + name)

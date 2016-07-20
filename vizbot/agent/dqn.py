@@ -70,7 +70,7 @@ class DQN(EpsilonGreedy):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = default_network(state, self.actions.shape)
+        values = dense(default_network(state), out_size, tf.identity)
         model.add_output('value', tf.reduce_max(values, 1))
         model.add_output('choice',
             tf.one_hot(tf.argmax(values, 1), self.actions.shape))

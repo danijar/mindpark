@@ -75,7 +75,6 @@ class Head(EpsilonGreedy):
         epsilon = master._random.choice(config.epsilon)
         super().__init__(trainer, **epsilon)
         self._master = master
-        self._timestep = 0
         self._batch = Experience(self._config.apply_gradient)
         self._costs = []
 
@@ -89,7 +88,6 @@ class Head(EpsilonGreedy):
         self._costs = []
 
     def experience(self, state, action, reward, successor):
-        self._timestep += 1
         self._batch.append((state, action, reward, successor))
         done = (successor is None)
         if not done and len(self._batch) < self._config.apply_gradient:
@@ -130,7 +128,7 @@ class Q(Async):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = default_network(state, self.actions.shape)
+        values = dense(default_network(state), out_size, tf.identity)
         model.add_output('value', tf.reduce_max(values, 1))
         model.add_output('choice',
             tf.one_hot(tf.argmax(values, 1), self.actions.shape))
@@ -150,21 +148,10 @@ class SARSA(Async):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = default_network(state, self.actions.shape)
+        values = dense(default_network(state), out_size, tf.identity)
         policy = tf.nn.softmax(values)
         model.add_output('value', tf.reduce_sum(values * policy, 1))
         sample = tf.squeeze(tf.multinomial(policy, 1), (1,))
         model.add_output('choice', tf.one_hot(sample, self.actions.shape))
         model.add_cost('cost',
             (tf.reduce_sum(action * values, 1) - target) ** 2)
-
-
-class A3C(Async):
-
-    @classmethod
-    def _config(cls):
-        load_dir = ''
-        return AttrDict(merge_dicts(super()._config(), locals()))
-
-    def _create_network(self, model):
-        raise NotImplementedError
