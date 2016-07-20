@@ -18,6 +18,13 @@ def clamp(value, min_, max_):
     return max(min_, min(value, max_))
 
 
+def merge_dicts(*mappings):
+    merged = {}
+    for mapping in mappings:
+        merged.update(mapping)
+    return merged
+
+
 def lazy_property(function):
     attribute = '_' + function.__name__
 

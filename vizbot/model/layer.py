@@ -35,3 +35,21 @@ def dense(x, size, activation=tf.nn.elu):
     x = tf.reshape(x, (-1, int(np.prod(x.get_shape()[1:]))))
     x = tf.contrib.layers.fully_connected(x, size, activation)
     return x
+
+
+def network_dqn(x, out_size):
+    x = conv2d(x, 16, 8, 4, tf.nn.relu)
+    x = conv2d(x, 32, 4, 2, tf.nn.relu)
+    x = dense(x, 256, tf.nn.relu)
+    x = dense(x, out_size, tf.identity)
+    return x
+
+
+def network_my_conv(x, out_size):
+    x = conv2d(x, 16, 4, 2, tf.nn.elu, pool=2)
+    x = conv2d(x, 32, 3, 1, tf.nn.elu, pool=2)
+    x = conv2d(x, 64, 2, 1, tf.nn.elu)
+    x = dense(x, 256, tf.nn.elu)
+    x = dense(x, 256, tf.nn.elu)
+    x = dense(x, out_size, tf.identity)
+    return x

@@ -5,26 +5,26 @@ import numpy as np
 import tensorflow as tf
 from vizbot.core import Agent
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, dense, conv2d
+from vizbot.model import Model, network_my_conv
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience, Every
+from vizbot.utility import AttrDict, Experience, Every, merge_dicts
 
 
 class Async(Agent):
 
-    @staticmethod
-    def _config():
-        discount = 0.99
+    @classmethod
+    def _config(cls):
+        discount = 0.98
         downsample = 4
         frame_skip = 4
+        heads = 32
         sync_target = int(4e4)
-        heads = 48  # 16
-        apply_gradient = 10  # 5
+        apply_gradient = 5
         epsilon = [
             AttrDict(start=1, stop=0.10, over=4e6),
             AttrDict(start=1, stop=0.01, over=4e6),
             AttrDict(start=1, stop=0.50, over=4e6)]
-        optimizer = (tf.train.RMSPropOptimizer, 5e-4, 0.99)
+        optimizer = (tf.train.RMSPropOptimizer, 5e-4, 0.95)
         save_model = int(1e5)
         load_dir = ''
         return AttrDict(**locals())
@@ -65,18 +65,7 @@ class Async(Agent):
         return threads
 
     def _create_network(self, model):
-        state = model.add_input('state', self.states.shape)
-        action = model.add_input('action', self.actions.shape)
-        target = model.add_input('target')
-        x = conv2d(state, 16, 8, 4)
-        # x = conv2d(state, 16, 8, 2, pool=2)
-        x = conv2d(x, 32, 4, 2)
-        # x = dense(x, 256)
-        x = dense(x, 256)
-        x = dense(x, self.actions.shape, tf.identity)
-        model.add_output('best', tf.reduce_max(x, 1))
-        model.add_output('act', tf.one_hot(tf.argmax(x,1), self.actions.shape))
-        model.add_cost('cost', (tf.reduce_sum(action * x, 1) - target) ** 2)
+        raise NotImplementedError
 
 
 class Head(EpsilonGreedy):
@@ -91,10 +80,10 @@ class Head(EpsilonGreedy):
         self._costs = []
 
     def _step(self, state):
-        return self._master.actor.compute('act', state=state)
+        return self._master.actor.compute('choice', state=state)
 
     def stop(self):
-        if len(self._costs) < 5000:
+        if len(self._costs) < 2500:
             return
         print('Cost', sum(self._costs) / len(self._costs))
         self._costs = []
@@ -113,7 +102,7 @@ class Head(EpsilonGreedy):
         self._costs.append(cost)
 
     def _compute_target(self, reward, successor):
-        future = self._master.target.compute('best', state=successor)
+        future = self._master.target.compute('value', state=successor)
         final = np.isnan(successor.reshape((len(successor), -1))).any(1)
         future[final] = 0
         target = reward + self._config.discount * future
@@ -125,3 +114,54 @@ class Head(EpsilonGreedy):
             return
         assert self._delta.keys() == gradient.keys()
         self._delta = {k: self._delta[k] + gradient[k] for k in gradient}
+
+
+class Q(Async):
+
+    @classmethod
+    def _config(cls):
+        load_dir = ''
+        return AttrDict(merge_dicts(super()._config(), locals()))
+
+    def _create_network(self, model):
+        state = model.add_input('state', self.states.shape)
+        action = model.add_input('action', self.actions.shape)
+        target = model.add_input('target')
+        values = network_my_conv(state, self.actions.shape)
+        model.add_output('value', tf.reduce_max(values, 1))
+        model.add_output('choice',
+            tf.one_hot(tf.argmax(values, 1), self.actions.shape))
+        model.add_cost('cost',
+            (tf.reduce_sum(action * values, 1) - target) ** 2)
+
+
+
+class SARSA(Async):
+
+    @classmethod
+    def _config(cls):
+        load_dir = ''
+        return AttrDict(merge_dicts(super()._config(), locals()))
+
+    def _create_network(self, model):
+        state = model.add_input('state', self.states.shape)
+        action = model.add_input('action', self.actions.shape)
+        target = model.add_input('target')
+        values = network_my_conv(state, self.actions.shape)
+        policy = tf.nn.softmax(values)
+        model.add_output('value', values * policy)
+        sample = tf.squeeze(tf.multinomial(policy, 1), 1)
+        model.add_output('choice', tf.one_hot(sample, self.actions.shape))
+        model.add_cost('cost',
+            (tf.reduce_sum(action * values, 1) - target) ** 2)
+
+
+class A3C(Async):
+
+    @classmethod
+    def _config(cls):
+        load_dir = ''
+        return AttrDict(merge_dicts(super()._config(), locals()))
+
+    def _create_network(self, model):
+        raise NotImplementedError

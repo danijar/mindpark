@@ -21,11 +21,11 @@ def parse_args():
     parser.add_argument(
         '-a', '--agents', nargs='+',
         help='list of agents from vizbot.agent module',
-        default=['Async', 'DQN', 'Random'])
+        default=['Q', 'SARSA', 'DQN', 'Random'])
     parser.add_argument(
         '-r', '--repeats', type=nearest_int,
         help='repeat training to estimate deviation',
-        default=1)  # 5
+        default=5)
     parser.add_argument(
         '-n', '--timesteps', type=nearest_int,
         help='the number of timesteps to train an agent',
@@ -93,6 +93,7 @@ def main():
         videos=args.videos,
         experience=args.experience)
     agents = [getattr(vizbot.agent, x) for x in args.agents]
+    print(agents)
     logging.getLogger('gym').setLevel(logging.WARNING)
     experiment = None if args.dry_run else args.experiment
     # yappi.start()

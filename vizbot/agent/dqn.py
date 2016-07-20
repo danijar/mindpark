@@ -2,7 +2,7 @@ import collections
 import numpy as np
 import tensorflow as tf
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, dense, conv2d
+from vizbot.model import Model, network_dqn
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, Experience
 
@@ -35,11 +35,9 @@ class DQN(EpsilonGreedy):
         self._costs = []
 
     def _step(self, state):
-        return self._actor.compute('act', state=state)
+        return self._actor.compute('choice', state=state)
 
     def experience(self, state, action, reward, successor):
-        if reward > 0:
-            print(['DQN', 'Greedy'][self._was_greedy], 'reward', reward)
         self._memory.append((state, action, reward, successor))
         if len(self._memory) == 1:
             size = round(self._memory.nbytes / 1024 / 1024)
@@ -51,7 +49,7 @@ class DQN(EpsilonGreedy):
         finals = len(list(x for x in successor if x is None))
         if finals:
             print(finals, 'terminal states in current batch')
-        future = self._target.compute('best', state=successor)
+        future = self._target.compute('value', state=successor)
         final = np.isnan(successor.reshape((len(successor), -1))).any(1)
         future[final] = 0
         target = reward + self._config.discount * future
@@ -61,18 +59,18 @@ class DQN(EpsilonGreedy):
         self._costs.append(costs)
 
     def stop(self):
-        print('DQN cost {:.4f}'.format(sum(self._costs) / len(self._costs)))
+        if len(self._costs) < 2500:
+            return
+        print('Cost', sum(self._costs) / len(self._costs))
         self._costs = []
 
     def _create_network(self, model):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        x = conv2d(state, 16, 4, 3, tf.nn.elu, 2)
-        x = conv2d(x, 32, 2, 1, tf.nn.elu)
-        x = dense(x, 256, tf.nn.elu)
-        x = dense(x, 256, tf.nn.elu)
-        x = dense(x, self.actions.shape, tf.nn.elu)
-        model.add_output('best', tf.reduce_max(x, 1))
-        model.add_output('act', tf.one_hot(tf.argmax(x, 1), self.actions.shape))
-        model.add_cost('cost', (tf.reduce_sum(action * x, 1) - target) ** 2)
+        values = network_dqn(state, self.actions.shape)
+        model.add_output('value', tf.reduce_max(values, 1))
+        model.add_output('choice',
+            tf.one_hot(tf.argmax(values, 1), self.actions.shape))
+        model.add_cost('cost',
+            (tf.reduce_sum(action * values, 1) - target) ** 2)
