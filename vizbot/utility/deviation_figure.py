@@ -32,7 +32,7 @@ class DeviationFigure:
         to data. Data is an array of multiple runs over which to compute the
         standard deviation.
         """
-        lines = sorted(lines.items(), key=lambda x: -x[1].sum())
+        lines = sorted(lines.items(), key=lambda x: -np.sum(x[1]))
         ax = self._next_plot()
         ax.set_title(title)
         ax.set_xlabel(xlabel)
@@ -41,6 +41,7 @@ class DeviationFigure:
             color = self.COLORS[index]
             self._plot(ax, label, line, color)
         ax.legend(**self.LABEL_ARGS)
+        return ax
 
     def save(self, filepath):
         """

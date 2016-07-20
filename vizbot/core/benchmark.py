@@ -31,44 +31,52 @@ class Benchmark:
         """
         Train each agent on each environment for multiple repeats. Store gym
         monitorings and scores into sub directories of the experiment. Return
-        the path to the experiment and the scores.
+        the path to the experiment, and episode scores and durations, both
+        grouped by environment, agent, and repeat.
         """
         experiment = self._start_experiment(name)
-        result = collections.defaultdict(dict)
+        scores = collections.defaultdict(dict)
+        durations = collections.defaultdict(dict)
         for env, agent in itertools.product(envs, agents):
             print('Benchmark', agent.__name__, 'on', env)
             directory = None
             if experiment:
                 directory = os.path.join(
                     experiment, '{}-{}'.format(env, agent.__name__))
-            scores = self._benchmark(directory, env, agent)
-            best = [max(x) for x in scores]
+            score, duration = self._benchmark(directory, env, agent)
+            best = [max(x) for x in score]
             print('Mean best score {}'.format(round(sum(best) / len(best), 3)))
-            result[env][agent] = scores
+            scores[env][agent] = score
+            durations[env][agent] = duration
         if not experiment:
-            return None, result
-        return experiment, self.read(experiment)
+            return None, scores, durations
+        scores, durations = self.read(experiment)
+        return experiment, scores, durations
 
-    @staticmethod
-    def read(experiment):
+    @classmethod
+    def read(cls, experiment):
         """
         Read and return scores of an experiment from its sub directories.
         """
-        result = collections.defaultdict(dict)
-        for benchmark in self._get_subdirs(experiment):
+        scores = collections.defaultdict(dict)
+        durations = collections.defaultdict(dict)
+        for benchmark in cls._get_subdirs(experiment):
             env, agent = os.path.basename(benchmark).rsplit('-', 1)
-            result[env][agent] = []
-            for repeat in self._get_subdirs(benchmark):
-                scores = np.load(os.path.join(repeat, 'scores.npy'))
-                result[env][agent].append(scores)
-        return result
+            scores[env][agent] = []
+            durations[env][agent] = []
+            for repeat in cls._get_subdirs(benchmark):
+                score = np.load(os.path.join(repeat, 'scores.npy'))
+                duration = np.load(os.path.join(repeat, 'durations.npy'))
+                scores[env][agent].append(score)
+                durations[env][agent].append(duration)
+        return scores, durations
 
     def _benchmark(self, directory, env, agent):
         """
-        Train an agent for several repeats and store and return scores the
-        scores of each repeat and episode.
+        Train an agent for several repeats and store and return scores and
+        durations of each episode, grouped by repeats.
         """
-        scores = []
+        scores, durations = [], []
         template = 'repeat-{:0>' + str(len(str(self._repeats - 1))) + '}'
         for repeat in range(self._repeats):
             subdirectory = None
@@ -80,7 +88,8 @@ class Benchmark:
             except StopTraining:
                 pass
             scores.append(trainer.scores)
-        return scores
+            durations.append(trainer.durations)
+        return scores, durations
 
     def _start_experiment(self, name):
         if not self._directory:
@@ -92,6 +101,7 @@ class Benchmark:
         print('Start experiment', experiment)
         return experiment
 
+    @staticmethod
     def _get_subdirs(directory):
         subdirs = os.listdir(directory)
         subdirs = [os.path.join(directory, x) for x in subdirs]

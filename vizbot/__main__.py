@@ -2,9 +2,10 @@ import sys
 import argparse
 import logging
 import os
+import numpy as np
 import vizbot.env
 import vizbot.agent
-from vizbot.utility import DeviationFigure, color_stack_trace
+from vizbot.utility import EpochFigure, color_stack_trace
 from vizbot.core import Benchmark
 # import yappi
 
@@ -70,10 +71,13 @@ def validate_args(args):
         warn('Less than one epoch of timesteps.')
 
 
-def plot_result(directory, rewards):
-    plot = DeviationFigure(len(rewards), os.path.basename(directory))
-    for env, agents in rewards.items():
-        plot.add(env, 'Training Epochs', 'Average Reward', **agents)
+def plot_result(args, directory, scores, durations):
+    title = os.path.basename(directory)
+    epochs = args.timesteps // args.epoch_size
+    plot = EpochFigure(len(scores), title, epochs, args.epoch_size)
+    for env in scores:
+        score, duration = scores[env], durations[env]
+        plot.add(env, 'Training Epochs', 'Average Reward', score, duration)
     plot.save(os.path.join(directory, 'comparison.pdf'))
 
 
@@ -92,10 +96,10 @@ def main():
     logging.getLogger('gym').setLevel(logging.WARNING)
     experiment = None if args.dry_run else args.experiment
     # yappi.start()
-    experiment, result = benchmark(experiment, args.envs, agents)
+    experiment, scores, durations = benchmark(experiment, args.envs, agents)
     # yappi.get_func_stats().print_all()
     if not args.dry_run:
-        plot_result(experiment, result, args.epoch_length)
+        plot_result(args, experiment, scores, durations)
 
 
 if __name__ == '__main__':

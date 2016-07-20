@@ -45,6 +45,7 @@ class Trainer:
         self._envs = []
         self._preprocesses = []
         self._scores = []
+        self._durations = []
         self._epoch = 0
         self._episode = 0
         self._timestep = 0
@@ -73,6 +74,10 @@ class Trainer:
     def scores(self):
         return self._scores
 
+    @property
+    def durations(self):
+        return self._durations
+
     def add_preprocess(self, preprocess_cls, *args, **kwargs):
         if self._envs:
             raise RuntimeError('must add preprocesses before creating envs')
@@ -92,8 +97,9 @@ class Trainer:
             episode = self._episode
             self._episode += 1
         with env.lock:
-            score = self._run_episode(env, agent, episode)
+            score, duration = self._run_episode(env, agent, episode)
         self._scores.append(score)
+        self._durations.append(duration)
         with self._lock:
             epoch_end = (self._epoch + 1) * self._epoch_size
             if self._running and self._timestep >= epoch_end:
@@ -104,7 +110,7 @@ class Trainer:
     def _run_episode(self, env, agent, episode):
         if self._directory and self._experience:
             experience = Experience(self._experience_maxlen)
-        score = 0
+        score, duration = 0, 0
         agent.start()
         try:
             state = env.reset()
@@ -117,6 +123,7 @@ class Trainer:
                     experience.append(transition)
                 state = successor
                 score += reward
+                duration += 1
                 self._timestep += 1
         except StopEpisode:
             pass
@@ -124,7 +131,7 @@ class Trainer:
         if self._directory and self._experience:
             experience.save(os.path.join(
                 self._directory, 'experience-{}.npz'.format(episode)))
-        return score
+        return score, duration
 
     def _next_epoch(self):
         self._epoch += 1
@@ -141,9 +148,11 @@ class Trainer:
         self._store_scores()
 
     def _store_scores(self):
-        if self._directory:
-            scores = np.array(self._scores)
-            np.save(os.path.join(self._directory, 'scores.npy'), scores)
+        if not self._directory:
+            return
+        scores, durations = np.array(self._scores), np.array(self._durations)
+        np.save(os.path.join(self._directory, 'scores.npy'), scores)
+        np.save(os.path.join(self._directory, 'durations.npy'), durations)
 
     def _video_callback(self, env_episode):
         if not self._videos:
