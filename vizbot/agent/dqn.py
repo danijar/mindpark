@@ -17,7 +17,7 @@ class DQN(EpsilonGreedy):
         replay_capacity = int(1e5)
         batch_size = 32
         learning_rate = 1e-4
-        optimizer = (tf.train.RMSPropOptimizer, 1e-4, 0.99)
+        optimizer = (tf.train.RMSPropOptimizer, 1e-3)
         epsilon = AttrDict(start=0.5, stop=0, over=int(5e5))
         return AttrDict(**locals())
 
@@ -52,11 +52,13 @@ class DQN(EpsilonGreedy):
         future = self._target.compute('value', state=successor)
         final = np.isnan(successor.reshape((len(successor), -1))).any(1)
         future[final] = 0
+        assert np.isfinite(future).all()
         target = reward + self._config.discount * future
         self._target.weights = self._actor.weights
-        costs = self._actor.train(
+        cost = self._actor.train(
             'cost', state=state, action=action, target=target)
-        self._costs.append(costs)
+        assert np.isfinite(cost).all()
+        self._costs.append(cost)
 
     def stop(self):
         if len(self._costs) < 2500:

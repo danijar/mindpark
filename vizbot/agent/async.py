@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from vizbot.core import Agent
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, network_my_conv
+from vizbot.model import Model, network_my_2
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, Experience, Every, merge_dicts
 
@@ -24,7 +24,7 @@ class Async(Agent):
             AttrDict(start=1, stop=0.10, over=4e6),
             AttrDict(start=1, stop=0.01, over=4e6),
             AttrDict(start=1, stop=0.50, over=4e6)]
-        optimizer = (tf.train.RMSPropOptimizer, 5e-4, 0.99)
+        optimizer = (tf.train.RMSPropOptimizer, 1e-3)
         save_model = int(1e5)
         load_dir = ''
         return AttrDict(**locals())
@@ -97,8 +97,10 @@ class Head(EpsilonGreedy):
         state, action, reward, successor = self._batch.access()
         self._batch.clear()
         target = self._compute_target(reward, successor)
+        assert np.isfinite(target).all()
         cost = self._master.actor.train(
             'cost', state=state, action=action, target=target)
+        assert np.isfinite(cost).all()
         self._costs.append(cost)
 
     def _compute_target(self, reward, successor):
@@ -127,7 +129,7 @@ class Q(Async):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = network_my_conv(state, self.actions.shape)
+        values = network_my_2(state, self.actions.shape)
         model.add_output('value', tf.reduce_max(values, 1))
         model.add_output('choice',
             tf.one_hot(tf.argmax(values, 1), self.actions.shape))
@@ -147,7 +149,7 @@ class SARSA(Async):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = network_my_conv(state, self.actions.shape)
+        values = network_my_2(state, self.actions.shape)
         policy = tf.nn.softmax(values)
         model.add_output('value', tf.reduce_sum(values * policy, 1))
         sample = tf.squeeze(tf.multinomial(policy, 1), (1,))

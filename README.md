@@ -1,7 +1,7 @@
 Vizbot
 ======
 
-Testbed for deep deinforcement learning agents.
+Testbed for deep reinforcement learning agents.
 
 ## Instructions
 

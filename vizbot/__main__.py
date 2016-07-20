@@ -49,7 +49,7 @@ def parse_args():
     parser.add_argument(
         '-v', '--videos', type=nearest_int,
         help='if and every how many episodes to store videos',
-        default=250)
+        default=1000)
     parser.add_argument(
         '-c', '--experience', action='store_true',
         help='store all transition tuples in numpy format',
