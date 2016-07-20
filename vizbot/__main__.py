@@ -6,6 +6,7 @@ import vizbot.env
 import vizbot.agent
 from vizbot.utility import DeviationFigure, color_stack_trace
 from vizbot.core import Benchmark
+# import yappi
 
 
 def parse_args():
@@ -90,7 +91,9 @@ def main():
     agents = [getattr(vizbot.agent, x) for x in args.agents]
     logging.getLogger('gym').setLevel(logging.WARNING)
     experiment = None if args.dry_run else args.experiment
+    # yappi.start()
     experiment, result = benchmark(experiment, args.envs, agents)
+    # yappi.get_func_stats().print_all()
     if not args.dry_run:
         plot_result(experiment, result, args.epoch_length)
 

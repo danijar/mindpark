@@ -54,6 +54,10 @@ class Trainer:
         self._lock = Lock()
 
     @property
+    def directory(self):
+        return self._directory
+
+    @property
     def running(self):
         return self._running
 
@@ -87,6 +91,7 @@ class Trainer:
         with self._lock:
             episode = self._episode
             self._episode += 1
+            print('New episode', episode)
         with env.lock:
             score = self._run_episode(env, agent, episode)
         self._scores.append(score)

@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from vizbot.utility import ensure_directory
 from vizbot.model.graph import Graph
 
 
@@ -11,14 +10,14 @@ class Model:
     cost functions, compute gradients for costs, and apply gradients.
     """
 
-    def __init__(self, creator=None, optimizer=None, load_dir=None):
+    def __init__(self, creator=None, optimizer=None, load_path=None):
         """
-        Create a new model. Either load_dir or creator must be specified.
+        Create a new model. Either load_path or creator must be specified.
 
         Args:
-            load_dir (path, optional): Load a stored TensorFlow model.
+            load_path (path, optional): Load a stored TensorFlow model.
             creator (callable, optional): Function that defines creates model
-                if load_dir is not specified. Will be executed with the graph
+                if load_path is not specified. Will be executed with the graph
                 of the model as default graph. After this function, no further
                 operations can be added to the graph.
             optimizer (tuple, optional): A tuple of a TensorFlow optimizer
@@ -26,20 +25,22 @@ class Model:
         """
         optimizer = optimizer or (tf.train.RMSPropOptimizer, 0.01)
         self._graph = Graph()
-        if not load_dir and not creator:
-            raise ValueError('load_dir or creator callable must be provided')
-        if load_dir:
-            self._graph.load(load_dir)
-            return
+        if load_path:
+            try:
+                self._graph.load(load_path)
+                print('Loaded model')
+                return
+            except IOError:
+                pass
+        print('Create model')
         with self._graph:
             self._optimizer = optimizer[0](*optimizer[1:])
             creator(self)
             self._create_set_weight()
             self._create_apply_delta()
 
-    def save(self, save_dir):
-        ensure_directory(self._save_dir)
-        self._graph.save(save_dir)
+    def save(self, save_path):
+        self._graph.save(save_path)
 
     def add_input(self, name, shape=None, type_=tf.float32):
         if name in ('cost', 'output', 'batch', 'epochs'):
@@ -58,9 +59,6 @@ class Model:
         node = tf.reduce_sum(node)
         self._graph['cost/' + name] = node
         self._graph['optimize/' + name] = self._optimizer.minimize(node)
-        weights = self._graph.weights
-        grad_vars = self._optimizer.compute_gradients(node, weights)
-        self._graph['graph/' + name] = {var: gard for gard, var in grad_vars}
         return node
 
     def train(self, cost, batch=None, epochs=1, **data):

@@ -1,6 +1,7 @@
 import glob
 import os
 import tensorflow as tf
+from vizbot.utility import ensure_directory
 
 
 class Graph:
@@ -23,24 +24,27 @@ class Graph:
         return self
 
     def __exit__(self, type_, value, traceback):
-        self._saver = tf.train.Saver(self.variables)
+        self._saver = tf.train.Saver()
         self._sess.run(tf.initialize_variables(self.variables))
         self._graph.finalize()
         self._scope.__exit__(type_, value, traceback)
 
-    def load(self, directory):
+    def load(self, path):
         self._assert_modifiable()
-        if not os.path.isdir(directory):
-            raise ValueError('load directory does not exist')
-        filepath = glob.glob(os.path.join(load_dir, '*.meta'))[0]
-        self._saver = tf.train.import_meta_graph(filepath)
-        self._saver.restore(self._sess, filepath[:-5])
+        path = os.path.expanduser(path)
+        if not os.path.isfile(path) or not os.path.isfile(path + '.meta'):
+            raise IOError('model to load does not exist')
+        with self._graph.as_default():
+            self._saver = tf.train.import_meta_graph(path + '.meta')
+            self._saver.restore(self._sess, path)
         self._graph.finalize()
 
-    def save(self, directory):
+    def save(self, path):
         self._assert_finalized()
+        path = os.path.expanduser(path)
+        ensure_directory(os.path.dirname(path))
         self._saver.save(
-            self._sess, self._save_dir,
+            self._sess, path,
             latest_filename='checkpoint',
             meta_graph_suffix='meta',
             write_meta_graph=True)
