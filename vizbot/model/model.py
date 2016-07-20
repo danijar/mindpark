@@ -3,6 +3,12 @@ import tensorflow as tf
 from vizbot.model.graph import Graph
 
 
+class DivergedError(Exception):
+
+    def __init__(self, message):
+        super().__init__(self, message)
+
+
 class Model:
     """
     A flexible interface to define TensorFlow models. Similar to the Keras
@@ -24,6 +30,7 @@ class Model:
                 class and its positional arguments.
         """
         optimizer = optimizer or (tf.train.RMSPropOptimizer, 0.01)
+        self._clip_delta = 5
         self._graph = Graph()
         if load_path:
             try:
@@ -58,15 +65,17 @@ class Model:
     def add_cost(self, name, node):
         node = tf.reduce_sum(node)
         self._graph['cost/' + name] = node
-        self._graph['optimize/' + name] = self._optimizer.minimize(node)
+        clip = self._clip_delta
+        for gradient, variable in self._optimizer.compute_gradients(node):
+            clipped = tf.clip_by_value(gradient, -clip, clip)
+            self._graph['delta/' + name + '/' + variable.name] = clipped
         return node
 
     def train(self, cost, batch=None, epochs=1, **data):
-        data, _ = self._prepare_data(data)
         costs = []
-        ops = 'cost/' + cost, 'optimize/' + cost
         for batch in self._chunks(data, batch, epochs):
-            cost, _ = self._graph(ops, batch)
+            delta, cost = self.delta(cost, **data)
+            self.apply(delta)
             costs.append(cost)
         return sum(costs) / len(costs)
 
@@ -92,8 +101,16 @@ class Model:
         self._graph(['set_weight/' + x for x in weights], feed)
 
     def delta(self, cost, **data):
-        values = self._graph('delta/' + cost, self._prepare_data(data)[0])
-        return {var.name: val for var, val in zip(self.weights, values)}
+        data, _ = self._prepare_data(data)
+        delta_nodes = list(self._graph.find('delta/' + cost + '/').items())
+        delta_names = [x[0] for x in delta_nodes]
+        ops = ['cost/' + cost] + [x[1] for x in delta_nodes]
+        results = self._graph(ops, data)
+        cost, delta = results[0], results[1:]
+        if not np.isfinite(cost):
+            raise DivergedError('the cost measure diverged')
+        delta = dict(zip(delta_names, delta))
+        return delta, cost
 
     def apply(self, delta):
         self._validate_weights(delta)
@@ -122,6 +139,9 @@ class Model:
                 raise KeyError('unrecognized weight name ' + name)
 
     def _prepare_data(self, data):
+        for name, values in data.items():
+            if not np.isfinite(values).all():
+                raise ValueError('non finite values in training input ' + name)
         single = all(
             len(val.shape) + 1 == len(self._graph['input/' + key].get_shape())
             for key, val in data.items())

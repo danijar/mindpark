@@ -2,7 +2,7 @@ import collections
 import numpy as np
 import tensorflow as tf
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, network_dqn
+from vizbot.model import Model, DivergedError, default_network
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, Experience
 
@@ -16,8 +16,7 @@ class DQN(EpsilonGreedy):
         frame_skip = 4
         replay_capacity = int(1e5)
         batch_size = 32
-        learning_rate = 1e-4
-        optimizer = (tf.train.RMSPropOptimizer, 1e-3)
+        optimizer = (tf.train.RMSPropOptimizer, 1e-4)
         epsilon = AttrDict(start=0.5, stop=0, over=int(5e5))
         return AttrDict(**locals())
 
@@ -52,25 +51,26 @@ class DQN(EpsilonGreedy):
         future = self._target.compute('value', state=successor)
         final = np.isnan(successor.reshape((len(successor), -1))).any(1)
         future[final] = 0
-        assert np.isfinite(future).all()
         target = reward + self._config.discount * future
         self._target.weights = self._actor.weights
-        cost = self._actor.train(
-            'cost', state=state, action=action, target=target)
-        assert np.isfinite(cost).all()
+        try:
+            cost = self._actor.train(
+                'cost', state=state, action=action, target=target)
+        except DivergedError:
+            print('Cost diverged')
         self._costs.append(cost)
 
     def stop(self):
         if len(self._costs) < 2500:
             return
-        print('Cost', sum(self._costs) / len(self._costs))
+        print('Cost {:8.2f}'.format(sum(self._costs) / len(self._costs)))
         self._costs = []
 
     def _create_network(self, model):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = network_dqn(state, self.actions.shape)
+        values = default_network(state, self.actions.shape)
         model.add_output('value', tf.reduce_max(values, 1))
         model.add_output('choice',
             tf.one_hot(tf.argmax(values, 1), self.actions.shape))

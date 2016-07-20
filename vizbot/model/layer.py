@@ -5,9 +5,7 @@ from tensorflow.contrib import layers
 
 def conv2d(x, filters, size, stride, activation=tf.nn.elu, pool=None):
     x = layers.convolution2d(
-        x, filters, [size, size], stride, 'VALID',
-        activation, layers.batch_norm, None,
-        layers.xavier_initializer())
+        x, filters, [size, size], stride, 'VALID', activation)
     if pool:
         pool = [1, pool, pool, 1]
         x = tf.nn.max_pool(x, pool, pool, 'VALID')
@@ -16,10 +14,7 @@ def conv2d(x, filters, size, stride, activation=tf.nn.elu, pool=None):
 
 def dense(x, size, activation=tf.nn.elu):
     x = tf.reshape(x, (-1, int(np.prod(x.get_shape()[1:]))))
-    x = layers.fully_connected(
-        x, size, activation,
-        layers.batch_norm, None,
-        layers.xavier_initializer())
+    x = layers.fully_connected(x, size, activation)
     return x
 
 
@@ -39,20 +34,24 @@ def network_dqn(x, out_size):
 
 
 def network_my_1(x, out_size):
-    x = conv2d(x, 16, 4, 2, tf.nn.elu, pool=2)
-    x = conv2d(x, 32, 3, 1, tf.nn.elu, pool=2)
-    x = conv2d(x, 64, 2, 1, tf.nn.elu)
-    x = dense(x, 256, tf.nn.elu)
-    x = dense(x, 256, tf.nn.elu)
+    activation = tf.nn.relu
+    x = conv2d(x, 16, 4, 2, activation, pool=2)
+    x = conv2d(x, 32, 3, 1, activation, pool=2)
+    x = conv2d(x, 64, 2, 1, activation)
+    x = dense(x, 256, activation)
+    x = dense(x, 256, activation)
     x = dense(x, out_size, tf.identity)
     return x
 
 
 def network_my_2(x, out_size):
-    x = conv2d(x, 16, 8, 1, tf.nn.elu, pool=2)
-    x = conv2d(x, 32, 4, 1, tf.nn.elu, pool=2)
-    x = conv2d(x, 64, 2, 1, tf.nn.elu, pool=2)
-    x = dense(x, 1024, tf.nn.elu)
-    x = dense(x, 1024, tf.nn.elu)
+    activation = tf.nn.relu
+    x = conv2d(x, 16, 8, 1, activation, pool=2)
+    x = conv2d(x, 32, 4, 1, activation, pool=2)
+    x = conv2d(x, 64, 2, 1, activation)
+    x = dense(x, 512, activation)
     x = dense(x, out_size, tf.identity)
     return x
+
+
+default_network = network_my_2
