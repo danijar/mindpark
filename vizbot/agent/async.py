@@ -14,7 +14,7 @@ class Async(Agent):
 
     @classmethod
     def _config(cls):
-        discount = 0.98
+        discount = 0.99
         downsample = 4
         frame_skip = 4
         heads = 32
@@ -24,7 +24,7 @@ class Async(Agent):
             AttrDict(start=1, stop=0.10, over=4e6),
             AttrDict(start=1, stop=0.01, over=4e6),
             AttrDict(start=1, stop=0.50, over=4e6)]
-        optimizer = (tf.train.RMSPropOptimizer, 5e-4, 0.95)
+        optimizer = (tf.train.RMSPropOptimizer, 5e-4, 0.99)
         save_model = int(1e5)
         load_dir = ''
         return AttrDict(**locals())
@@ -149,8 +149,8 @@ class SARSA(Async):
         target = model.add_input('target')
         values = network_my_conv(state, self.actions.shape)
         policy = tf.nn.softmax(values)
-        model.add_output('value', values * policy)
-        sample = tf.squeeze(tf.multinomial(policy, 1), 1)
+        model.add_output('value', tf.reduce_sum(values * policy, 1))
+        sample = tf.squeeze(tf.multinomial(policy, 1), (1,))
         model.add_output('choice', tf.one_hot(sample, self.actions.shape))
         model.add_cost('cost',
             (tf.reduce_sum(action * values, 1) - target) ** 2)

@@ -1,29 +1,26 @@
 Vizbot
 ======
 
-Deep Reinforcement Learning agents and their evaluation.
+Testbed for deep deinforcement learning agents.
 
 ## Instructions
 
 Benchmark
 
 ```shell
-python3 -m vizbot -d Env, ... -a Agent, ... -v -n 5e6
+python3 -m vizbot -a DQN Q SARSA Random -l benchmark
+```
+
+Quick check
+
+```shell
+python3 -m vizbot -a SARSA Q DQN Random -n 3000 -l check -e 1000 -r 2
 ```
 
 Recording
 
 ```shell
 python3 -m vizbot -c -r 1 -a KeyboardDoom -n 10
-```
-
-## Tips
-
-Monitoring
-
-```
-cd ~/experiment/gym && cd `ls -t | head -n 1`
-watch "{ nvidia-smi; echo; ls; echo; cat *.stats.json; }"
 ```
 
 ## Setup
