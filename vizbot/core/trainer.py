@@ -38,7 +38,7 @@ class Trainer:
         self._directory = directory
         self._env_name = env_name
         self._timesteps = timesteps
-        self._epoch_size = epoch_size or timesteps // 100
+        self._epoch_size = int(epoch_size or timesteps // 100)
         self._videos = videos
         self._experience = experience
         self._experience_maxlen = experience_maxlen

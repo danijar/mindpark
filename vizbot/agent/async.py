@@ -94,7 +94,7 @@ class Head(EpsilonGreedy):
         return self._master.actor.compute('act', state=state)
 
     def stop(self):
-        if len(self._costs) < 100:
+        if len(self._costs) < 5000:
             return
         print('Cost', sum(self._costs) / len(self._costs))
         self._costs = []
