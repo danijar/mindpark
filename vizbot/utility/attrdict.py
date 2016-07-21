@@ -9,3 +9,12 @@ class AttrDict(dict):
         if key not in self:
             raise AttributeError
         self[key] = value
+
+
+def use_attrdicts(obj):
+    if isinstance(obj, dict):
+        obj = {k: use_attrdicts(v) for k, v in obj.items()}
+        return AttrDict(obj)
+    elif isinstance(obj, list):
+        return [use_attrdicts(x) for x in obj]
+    return obj

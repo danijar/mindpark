@@ -1,109 +1,143 @@
-import collections
+import re
 import itertools
 import os
 import time
-import numpy as np
+import yaml
 import gym
+import numpy as np
+import vizbot.env
+import vizbot.agent
 from vizbot.core import Trainer, Agent, StopTraining
-from vizbot.utility import ensure_directory
+from vizbot.utility import AttrDict, use_attrdicts, ensure_directory
 
 
 class Benchmark:
 
-    def __init__(self, directory, repeats, **trainer_kwargs):
-        """
-        Train multiple agents on multiple environments and plot a comparison
-        chart. Store all results in an unique experiment directory.
+    """
+    Train each agent on each environment for multiple repeats and store
+    statistics and recordings in the experiment directory.
+    """
 
-        Args:
-            directory (path): Root directory for experiments.
-            repeats (int): How often to train the agent on the same
-                environment. Used to estimate the standard deviation.
-            **trainer_kwargs: Parameters to forward to the trainer instances.
-        """
+    def __init__(self, directory=None, parallel=1, videos=False, experience=False):
         if directory:
             directory = os.path.abspath(os.path.expanduser(directory))
         self._directory = directory
-        self._repeats = repeats
-        self._trainer_kwargs = trainer_kwargs
+        if parallel != 1:
+            raise NotImplementedError
+        self._parallel = parallel
+        self._videos = videos
+        self._experience = experience
 
-    def __call__(self, name, envs, agents):
-        """
-        Train each agent on each environment for multiple repeats. Store gym
-        monitorings and scores into sub directories of the experiment. Return
-        the path to the experiment, and episode scores and durations, both
-        grouped by environment, agent, and repeat.
-        """
-        experiment = self._start_experiment(name)
-        scores = collections.defaultdict(dict)
-        durations = collections.defaultdict(dict)
-        for env, agent in itertools.product(envs, agents):
-            print('Benchmark', agent.__name__, 'on', env)
-            directory = None
-            if experiment:
-                directory = os.path.join(
-                    experiment, '{}-{}'.format(env, agent.__name__))
-            score, duration = self._benchmark(directory, env, agent)
-            best = [max(x) for x in score]
-            print('Mean best score {}'.format(round(sum(best) / len(best), 3)))
-            scores[env][agent] = score
-            durations[env][agent] = duration
-        if not experiment:
-            return None, scores, durations
-        scores, durations = self.read(experiment)
-        return experiment, scores, durations
+    def __call__(self, definition):
+        start = time.time()
+        definition = self._load_definition(definition)
+        experiment = self._start_experiment(definition.experiment)
+        experiment and self._dump_yaml(definition, experiment, 'experiment.yaml')
+        tasks = itertools.product(
+            range(definition.repeats), definition.envs, definition.agents)
+        # TODO: Parallelize this loop.
+        template = '{{}}-{{:0>{}}}'.format(len(str(definition.repeats - 1)))
+        for repeat, env, agent in tasks:
+            self._print_headline('Train {} on {}'.format(agent.name, env))
+            name = '-'.join(re.findall(r'[a-z0-9]+', agent.name.lower()))
+            agent_dir = template.format(name, repeat)
+            directory = experiment and os.path.join(experiment, env, agent_dir)
+            self._task(directory, env, agent, definition)
+        message = 'Congratulations, benchmark finished after {} hours'
+        duration = round((time.time() - duration) / 3600, 1)
+        self._print_headline(message.format(duration), style='=')
 
-    @classmethod
-    def read(cls, experiment):
-        """
-        Read and return scores of an experiment from its sub directories.
-        """
-        scores = collections.defaultdict(dict)
-        durations = collections.defaultdict(dict)
-        for benchmark in cls._get_subdirs(experiment):
-            env, agent = os.path.basename(benchmark).rsplit('-', 1)
-            scores[env][agent] = []
-            durations[env][agent] = []
-            for repeat in cls._get_subdirs(benchmark):
-                score = np.load(os.path.join(repeat, 'scores.npy'))
-                duration = np.load(os.path.join(repeat, 'durations.npy'))
-                scores[env][agent].append(score)
-                durations[env][agent].append(duration)
-        return scores, durations
-
-    def _benchmark(self, directory, env, agent):
-        """
-        Train an agent for several repeats and store and return scores and
-        durations of each episode, grouped by repeats.
-        """
-        scores, durations = [], []
-        template = 'repeat-{:0>' + str(len(str(self._repeats - 1))) + '}'
-        for repeat in range(self._repeats):
-            subdirectory = None
-            if directory:
-                subdirectory = os.path.join(directory, template.format(repeat))
-            trainer = Trainer(subdirectory, env, **self._trainer_kwargs)
-            try:
-                agent(trainer)()
-            except StopTraining:
-                pass
-            scores.append(trainer.scores)
-            durations.append(trainer.durations)
-        return scores, durations
+    def _task(self, directory, env, agent, definition):
+        prefix = '{} on {}:'.format(agent.name, env)
+        trainer = Trainer(directory, env,
+            timesteps=definition.timesteps,
+            epoch_length=definition.epoch_length,
+            prefix=prefix,
+            experience=self._experience,
+            videos=self._videos)
+        directory and self._dump_yaml(agent, directory, 'agent.yaml')
+        kwargs = {k: v for k, v in agent.items() if k not in ('type', 'name')}
+        try:
+            agent.type(trainer, **kwargs)()
+        except Exception as e:
+            print(prefix, 'Failed due to exception:')
+            print(e)
+        except StopTraining:
+            pass
+        scores = trainer.scores
+        score = round(sum(scores) / len(scores), 3) if scores else 'none'
+        print(prefix, 'Finished with average score {}'.format(score))
 
     def _start_experiment(self, name):
+        self._print_headline('Start experiment', style='=')
         if not self._directory:
-            print('Start experiment. Dry run, no results will be saved.')
+            print('Dry run; no results will be stored!')
             return None
         timestamp = time.strftime('%Y-%m-%dT%H-%M-%S', time.gmtime())
         name = '{}-{}'.format(timestamp, name)
         experiment = os.path.join(self._directory, name)
-        print('Start experiment', experiment)
+        print('Result will be stored in', experiment)
         return experiment
 
-    @staticmethod
-    def _get_subdirs(directory):
-        subdirs = os.listdir(directory)
-        subdirs = [os.path.join(directory, x) for x in subdirs]
-        subdirs = [x for x in subdirs if os.path.isdir(x)]
-        return sorted(subdirs)
+    def _load_definition(self, definition):
+        with open(os.path.expanduser(definition)) as file_:
+            definition = yaml.load(file_)
+        definition = use_attrdicts(definition)
+        definition.experiment = str(definition.experiment)
+        definition.timesteps = int(definition.timesteps)
+        definition.epoch_length = int(definition.epoch_length)
+        definition.repeats = int(definition.repeats)
+        definition.envs = list(self._load_envs(definition.envs))
+        definition.agents = list(self._load_agents(definition.agents))
+        self._validate_definition(definition)
+        return definition
+
+    def _load_envs(self, envs):
+        available_envs = [x.id for x in gym.envs.registry.all()]
+        for env in envs:
+            if env not in available_envs:
+                raise KeyError('unknown env name {}'.format(env))
+            yield env
+
+    def _load_agents(self, agents):
+        for agent in agents:
+            if not hasattr(vizbot.agent, agent.type):
+                raise KeyError('unknown agent type {}'.format(agent.type))
+            agent.type = getattr(vizbot.agent, agent.type)
+            if not issubclass(agent.type, vizbot.core.Agent):
+                raise KeyError('{} is not an agent'.format(agent.type))
+            agent.name = str(agent.name)
+            yield agent
+
+    def _validate_definition(self, definition):
+        def warn(message):
+            print('Warning:', message)
+            input('Press return to continue.')
+        timesteps = definition.repeats * definition.timesteps
+        if self._experience and timesteps >= 10000:
+            warn('Storing 10000+ timesteps consumes a lot of disk space.')
+        if not self._videos and timesteps >= 10000:
+            warn('Training 10000+ timesteps. Consider capturing videos.')
+        if definition.epoch_length > definition.timesteps:
+            warn('Less than one epoch of timesteps.')
+
+    def _dump_yaml(self, data, *path):
+        def convert(obj):
+            if isinstance(obj, dict):
+                return {convert(k): convert(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [convert(x) for x in obj]
+            if isinstance(obj, type):
+                return obj.__name__
+            return obj
+        filename = os.path.join(*path)
+        ensure_directory(os.path.dirname(filename))
+        with open(filename, 'w') as file_:
+            yaml.safe_dump(convert(data), file_, default_flow_style=False)
+
+    def _print_headline(self, *message, style='-', minwidth=40):
+        message = ' '.join(message)
+        width = max(minwidth, len(message))
+        print('\n' + style * width)
+        print(message)
+        print(style * width + '\n')

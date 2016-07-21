@@ -1,4 +1,4 @@
-from .attrdict import AttrDict
+from .attrdict import AttrDict, use_attrdicts
 from .deviation_figure import DeviationFigure
 from .epoch_figure import EpochFigure
 from .experience import Experience

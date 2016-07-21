@@ -51,5 +51,7 @@ class EpochFigure(DeviationFigure):
                 continue
             sums[epoch] += value
             counts[epoch] += 1
-        averages = sums / counts
+        empty = (counts == 0)
+        averages = sums / np.maximum(counts, 1)
+        averages[empty] = np.nan
         return averages

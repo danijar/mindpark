@@ -4,7 +4,7 @@ import tensorflow as tf
 from vizbot.agent import EpsilonGreedy
 from vizbot.model import Model, DivergedError, dense, default_network
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience
+from vizbot.utility import AttrDict, Experience, merge_dicts
 
 
 class DQN(EpsilonGreedy):
@@ -18,10 +18,10 @@ class DQN(EpsilonGreedy):
         batch_size = 32
         optimizer = (tf.train.RMSPropOptimizer, 1e-4)
         epsilon = AttrDict(start=0.5, stop=0, over=int(5e5))
-        return AttrDict(**locals())
+        return locals()
 
-    def __init__(self, trainer):
-        self._config = self._config()
+    def __init__(self, trainer, **config):
+        self._config = AttrDict(merge_dicts(self._config(), config))
         trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, self._config.downsample)
         trainer.add_preprocess(FrameSkip, self._config.frame_skip)

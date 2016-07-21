@@ -47,6 +47,13 @@ def lazy_property(function):
     return wrapper
 
 
+def get_subdirs(directory):
+    subdirs = os.listdir(directory)
+    subdirs = [os.path.join(directory, x) for x in subdirs]
+    subdirs = [x for x in subdirs if os.path.isdir(x)]
+    return sorted(subdirs)
+
+
 def color_stack_trace(type_, value, trace):
     text = ''.join(traceback.format_exception(type_, value, trace))
     try:

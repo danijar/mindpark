@@ -3,7 +3,7 @@ import numpy as np
 
 class Agent:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer, **config):
         self._trainer = trainer
         self._random = np.random.RandomState(seed=0)
         self._env = trainer.create_env()

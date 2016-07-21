@@ -7,7 +7,7 @@ from vizbot.core import Agent
 from vizbot.agent import EpsilonGreedy
 from vizbot.model import Model, DivergedError, dense, default_network
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
-from vizbot.utility import AttrDict, Experience, Every
+from vizbot.utility import AttrDict, Experience, Every, merge_dicts
 
 
 class A3C(Agent):
@@ -33,10 +33,10 @@ class A3C(Agent):
         save_model = int(1e5)
         print_cost = int(5e4)
         load_dir = ''
-        return AttrDict(**locals())
+        return locals()
 
-    def __init__(self, trainer):
-        self._config = self._config()
+    def __init__(self, trainer, **config):
+        self._config = AttrDict(merge_dicts(self._config(), config))
         trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, self._config.downsample)
         trainer.add_preprocess(FrameSkip, self._config.frame_skip)
@@ -83,7 +83,7 @@ class A3C(Agent):
     def _create_threads(self):
         threads = []
         for index in range(self._config.heads):
-            agent = Head(self._trainer, self, self._config)
+            agent = Head(self._trainer, self, **self._config)
             thread = Thread(None, agent, 'head-{}'.format(index))
             threads.append(thread)
         return threads
@@ -100,7 +100,7 @@ class A3C(Agent):
 
 class Head(EpsilonGreedy):
 
-    def __init__(self, trainer, master, config):
+    def __init__(self, trainer, master, **config):
         self._config = config
         epsilon = master._random.choice(config.epsilon)
         super().__init__(trainer, **epsilon)

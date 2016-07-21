@@ -1,0 +1,14 @@
+experiment: new-benchmark
+timesteps: 10000
+epoch_length: 2000
+repeats: 2
+envs:
+  - SimpleDoom-v0
+  - SimpleAtari-v0
+agents:
+  -
+    name: My Random
+    type: Random
+  -
+    name: My Noop
+    type: Noop
