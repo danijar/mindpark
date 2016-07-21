@@ -15,7 +15,7 @@ class A3C(Agent):
     @classmethod
     def _config(cls):
         # Preprocess.
-        downsample = 4
+        downsample = 2
         frame_skip = 4
         # Heads.
         heads = 32
@@ -24,13 +24,14 @@ class A3C(Agent):
             AttrDict(start=1, stop=0.01, over=4e6),
             AttrDict(start=1, stop=0.50, over=4e6)]
         # Learning.
-        discount = 0.99
+        discount = 0.95
         apply_gradient = 5
         regularize = 0.01
-        optimizer = (tf.train.RMSPropOptimizer, 1e-4)
+        # optimizer = (tf.train.RMSPropOptimizer, 1e-5, 0.99)
+        optimizer = (tf.train.RMSPropOptimizer, 0.1, 0.99)
         # External.
         save_model = int(1e5)
-        print_cost = int(1e4)
+        print_cost = int(5e4)
         load_dir = ''
         return AttrDict(**locals())
 

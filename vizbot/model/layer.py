@@ -37,7 +37,7 @@ def network_dqn(x):
     return x
 
 
-def network_my_2(x):
+def network_my(x):
     activation = tf.nn.relu
     x = conv2d(x, 16, 8, 2, activation, pool=2)
     x = conv2d(x, 32, 3, 1, activation, pool=2)
@@ -47,4 +47,4 @@ def network_my_2(x):
     return x
 
 
-default_network = network_my_2
+default_network = network_dqn

@@ -2,7 +2,7 @@ import collections
 import numpy as np
 import tensorflow as tf
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, DivergedError, default_network
+from vizbot.model import Model, DivergedError, dense, default_network
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, Experience
 
@@ -12,9 +12,9 @@ class DQN(EpsilonGreedy):
     @staticmethod
     def _config():
         discount = 0.99
-        downsample = 4
+        downsample = 2
         frame_skip = 4
-        replay_capacity = int(1e5)
+        replay_capacity = int(2e4)
         batch_size = 32
         optimizer = (tf.train.RMSPropOptimizer, 1e-4)
         epsilon = AttrDict(start=0.5, stop=0, over=int(5e5))
@@ -70,7 +70,7 @@ class DQN(EpsilonGreedy):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = dense(default_network(state), out_size, tf.identity)
+        values = dense(default_network(state), self.actions.shape, tf.identity)
         model.add_output('value', tf.reduce_max(values, 1))
         model.add_output('choice',
             tf.one_hot(tf.argmax(values, 1), self.actions.shape))

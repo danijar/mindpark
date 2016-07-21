@@ -3,6 +3,7 @@ import gym
 from gym.core import Env
 from gym.spaces import HighLow
 from doom_py import ScreenResolution
+from vizbot.utility import lazy_property
 
 
 class SimpleDoom(Env):
@@ -18,7 +19,7 @@ class SimpleDoom(Env):
         # 38, 39,                      # Mouse look
     ])
 
-    def __init__(self, env='DoomDeathmatch-v0'):
+    def __init__(self, env):
         assert env.startswith('Doom')
         super().__init__()
         self._env = gym.make(env)
@@ -28,7 +29,7 @@ class SimpleDoom(Env):
     def observation_space(self):
         return self._env.observation_space
 
-    @property
+    @lazy_property
     def action_space(self):
         matrix = self._env.action_space.matrix[self.AVAILABLE_ACTIONS]
         return HighLow(matrix)
