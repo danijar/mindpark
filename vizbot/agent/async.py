@@ -71,8 +71,8 @@ class Async(Agent):
 class Head(EpsilonGreedy):
 
     def __init__(self, trainer, master, **config):
-        self._config = config
-        epsilon = master._random.choice(config.epsilon)
+        self._config = AttrDict(config)
+        epsilon = master._random.choice(self._config.epsilon)
         super().__init__(trainer, **epsilon)
         self._master = master
         self._batch = Experience(self._config.apply_gradient)
@@ -128,7 +128,7 @@ class Q(Async):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = dense(default_network(state), out_size, tf.identity)
+        values = dense(default_network(state), self.actions.shape, tf.identity)
         model.add_output('value', tf.reduce_max(values, 1))
         model.add_output('choice',
             tf.one_hot(tf.argmax(values, 1), self.actions.shape))
@@ -148,7 +148,7 @@ class SARSA(Async):
         state = model.add_input('state', self.states.shape)
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')
-        values = dense(default_network(state), out_size, tf.identity)
+        values = dense(default_network(state), self.actions.shape, tf.identity)
         policy = tf.nn.softmax(values)
         model.add_output('value', tf.reduce_sum(values * policy, 1))
         sample = tf.squeeze(tf.multinomial(policy, 1), (1,))

@@ -38,8 +38,8 @@ class Benchmark:
         # TODO: Parallelize this loop.
         template = '{{}}-{{:0>{}}}'.format(len(str(definition.repeats - 1)))
         for repeat, env, agent in tasks:
-            message = 'Train {} on {} (Repeat {})'.format(repeat)
-            self._print_headline(message.format(agent.name, env)))
+            message = 'Train {} on {} (Repeat {})'
+            self._print_headline(message.format(agent.name, env, repeat))
             name = '-'.join(re.findall(r'[a-z0-9]+', agent.name.lower()))
             agent_dir = template.format(name, repeat)
             directory = experiment and os.path.join(experiment, env, agent_dir)
@@ -47,6 +47,7 @@ class Benchmark:
         message = 'Congratulations, benchmark finished after {} hours'
         duration = round((time.time() - start) / 3600, 1)
         self._print_headline(message.format(duration), style='=')
+        print('Find results in', experiment)
 
     def _task(self, directory, env, agent, definition):
         prefix = '{} on {}:'.format(agent.name, env)
@@ -85,9 +86,9 @@ class Benchmark:
             definition = yaml.load(file_)
         definition = use_attrdicts(definition)
         definition.experiment = str(definition.experiment)
-        definition.timesteps = int(definition.timesteps)
-        definition.epoch_length = int(definition.epoch_length)
-        definition.repeats = int(definition.repeats)
+        definition.timesteps = int(float(definition.timesteps))
+        definition.epoch_length = int(float(definition.epoch_length))
+        definition.repeats = int(float(definition.repeats))
         definition.envs = list(self._load_envs(definition.envs))
         definition.agents = list(self._load_agents(definition.agents))
         self._validate_definition(definition)

@@ -61,9 +61,10 @@ def plot_experiment(experiment, filename):
         raise ValueError(experiment + ' does not contain a definition')
     definition = use_attrdicts(read_yaml(experiment, 'experiment.yaml'))
     scores, durations = read_result(experiment)
-    title = definition.experiment
-    epochs = math.ceil(max_timesteps(durations) / definition.epoch_length)
-    plot = EpochFigure(len(scores), title, epochs, definition.epoch_length)
+    plot = EpochFigure(len(scores),
+            definition.experiment,
+            math.ceil(definition.timesteps / definition.epoch_length),
+            definition.epoch_length)
     for env in scores:
         score, duration = scores[env], durations[env]
         plot.add(env, 'Training Epochs', 'Average Reward', score, duration)

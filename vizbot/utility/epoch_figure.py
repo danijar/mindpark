@@ -44,14 +44,17 @@ class EpochFigure(DeviationFigure):
 
     def _average(self, values, starts):
         sums, counts = np.zeros(self._epochs), np.zeros(self._epochs)
+        skipped = 0
         for value, start in zip(values, starts):
             epoch = start // self._epoch_size
             if epoch >= self._epochs:
-                print('Skip episode after last epoch in the diagram')
+                skipped += 1
                 continue
             sums[epoch] += value
             counts[epoch] += 1
         empty = (counts == 0)
         averages = sums / np.maximum(counts, 1)
         averages[empty] = np.nan
+        if skipped:
+            print('Skipped', skipped, 'episodes after the last epoch.')
         return averages

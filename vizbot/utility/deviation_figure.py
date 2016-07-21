@@ -12,10 +12,10 @@ class DeviationFigure:
     standard deviation.
     """
 
-    COLORS = ('green', 'blue', 'red', 'yellow')
+    COLORS = ('#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33',
+        '#a65628', '#f781bf')
 
-    LABEL_ARGS = AttrDict(
-        loc='best', frameon=False, fontsize='medium', labelspacing=0)
+    LABEL_ARGS = AttrDict(loc='best', fontsize='medium', labelspacing=0)
 
     def __init__(self, ncols, title):
         """
@@ -40,7 +40,8 @@ class DeviationFigure:
         for index, (label, line) in enumerate(lines):
             color = self.COLORS[index]
             self._plot(ax, label, line, color)
-        ax.legend(**self.LABEL_ARGS)
+        leg = ax.legend(**self.LABEL_ARGS)
+        leg.get_frame().set_edgecolor('white')
         return ax
 
     def save(self, filepath):

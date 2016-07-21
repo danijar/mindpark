@@ -101,8 +101,8 @@ class A3C(Agent):
 class Head(EpsilonGreedy):
 
     def __init__(self, trainer, master, **config):
-        self._config = config
-        epsilon = master._random.choice(config.epsilon)
+        self._config = AttrDict(config)
+        epsilon = master._random.choice(self._config.epsilon)
         super().__init__(trainer, **epsilon)
         self._master = master
         self._batch = Experience(self._config.apply_gradient)
