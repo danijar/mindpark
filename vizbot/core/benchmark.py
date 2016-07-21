@@ -44,7 +44,7 @@ class Benchmark:
             directory = experiment and os.path.join(experiment, env, agent_dir)
             self._task(directory, env, agent, definition)
         message = 'Congratulations, benchmark finished after {} hours'
-        duration = round((time.time() - duration) / 3600, 1)
+        duration = round((time.time() - start) / 3600, 1)
         self._print_headline(message.format(duration), style='=')
 
     def _task(self, directory, env, agent, definition):

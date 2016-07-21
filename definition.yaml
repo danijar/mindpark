@@ -1,14 +1,23 @@
-experiment: new-benchmark
-timesteps: 10000
-epoch_length: 2000
+experiment: experiment
+timesteps: 5e6
+epoch_length: 5e4
 repeats: 2
 envs:
   - SimpleDoom-v0
   - SimpleAtari-v0
 agents:
   -
-    name: My Random
+    name: Random
     type: Random
   -
-    name: My Noop
-    type: Noop
+    name: A3C
+    type: A3C
+  -
+    name: DQN
+    type: DQN
+  -
+    name: Q
+    type: Q
+  -
+    name: SARSA
+    type: SARSA
