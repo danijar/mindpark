@@ -7,7 +7,6 @@ import yaml
 import json
 import collections
 import numpy as np
-from vizbot.utility import EpochFigure
 from vizbot.utility import use_attrdicts, get_subdirs, color_stack_trace
 
 
@@ -18,6 +17,9 @@ def parse_args():
     parser.add_argument(
         'experiments',
         help='glob expresstion of one or more experiment directories')
+    parser.add_argument(
+        '-o', '--filename', default='comparison.pdf',
+        help='output filename of the plot; extension selects output format')
     args = parser.parse_args()
     return args
 
@@ -52,7 +54,8 @@ def read_result(experiment):
     return scores, durations
 
 
-def plot_experiment(experiment):
+def plot_experiment(experiment, filename):
+    from vizbot.utility import EpochFigure
     scores, durations = read_result(experiment)
     if not os.path.isfile(os.path.join(experiment, 'experiment.yaml')):
         raise ValueError(experiment + ' does not contain a definition')
@@ -64,7 +67,7 @@ def plot_experiment(experiment):
     for env in scores:
         score, duration = scores[env], durations[env]
         plot.add(env, 'Training Epochs', 'Average Reward', score, duration)
-    plot.save(os.path.join(experiment, 'comparison.pdf'))
+    plot.save(os.path.join(experiment, filename))
 
 
 def max_timesteps(durations):
@@ -89,7 +92,7 @@ def main():
     if not paths:
         print('The glob expression does not match any path.')
     for path in paths:
-        plot_experiment(path)
+        plot_experiment(path, args.filename)
 
 
 if __name__ == '__main__':

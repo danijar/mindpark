@@ -2,13 +2,12 @@ import sys
 import argparse
 import logging
 from vizbot.utility import color_stack_trace
-from vizbot.core import Benchmark
 
 
 def parse_args():
-    nearest_int = lambda x: int(float(x))
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    nearest_int = lambda x: int(float(x))
     parser.add_argument(
         '-o', '--directory',
         help='root folder for all experiments',
@@ -40,6 +39,7 @@ def parse_args():
 def main():
     sys.excepthook = color_stack_trace
     args = parse_args()
+    from vizbot.core import Benchmark
     benchmark = Benchmark(
         args.directory if not args.dry_run else None,
         args.parallel, args.videos, args.experience)
