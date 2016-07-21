@@ -15,7 +15,7 @@ class Async(Agent):
     @classmethod
     def _config(cls):
         discount = 0.99
-        downsample = 4
+        downsample = 2
         frame_skip = 4
         heads = 32
         sync_target = int(4e4)
