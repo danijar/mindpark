@@ -5,7 +5,7 @@ class Agent:
 
     def __init__(self, trainer, **config):
         self._trainer = trainer
-        self._random = np.random.RandomState(seed=0)
+        self._random = np.random.RandomState()
         self._env = trainer.create_env()
 
     def __call__(self):

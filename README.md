@@ -16,3 +16,4 @@ python3 -m vizbot.plot <path-to-experiment>
 - TensorFlow 0.9
 - Gym
 - PyYaml
+- Matplotlib

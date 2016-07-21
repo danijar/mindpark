@@ -27,8 +27,8 @@ class A3C(Agent):
         discount = 0.95
         apply_gradient = 5
         regularize = 0.01
-        # optimizer = (tf.train.RMSPropOptimizer, 1e-5, 0.99)
-        optimizer = (tf.train.RMSPropOptimizer, 0.1, 0.99)
+        optimizer = (tf.train.RMSPropOptimizer, 1e-4)
+        # optimizer = (tf.train.RMSPropOptimizer, 0.1, 0.99)
         # External.
         save_model = int(1e5)
         print_cost = int(5e4)

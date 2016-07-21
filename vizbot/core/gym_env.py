@@ -8,7 +8,6 @@ class GymEnv(Env):
     def __init__(self, name, directory=None, videos=False):
         super().__init__()
         self._env = gym.make(name)
-        self._env.seed(0)
         self._directory = directory
         if self._directory:
             self._env.monitor.start(self._directory, videos, resume=True)

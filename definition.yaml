@@ -7,9 +7,6 @@ envs:
   - SimpleAtari-v0
 agents:
   -
-    name: Random
-    type: Random
-  -
     name: A3C
     type: A3C
   -
@@ -21,3 +18,6 @@ agents:
   -
     name: SARSA
     type: SARSA
+  -
+    name: Random
+    type: Random
