@@ -5,28 +5,13 @@ Testbed for deep reinforcement learning agents.
 
 ## Instructions
 
-Benchmark
-
 ```shell
-python3 -m vizbot -a DQN Q SARSA Random -l benchmark
+python3 -m vizbot.bench -d definition.yaml -p <threads>
 ```
 
-Quick check
+## Dependencies
 
-```shell
-python3 -m vizbot -a SARSA Q DQN Random -n 3000 -l check -e 1000 -r 2
-```
-
-Recording
-
-```shell
-python3 -m vizbot -c -r 1 -a KeyboardDoom -n 10
-```
-
-## Setup
-
-Dependencies
-
-```shell
-sudo -H pip3 install -U gym tensorflow
-```
+- Python 3
+- TensorFlow 0.9
+- Gym
+- PyYaml

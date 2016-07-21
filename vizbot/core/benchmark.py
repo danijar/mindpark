@@ -32,13 +32,14 @@ class Benchmark:
         start = time.time()
         definition = self._load_definition(definition)
         experiment = self._start_experiment(definition.experiment)
-        experiment and self._dump_yaml(definition, experiment, 'experiment.yaml')
+        experiment and self._dump_yaml(definition,experiment,'experiment.yaml')
         tasks = itertools.product(
             range(definition.repeats), definition.envs, definition.agents)
         # TODO: Parallelize this loop.
         template = '{{}}-{{:0>{}}}'.format(len(str(definition.repeats - 1)))
         for repeat, env, agent in tasks:
-            self._print_headline('Train {} on {}'.format(agent.name, env))
+            message = 'Train {} on {} (Repeat {})'.format(repeat)
+            self._print_headline(message.format(agent.name, env)))
             name = '-'.join(re.findall(r'[a-z0-9]+', agent.name.lower()))
             agent_dir = template.format(name, repeat)
             directory = experiment and os.path.join(experiment, env, agent_dir)
