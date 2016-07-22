@@ -10,13 +10,18 @@ class Downsample(Preprocess):
             raise ValueError('factor must be a power of two')
         super().__init__(env)
         self._factor = factor
+        low, high = self._env.states.low, self._env.states.high
+        self._low, self._high = low.flatten()[0], high.flatten()[0]
+        assert (low == self._low).all()
+        assert (high == self._high).all()
 
     @property
     def states(self):
-        shape = list(self._env.states.shape)
+        states = self._env.states
+        shape = list(states.shape)
         shape[0] //= self._factor
         shape[1] //= self._factor
-        return Box(0, 255, shape)
+        return Box(self._low, self._high, shape)
 
     @property
     def actions(self):
@@ -36,7 +41,7 @@ class Downsample(Preprocess):
         (width, height), factor = state.shape[:2], self._factor
         shape = width // factor, factor, height // factor, factor, -1
         state = state.reshape(shape).mean(3).mean(1)
-        state = np.squeeze(state).astype(np.uint8)
+        state = np.squeeze(state)
         return state
 
     @staticmethod

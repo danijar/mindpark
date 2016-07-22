@@ -7,11 +7,9 @@ from vizbot.utility import lazy_property
 
 class SimpleAtari(Env):
 
-
     def __init__(self, env):
         super().__init__()
         self._env = gym.make(env)
-        # self._env.configure()
 
     @property
     def observation_space(self):
@@ -32,16 +30,8 @@ class SimpleAtari(Env):
         return self._env.monitor
 
     def _step(self, action):
-        # assert len(action) == len(self.AVAILABLE_ACTIONS)
-        # full_action = np.zeros(self._env.action_space.num_rows)
-        # for index, value in zip(self.AVAILABLE_ACTIONS, action):
-        #     full_action[index] = value
-        # Work around drop weapon bug in parent class.
-        # full_action[33] = 0
         choice = np.array(action).argmax()
         state, reward, done, info = self._env._step(choice)
-        # if done:
-        #     reward = -1
         return state, reward, done, info
 
     def _close(self):

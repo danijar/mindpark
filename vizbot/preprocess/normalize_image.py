@@ -3,18 +3,16 @@ from gym.spaces import Box
 from vizbot.core import Preprocess
 
 
-class Grayscale(Preprocess):
+class NormalizeImage(Preprocess):
 
     def __init__(self, env):
         super().__init__(env)
-        low, high = self._env.states.low, self._env.states.high
-        self._low, self._high = low.flatten()[0], high.flatten()[0]
-        assert (low == self._low).all()
-        assert (high == self._high).all()
+        self._low = env.states.low
+        self._high = env.states.high
 
     @property
     def states(self):
-        return Box(self._low, self._high, self._env.states.shape[: -1])
+        return Box(0.0, 1.0, self._env.states.shape)
 
     @property
     def actions(self):
@@ -30,6 +28,7 @@ class Grayscale(Preprocess):
         state = self._apply(state)
         return state, reward
 
-    @staticmethod
-    def _apply(state):
-        return state.mean(-1)
+    def _apply(self, state):
+        state = state.astype(float)
+        state = (state - self._low) / (self._high - self._low)
+        return state

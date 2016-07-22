@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from vizbot.core import Agent
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, DivergedError, dense, default_network
+from vizbot.model import Model, dense, default_network
 from vizbot.preprocess import Grayscale, Downsample, FrameSkip
 from vizbot.utility import AttrDict, Experience, Every, merge_dicts
 
@@ -30,6 +30,7 @@ class Async(Agent):
         return locals()
 
     def __init__(self, trainer, **config):
+        raise NotImplementedError('currently not updated implementation')
         self._config = AttrDict(merge_dicts(self._config(), config))
         trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, self._config.downsample)
@@ -95,11 +96,8 @@ class Head(EpsilonGreedy):
         state, action, reward, successor = self._batch.access()
         self._batch.clear()
         target = self._compute_target(reward, successor)
-        try:
-            cost = self._master.actor.train(
-                'cost', state=state, action=action, target=target)
-        except DivergedError:
-            print('Cost diverged')
+        cost = self._master.actor.train(
+            'cost', state=state, action=action, target=target)
         self._costs.append(cost)
 
     def _compute_target(self, reward, successor):

@@ -50,8 +50,6 @@ class SimpleDoom(Env):
         # Work around drop weapon bug in parent class.
         full_action[33] = 0
         state, reward, done, info = self._env._step(full_action)
-        if done:
-            reward = -1
         return state, reward, done, info
 
     def _close(self):

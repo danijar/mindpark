@@ -1,0 +1,27 @@
+experiment: full
+timesteps: 3.2e7
+epoch_length: 2e5
+repeats: 2
+envs:
+  - SimplePong-v0
+  - SimpleBreakout-v0
+  - SimpleDeathmatch-v0
+agents:
+  -
+    name: DQN
+    type: DQN
+    epsilon_from: 1.0
+    epsilon_to: 0.1
+    epsilon_duration: 6e5
+    learning_rate: 1e-4
+  -
+    name: A3C
+    type: A3C
+    heads: 16
+    epsilon_from: 1.0
+    epsilon_tos: [0.1, 0.01, 0.5]
+    epsilon_duration: 6e5
+    learning_rate: 1e-4
+  -
+    name: Random
+    type: Random

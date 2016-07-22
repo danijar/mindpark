@@ -2,6 +2,7 @@ import re
 import itertools
 import os
 import time
+import traceback
 import yaml
 import gym
 import numpy as np
@@ -18,7 +19,8 @@ class Benchmark:
     statistics and recordings in the experiment directory.
     """
 
-    def __init__(self, directory=None, parallel=1, videos=False, experience=False):
+    def __init__(self, directory=None, parallel=1, videos=False,
+                 experience=False, stacktraces=False):
         if directory:
             directory = os.path.abspath(os.path.expanduser(directory))
         self._directory = directory
@@ -27,6 +29,7 @@ class Benchmark:
         self._parallel = parallel
         self._videos = videos
         self._experience = experience
+        self._stacktraces = stacktraces
 
     def __call__(self, definition):
         start = time.time()
@@ -57,13 +60,18 @@ class Benchmark:
             prefix=prefix,
             experience=self._experience,
             videos=self._videos)
-        directory and self._dump_yaml(agent, directory, 'agent.yaml')
-        kwargs = {k: v for k, v in agent.items() if k not in ('type', 'name')}
+        config = agent.type.defaults()
+        if 'type' in config or 'name' in config:
+            print('Warning: Override reserved config keys.')
+        config.update(agent)
+        directory and self._dump_yaml(config, directory, 'agent.yaml')
         try:
-            agent.type(trainer, **kwargs)()
+            agent.type(trainer, AttrDict(config))()
         except Exception as e:
             print(prefix, 'Failed due to exception:')
             print(e)
+            if self._stacktraces:
+                traceback.print_exc()
         except StopTraining:
             pass
         scores = trainer.scores
@@ -126,6 +134,7 @@ class Benchmark:
     def _dump_yaml(self, data, *path):
         def convert(obj):
             if isinstance(obj, dict):
+                obj = {k: v for k, v in obj.items() if not k.startswith('_')}
                 return {convert(k): convert(v) for k, v in obj.items()}
             if isinstance(obj, list):
                 return [convert(x) for x in obj]

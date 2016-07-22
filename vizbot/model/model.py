@@ -4,12 +4,6 @@ import tensorflow as tf
 from vizbot.model.graph import Graph
 
 
-class DivergedError(Exception):
-
-    def __init__(self, message):
-        super().__init__(self, message)
-
-
 class Model:
     """
     A flexible interface to define TensorFlow models. Similar to the Keras
@@ -31,7 +25,7 @@ class Model:
                 class and its positional arguments.
         """
         optimizer = optimizer or (tf.train.RMSPropOptimizer, 0.01)
-        self._clip_delta = 5
+        self._clip_delta = 10
         self._graph = Graph()
         if load_path:
             try:
@@ -111,7 +105,7 @@ class Model:
         results = self._graph(ops, data)
         cost, delta = results[0], results[1:]
         if not np.isfinite(cost):
-            raise DivergedError('the cost measure diverged')
+            print('the cost measure diverged')
         delta = dict(zip(delta_names, delta))
         return delta, cost
 

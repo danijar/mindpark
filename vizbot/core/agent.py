@@ -3,10 +3,16 @@ import numpy as np
 
 class Agent:
 
-    def __init__(self, trainer, **config):
+    @classmethod
+    def defaults(cls):
+        discount = 0.95
+        return locals()
+
+    def __init__(self, trainer, config):
         self._trainer = trainer
-        self._random = np.random.RandomState()
+        self._config = config
         self._env = trainer.create_env()
+        self._random = np.random.RandomState()
 
     def __call__(self):
         while self._trainer.running:
@@ -20,6 +26,14 @@ class Agent:
     def actions(self):
         return self._env.actions
 
+    @property
+    def timestep(self):
+        return self._trainer.timestep
+
+    @property
+    def config(self):
+        return self._config
+
     def start(self):
         pass
 
@@ -31,10 +45,3 @@ class Agent:
 
     def experience(self, state, action, reward, successor):
         pass
-
-    def _noop(self):
-        return np.zeros(self.actions.shape)
-
-    def _decay(self, start, end, over):
-        progress = min(self._trainer.timestep, over) / over
-        return (1 - progress) * start + progress * end
