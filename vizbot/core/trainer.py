@@ -40,7 +40,7 @@ class Trainer:
             ensure_directory(directory)
         self._directory = directory
         self._env_name = env_name
-        self._timesteps = timesteps
+        self._timesteps = int(float(timesteps))
         self._epoch_length = int(epoch_length or timesteps // 100)
         self._prefix = prefix
         self._videos = directory and videos

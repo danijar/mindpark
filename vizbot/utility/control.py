@@ -1,7 +1,7 @@
 class Every:
 
     def __init__(self, every):
-        self._every = every
+        self._every = int(float(every))
         self._last = None
 
     def __call__(self, timestep):
@@ -19,8 +19,11 @@ class Decay:
         self._start = start
         self._stop = stop
         self._steps = int(float(steps))
+        assert self._start > self._stop
+        assert self._steps
 
     def __call__(self, timestep):
+        assert isinstance(timestep, int)
         progress = min(timestep, self._steps) / self._steps
         mixed = (1 - progress) * self._start + progress * self._stop
         return mixed
@@ -39,4 +42,3 @@ class Statistic:
             average = sum(self._values) / len(self._values)
             print(self._template.format(average))
             self._values = []
-

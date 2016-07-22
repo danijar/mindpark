@@ -8,17 +8,18 @@ from vizbot.agent import EpsilonGreedy
 from vizbot.model import Model, dense, default_network
 from vizbot.preprocess import (
     Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage)
-from vizbot.utility import AttrDict, Experience, Every, Statistic, merge_dicts
+from vizbot.utility import (
+    AttrDict, Experience, Every, Statistic, Decay, merge_dicts)
 
 
 class A3C(Agent):
 
     @classmethod
     def defaults(cls):
-        # Preprocess.
+        # Preprocesses.
         downsample = 2
         frame_skip = 4
-        # Heads.
+        # Exploration.
         heads = 16
         epsilon_from = 1.0
         epsilon_tos = [0.1, 0.01, 0.5]
@@ -26,13 +27,14 @@ class A3C(Agent):
         # Learning.
         apply_gradient = 5
         regularize = 0.01
-        learning_rate = 1e-4
+        initial_learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer
-        # External.
+        rms_decay= 0.99
+        scale_critic_loss = 0.5
+        # Logging.
         save_model = int(1e5)
         print_cost = int(5e4)
         load_dir = ''
-        scale_critic_loss = 0.5
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
@@ -42,10 +44,13 @@ class A3C(Agent):
         trainer.add_preprocess(Downsample, config.downsample)
         trainer.add_preprocess(FrameSkip, config.frame_skip)
         super().__init__(trainer, config)
-        optimizer = (config.optimizer, float(config.learning_rate))
-        self.model = Model(self._create_network, optimizer)
+        self.model = Model(self._create_network)
         print(str(self.model))
         self.costs = Statistic('Cost {:12.5f}', config.print_cost)
+        print(config.initial_learning_rate)
+        print(config._trainer._timesteps)
+        self.learning_rate = Decay(
+            float(config.initial_learning_rate), 0, self._trainer._timesteps)
         self._threads = self._create_threads()
 
     def __call__(self):
@@ -60,7 +65,7 @@ class A3C(Agent):
             thread.join()
 
     def _create_network(self, model):
-        # Network.
+        # Perception.
         state = model.add_input('state', self.states.shape)
         hidden = default_network(state)
         value = model.add_output('value',
@@ -68,7 +73,7 @@ class A3C(Agent):
         policy = dense(hidden, self.actions.shape, tf.nn.softmax)
         sample = tf.squeeze(tf.multinomial(policy, 1), [1])
         model.add_output('choice', tf.one_hot(sample, self.actions.shape))
-        # Training.
+        # Objectives.
         action = model.add_input('action', self.actions.shape)
         return_ = model.add_input('return_')
         advantage = return_ - value
@@ -76,6 +81,11 @@ class A3C(Agent):
         entropy = tf.reduce_sum(tf.log(policy + 1e-9) * policy)
         actor = gradient * advantage + self.config.regularize * entropy
         critic = self.config.scale_critic_loss * (return_ - value) ** 2 / 2
+        # Training.
+        learning_rate = model.add_option(
+            'learning_rate', float(self.config.initial_learning_rate))
+        model.set_optimizer(self.config.optimizer(
+            learning_rate, self.config.rms_decay))
         model.add_cost('cost', tf.reduce_sum(critic) - tf.reduce_sum(actor))
 
     def _create_threads(self):
@@ -115,6 +125,8 @@ class Head(EpsilonGreedy):
             return_ = reward + self.config.discount * return_
             returns.append(return_)
         returns = np.array(list(reversed(returns)))
+        self._actor.set_option(
+            'learning_rate', self._learning_rate(self.timestep))
         cost = self._master.model.train('cost',
             action=actions, state=states, return_=returns)
         self._master.costs(cost)

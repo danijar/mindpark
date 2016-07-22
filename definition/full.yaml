@@ -13,7 +13,7 @@ agents:
     epsilon_from: 1.0
     epsilon_to: 0.1
     epsilon_duration: 6e5
-    learning_rate: 1e-4
+    initial_learning_rate: 1e-4
   -
     name: A3C
     type: A3C
@@ -21,7 +21,7 @@ agents:
     epsilon_from: 1.0
     epsilon_tos: [0.1, 0.01, 0.5]
     epsilon_duration: 6e5
-    learning_rate: 1e-4
+    initial_learning_rate: 1e-4
   -
     name: Random
     type: Random

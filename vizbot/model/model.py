@@ -11,7 +11,7 @@ class Model:
     cost functions, compute gradients for costs, and apply gradients.
     """
 
-    def __init__(self, creator=None, optimizer=None, load_path=None):
+    def __init__(self, creator=None, load_path=None):
         """
         Create a new model. Either load_path or creator must be specified.
 
@@ -21,12 +21,10 @@ class Model:
                 if load_path is not specified. Will be executed with the graph
                 of the model as default graph. After this function, no further
                 operations can be added to the graph.
-            optimizer (tuple, optional): A tuple of a TensorFlow optimizer
-                class and its positional arguments.
         """
-        optimizer = optimizer or (tf.train.RMSPropOptimizer, 0.01)
         self._clip_delta = 10
         self._graph = Graph()
+        self._optimizer = None
         if load_path:
             try:
                 self._graph.load(load_path)
@@ -36,13 +34,15 @@ class Model:
                 pass
         print('Create model')
         with self._graph:
-            self._optimizer = optimizer[0](*optimizer[1:])
             creator(self)
             self._create_set_weight()
             self._create_apply_delta()
 
     def save(self, *path):
         self._graph.save(os.path.join(*path))
+
+    def set_optimizer(self, optimizer):
+        self._optimizer = optimizer
 
     def add_input(self, name, shape=None, type_=tf.float32):
         if name in ('cost', 'output', 'batch', 'epochs'):
@@ -53,11 +53,27 @@ class Model:
         self._graph['input/' + name] = node
         return node
 
+    def add_option(self, name, initial, type_=tf.float32):
+        node = tf.Variable(initial, trainable=False, dtype=type_)
+        input_ = tf.placeholder(type_)
+        self._graph['option/' + name] = node
+        self._graph['option_input/' + name] = input_
+        self._graph['option_set/' + name] = node.assign(input_)
+        return node
+
+    def set_option(self, name, value):
+        self._graph('option_set/' + name, {'option_input/' + name: value})
+
+    def get_option(self, name):
+        return self._graph('option/' + name)
+
     def add_output(self, name, node):
         self._graph['output/' + name] = node
         return node
 
     def add_cost(self, name, node):
+        if not self._optimizer:
+            raise RuntimeError('must set an optimizer before adding a cost')
         node = tf.reduce_sum(node)
         self._graph['cost/' + name] = node
         clip = self._clip_delta

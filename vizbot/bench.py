@@ -9,13 +9,13 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     nearest_int = lambda x: int(float(x))
     parser.add_argument(
+        'definition',
+        help='YAML file describing the experiment',
+        default='definition/full.yaml')
+    parser.add_argument(
         '-o', '--directory',
         help='root folder for all experiments',
         default='~/experiment/gym')
-    parser.add_argument(
-        '-d', '--definition',
-        help='YAML file describing the experiment',
-        default='definition/full.yaml')
     parser.add_argument(
         '-p', '--parallel', type=int,
         help='how many agents to train at the same time',
@@ -33,13 +33,9 @@ def parse_args():
         help='store all transition tuples in numpy format',
         default=False)
     parser.add_argument(
-        '-v', '--verbose', action='store_true',
-        help='print stack traces for exceptions raised in agents',
+        '-q', '--quiet', action='store_true',
+        help='do not print stack traces for exceptions raised in agents',
         default=False)
-    parser.add_argument(
-        '-i', '--ignored',
-        help='ignored argument can be used to label the process',
-        default='')
     args = parser.parse_args()
     return args
 
@@ -50,7 +46,7 @@ def main():
     from vizbot.core import Benchmark
     benchmark = Benchmark(
         args.directory if not args.dry_run else None,
-        args.parallel, args.videos, args.experience, args.verbose)
+        args.parallel, args.videos, args.experience, not args.quiet)
     logging.getLogger('gym').setLevel(logging.WARNING)
     benchmark(args.definition)
 
