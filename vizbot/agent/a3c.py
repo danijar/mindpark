@@ -17,6 +17,8 @@ class A3C(Agent):
 
     @classmethod
     def defaults(cls):
+        network = 'network_dqn'
+        per_head_model = True
         # Preprocesses.
         downsample = 2
         frame_skip = 4
@@ -26,7 +28,6 @@ class A3C(Agent):
         epsilon_tos = [0.1, 0.01, 0.5]
         epsilon_duration = 5e5
         # Learning.
-        network = 'network_dqn'
         apply_gradient = 5
         regularize = 0.01
         initial_learning_rate = 1e-4
@@ -93,7 +94,12 @@ class A3C(Agent):
         for index in range(self.config.heads):
             config = self.config.copy()
             config['epsilon_to'] = self._random.choice(self.config.epsilon_tos)
-            agent = Head(self._trainer, self, AttrDict(config))
+            if self.config.per_head_model:
+                model = Model(self._create_network)
+                model.weights = self.model.weights
+            else:
+                model = self.model
+            agent = Head(self._trainer, self, model, AttrDict(config))
             thread = Thread(None, agent, 'head-{}'.format(index))
             threads.append(thread)
         return threads
@@ -101,13 +107,14 @@ class A3C(Agent):
 
 class Head(EpsilonGreedy):
 
-    def __init__(self, trainer, master, config):
+    def __init__(self, trainer, master, model, config):
         super().__init__(trainer, config)
         self._master = master
+        self._model = model
         self._batch = Experience(self.config.apply_gradient)
 
     def _step(self, state):
-        return self._master.model.compute('choice', state=state)
+        return self._model.compute('choice', state=state)
 
     def experience(self, state, action, reward, successor):
         self._batch.append((state, action, reward, successor))
@@ -116,6 +123,7 @@ class Head(EpsilonGreedy):
             return
         return_= 0 if done else self._master.model.compute('value',state=state)
         self._learn(self._batch.access(), return_)
+        self._model.weights = self._master.model.weights
         self._batch.clear()
 
     def _learn(self, transitions, return_):
