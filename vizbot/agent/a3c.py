@@ -47,8 +47,6 @@ class A3C(Agent):
         self.model = Model(self._create_network)
         print(str(self.model))
         self.costs = Statistic('Cost {:12.5f}', config.print_cost)
-        print(config.initial_learning_rate)
-        print(config._trainer._timesteps)
         self.learning_rate = Decay(
             float(config.initial_learning_rate), 0, self._trainer._timesteps)
         self._threads = self._create_threads()
@@ -125,8 +123,8 @@ class Head(EpsilonGreedy):
             return_ = reward + self.config.discount * return_
             returns.append(return_)
         returns = np.array(list(reversed(returns)))
-        self._actor.set_option(
-            'learning_rate', self._learning_rate(self.timestep))
+        self._master.model.set_option(
+            'learning_rate', self._master.learning_rate(self.timestep))
         cost = self._master.model.train('cost',
             action=actions, state=states, return_=returns)
         self._master.costs(cost)

@@ -55,7 +55,7 @@ class DQN(EpsilonGreedy):
         save_model = Every(self.config.save_model)
         while self._trainer.running:
             if save_model(self._trainer.timestep) and self._trainer.directory:
-                self.model.save(self._trainer.directory, 'model')
+                self._actor.save(self._trainer.directory, 'model')
             self._trainer.run_episode(self, self._env)
 
     def _create_network(self, model):

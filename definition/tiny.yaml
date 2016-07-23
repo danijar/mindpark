@@ -1,9 +1,8 @@
 experiment: tiny
-timesteps: 5e4
-epoch_length: 5e3
+timesteps: 6000
+epoch_length: 2000
 repeats: 2
 envs:
-  - SimplePong-v0
   - SimpleBreakout-v0
   - SimpleDeathmatch-v0
 agents:
@@ -12,7 +11,7 @@ agents:
     type: DQN
     epsilon_from: 1.0
     epsilon_to: 0.1
-    epsilon_duration: 2e4
+    epsilon_duration: 4000
     initial_learning_rate: 1e-3
   -
     name: A3C
@@ -20,7 +19,7 @@ agents:
     heads: 16
     epsilon_from: 1.0
     epsilon_tos: [0.1, 0.01, 0.5]
-    epsilon_duration: 2e4
+    epsilon_duration: 4000
     initial_learning_rate: 1e-3
   -
     name: Random
