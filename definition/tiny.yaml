@@ -13,6 +13,7 @@ agents:
     epsilon_to: 0.1
     epsilon_duration: 4000
     initial_learning_rate: 1e-3
+    replay_capacity: 5000
   -
     name: A3C
     type: A3C

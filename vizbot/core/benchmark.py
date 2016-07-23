@@ -3,6 +3,8 @@ import itertools
 import os
 import time
 import traceback
+from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
 import yaml
 import gym
 import numpy as np
@@ -24,12 +26,11 @@ class Benchmark:
         if directory:
             directory = os.path.abspath(os.path.expanduser(directory))
         self._directory = directory
-        if parallel != 1:
-            raise NotImplementedError
         self._parallel = parallel
         self._videos = videos
         self._experience = experience
         self._stacktraces = stacktraces
+        self._lock = Lock()
 
     def __call__(self, definition):
         start = time.time()
@@ -38,21 +39,26 @@ class Benchmark:
         experiment and self._dump_yaml(definition,experiment,'experiment.yaml')
         tasks = itertools.product(
             range(definition.repeats), definition.envs, definition.agents)
-        # TODO: Parallelize this loop.
-        template = '{{}}-{{:0>{}}}'.format(len(str(definition.repeats - 1)))
-        for repeat, env, agent in tasks:
-            message = 'Train {} on {} (Repeat {})'
-            self._print_headline(message.format(agent.name, env, repeat))
-            name = '-'.join(re.findall(r'[a-z0-9]+', agent.name.lower()))
-            agent_dir = template.format(name, repeat)
-            directory = experiment and os.path.join(experiment, env, agent_dir)
-            self._task(directory, env, agent, definition)
+        with ThreadPoolExecutor(max_workers=self._parallel) as executor:
+            for repeat, env, agent in tasks:
+                executor.submit(self._start_task,
+                    repeat, env, agent, experiment, definition)
         message = 'Congratulations, benchmark finished after {} hours'
         duration = round((time.time() - start) / 3600, 1)
         self._print_headline(message.format(duration), style='=')
         print('Find results in', experiment)
 
-    def _task(self, directory, env, agent, definition):
+    def _start_task(self, repeat, env, agent, experiment, definition):
+        template = '{{}}-{{:0>{}}}'.format(len(str(definition.repeats - 1)))
+        message = 'Train {} on {} (Repeat {})'
+        if self._parallel == 1:
+            self._print_headline(message.format(agent.name, env, repeat))
+        name = '-'.join(re.findall(r'[a-z0-9]+', agent.name.lower()))
+        agent_dir = template.format(name, repeat)
+        directory = experiment and os.path.join(experiment, env, agent_dir)
+        self._run_task(directory, env, agent, definition)
+
+    def _run_task(self, directory, env, agent, definition):
         prefix = '{} on {}:'.format(agent.name, env)
         trainer = Trainer(directory, env,
             timesteps=definition.timesteps,
@@ -68,8 +74,9 @@ class Benchmark:
         try:
             agent.type(trainer, AttrDict(config))()
         except Exception as e:
-            print(prefix, 'Failed due to exception:')
-            print(e)
+            with self._lock:
+                print(prefix, 'Failed due to exception:')
+                print(e)
             if self._stacktraces:
                 traceback.print_exc()
         except StopTraining:
@@ -147,8 +154,9 @@ class Benchmark:
             yaml.safe_dump(convert(data), file_, default_flow_style=False)
 
     def _print_headline(self, *message, style='-', minwidth=40):
-        message = ' '.join(message)
-        width = max(minwidth, len(message))
-        print('\n' + style * width)
-        print(message)
-        print(style * width + '\n')
+        with self._lock:
+            message = ' '.join(message)
+            width = max(minwidth, len(message))
+            print('\n' + style * width)
+            print(message)
+            print(style * width + '\n')

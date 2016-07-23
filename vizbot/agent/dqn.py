@@ -3,7 +3,8 @@ import collections
 import numpy as np
 import tensorflow as tf
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, dense, default_network
+from vizbot import model as networks
+from vizbot.model import Model, dense
 from vizbot.preprocess import (
     Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage)
 from vizbot.utility import Experience, Every, Statistic, Decay, merge_dicts
@@ -21,6 +22,7 @@ class DQN(EpsilonGreedy):
         epsilon_to = 0.1
         epsilon_duration = 5e5
         # Learning.
+        network = 'network_dqn'
         replay_capacity = int(2e4)
         batch_size = 32
         initial_learning_rate = 1e-4
@@ -61,7 +63,8 @@ class DQN(EpsilonGreedy):
     def _create_network(self, model):
         # Percetion.
         state = model.add_input('state', self.states.shape)
-        values = dense(default_network(state), self.actions.shape, tf.identity)
+        hidden = getattr(networks, self.config.network)(state)
+        values = dense(hidden, self.actions.shape, tf.identity)
         # Outputs.
         action = model.add_input('action', self.actions.shape)
         target = model.add_input('target')

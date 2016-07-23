@@ -31,19 +31,48 @@ def rnn(x, size, activation=tf.nn.elu):
 
 
 def network_dqn(x):
+    # Mnih et al. 2013
     x = conv2d(x, 16, 8, 4, tf.nn.relu)
     x = conv2d(x, 32, 4, 2, tf.nn.relu)
     x = dense(x, 256, tf.nn.relu)
     return x
 
 
-def network_my(x):
-    activation = tf.nn.relu
-    x = conv2d(x, 16, 8, 2, activation, pool=2)
-    x = conv2d(x, 32, 3, 1, activation, pool=2)
-    x = conv2d(x, 64, 2, 1, activation)
-    x = dense(x, 512, activation)
-    x = dense(x, 512, activation)
+def network_doom_large(x):
+    # Kempka et al. 2016
+    x = conv2d(x, 32, 7, 1, tf.nn.relu, 2)
+    x = conv2d(x, 32, 5, 1, tf.nn.relu, 2)
+    x = conv2d(x, 32, 3, 1, tf.nn.relu, 2)
+    x = dense(x, 1024, tf.nn.relu)
+    return x
+
+
+def network_minecraft_small(x):
+    # Barron, Whitehead, Yeung 2016
+    x = conv2d(x, 32, 8, 4, tf.nn.relu)
+    x = conv2d(x, 64, 4, 2, tf.nn.relu)
+    x = dense(x, 512, tf.nn.relu)
+    return x
+
+
+def network_minecraft_large(x):
+    # Barron, Whitehead, Yeung 2016
+    x = conv2d(x,  64, 3, 1, tf.nn.relu, 2)
+    x = conv2d(x, 128, 3, 1, tf.nn.relu, 2)
+    x = conv2d(x, 256, 3, 1, tf.nn.relu, 2)
+    x = conv2d(x, 215, 3, 1, tf.nn.relu, 2)
+    x = conv2d(x, 215, 3, 1, tf.nn.relu, 2)
+    x = dense(x, 4096, tf.nn.relu)
+    x = dense(x, 4096, tf.nn.relu)
+    return x
+
+
+def network_1(x):
+    x = conv2d(x, 16, 8, 2, tf.nn.relu, 2)
+    x = conv2d(x, 32, 3, 1, tf.nn.relu, 2)
+    x = conv2d(x, 64, 2, 1, tf.nn.relu)
+    x = dense(x, 512, tf.nn.relu)
+    x = dense(x, 512, tf.nn.relu)
     return x
 
 

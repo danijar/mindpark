@@ -5,7 +5,8 @@ import numpy as np
 import tensorflow as tf
 from vizbot.core import Agent
 from vizbot.agent import EpsilonGreedy
-from vizbot.model import Model, dense, default_network
+from vizbot import model as networks
+from vizbot.model import Model, dense
 from vizbot.preprocess import (
     Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage)
 from vizbot.utility import (
@@ -25,6 +26,7 @@ class A3C(Agent):
         epsilon_tos = [0.1, 0.01, 0.5]
         epsilon_duration = 5e5
         # Learning.
+        network = 'network_dqn'
         apply_gradient = 5
         regularize = 0.01
         initial_learning_rate = 1e-4
@@ -65,7 +67,7 @@ class A3C(Agent):
     def _create_network(self, model):
         # Perception.
         state = model.add_input('state', self.states.shape)
-        hidden = default_network(state)
+        hidden = getattr(networks, self.config.network)(state)
         value = model.add_output('value',
             tf.squeeze(dense(hidden, 1, tf.identity), [1]))
         policy = dense(hidden, self.actions.shape, tf.nn.softmax)

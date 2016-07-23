@@ -6,8 +6,8 @@ Testbed for deep reinforcement learning agents.
 ## Instructions
 
 ```shell
-python3 -m vizbot.bench -d definition.yaml
-python3 -m vizbot.plot <path-to-experiment>
+python3 -O -m vizbot.bench definition/full.yaml -p <threads>
+python3 -m vizbot.plot "~/experiment/gym*"
 ```
 
 ## Dependencies
