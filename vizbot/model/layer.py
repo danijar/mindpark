@@ -18,19 +18,17 @@ def dense(x, size, activation=tf.nn.elu):
     return x
 
 
-def rnn(x, size, activation=tf.nn.elu):
-    cell = tf.nn.rnn_cell.GRUCell(size, None, activation)
-    state = cell.zero_states(batch_size, tf.float32)
-    state = tf.Variable(state, trainable=False)
-    cell = tf.nn.rnn_cell.GRUCell(256)
-    output, new_state = tf.nn.dynamic_rnn(cell, x, initial_state=state)
+def rnn(model, x, size, activation=tf.tanh):
+    cell = tf.nn.rnn_cell.GRUCell(size, activation=activation)
+    state = model.add_option('context', cell.zero_state(1, tf.float32))
+    x = tf.expand_dims(x, 0)
+    x, new_state = tf.nn.dynamic_rnn(cell, x, initial_state=state)
     with tf.control_dependencies([state.assign(new_state)]):
-        output = tf.identity(output)
-    x, _ = tf.nn.dynamic_rnn(cell, x)
+        x = tf.squeeze(x, [0])
     return x
 
 
-def network_dqn(x):
+def network_dqn(model, x):
     # Mnih et al. 2013
     x = conv2d(x, 16, 8, 4, tf.nn.relu)
     x = conv2d(x, 32, 4, 2, tf.nn.relu)
@@ -38,7 +36,7 @@ def network_dqn(x):
     return x
 
 
-def network_doom_large(x):
+def network_doom_large(model, x):
     # Kempka et al. 2016
     x = conv2d(x, 32, 7, 1, tf.nn.relu, 2)
     x = conv2d(x, 32, 5, 1, tf.nn.relu, 2)
@@ -47,7 +45,7 @@ def network_doom_large(x):
     return x
 
 
-def network_minecraft_small(x):
+def network_minecraft_small(model, x):
     # Barron, Whitehead, Yeung 2016
     x = conv2d(x, 32, 8, 4, tf.nn.relu)
     x = conv2d(x, 64, 4, 2, tf.nn.relu)
@@ -55,7 +53,7 @@ def network_minecraft_small(x):
     return x
 
 
-def network_minecraft_large(x):
+def network_minecraft_large(model, x):
     # Barron, Whitehead, Yeung 2016
     x = conv2d(x,  64, 3, 1, tf.nn.relu, 2)
     x = conv2d(x, 128, 3, 1, tf.nn.relu, 2)
@@ -67,7 +65,7 @@ def network_minecraft_large(x):
     return x
 
 
-def network_1(x):
+def network_1(model, x):
     x = conv2d(x, 16, 8, 2, tf.nn.relu, 2)
     x = conv2d(x, 32, 3, 1, tf.nn.relu, 2)
     x = conv2d(x, 64, 2, 1, tf.nn.relu)
@@ -76,4 +74,9 @@ def network_1(x):
     return x
 
 
-default_network = network_dqn
+def network_2_lstm(model, x):
+    x = conv2d(x, 16, 8, 4, tf.nn.relu)
+    x = conv2d(x, 32, 4, 2, tf.nn.relu)
+    x = dense(x, 256, tf.nn.relu)
+    x = rnn(model, x, 256)
+    return x

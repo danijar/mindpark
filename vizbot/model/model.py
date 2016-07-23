@@ -53,23 +53,36 @@ class Model:
         self._graph['input/' + name] = node
         return node
 
+    def has_input(self, name):
+        return 'input/' + name in self._graph
+
     def add_option(self, name, initial, type_=tf.float32):
         node = tf.Variable(initial, trainable=False, dtype=type_)
-        input_ = tf.placeholder(type_)
+        initial = tf.Variable(initial, trainable=False, dtype=type_)
+        input_ = tf.placeholder_with_default(initial, initial.get_shape())
         self._graph['option/' + name] = node
         self._graph['option_input/' + name] = input_
         self._graph['option_set/' + name] = node.assign(input_)
         return node
 
-    def set_option(self, name, value):
-        self._graph('option_set/' + name, {'option_input/' + name: value})
+    def has_option(self, name):
+        return 'option/' + name in self._graph
 
     def get_option(self, name):
         return self._graph('option/' + name)
 
+    def set_option(self, name, value):
+        self._graph('option_set/' + name, {'option_input/' + name: value})
+
+    def reset_option(self, name):
+        self._graph('option_set/' + name)
+
     def add_output(self, name, node):
         self._graph['output/' + name] = node
         return node
+
+    def has_output(self, name):
+        return 'output/' + name in self._graph
 
     def add_cost(self, name, node):
         if not self._optimizer:
@@ -83,6 +96,9 @@ class Model:
             clipped = tf.clip_by_value(gradient, -clip, clip)
             self._graph['delta/' + name + '/' + variable.name] = clipped
         return node
+
+    def has_cost(self, name):
+        return 'cost/' + name in self._graph
 
     def train(self, cost, batch=None, epochs=1, **data):
         costs = []

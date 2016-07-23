@@ -46,7 +46,8 @@ class Benchmark:
         message = 'Congratulations, benchmark finished after {} hours'
         duration = round((time.time() - start) / 3600, 1)
         self._print_headline(message.format(duration), style='=')
-        print('Find results in', experiment)
+        if experiment:
+            print('Find results in', experiment)
 
     def _start_task(self, repeat, env, agent, experiment, definition):
         template = '{{}}-{{:0>{}}}'.format(len(str(definition.repeats - 1)))
@@ -133,7 +134,7 @@ class Benchmark:
         timesteps = definition.repeats * definition.timesteps
         names = [x.name for x in definition.agents]
         if len(set(names)) < len(names):
-            raise KeyError('algorithms need unique names')
+            raise KeyError('each algorithm must have an unique name')
         if self._experience and timesteps >= 10000:
             warn('Storing 10000+ timesteps consumes a lot of disk space.')
         if not self._videos and timesteps >= 10000:

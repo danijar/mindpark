@@ -63,7 +63,7 @@ class DQN(EpsilonGreedy):
     def _create_network(self, model):
         # Percetion.
         state = model.add_input('state', self.states.shape)
-        hidden = getattr(networks, self.config.network)(state)
+        hidden = getattr(networks, self.config.network)(model, state)
         values = dense(hidden, self.actions.shape, tf.identity)
         # Outputs.
         action = model.add_input('action', self.actions.shape)
