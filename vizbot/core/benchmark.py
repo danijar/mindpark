@@ -131,6 +131,9 @@ class Benchmark:
             print('Warning:', message)
             input('Press return to continue.')
         timesteps = definition.repeats * definition.timesteps
+        names = [x.name for x in definition.agents]
+        if len(set(names)) < len(names):
+            raise KeyError('algorithms need unique names')
         if self._experience and timesteps >= 10000:
             warn('Storing 10000+ timesteps consumes a lot of disk space.')
         if not self._videos and timesteps >= 10000:
