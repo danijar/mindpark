@@ -2,7 +2,6 @@ import sys
 import argparse
 import glob
 import os
-import math
 import yaml
 import json
 import collections
@@ -63,7 +62,6 @@ def plot_experiment(experiment, filename):
     scores, durations = read_result(experiment)
     plot = EpochFigure(len(scores),
             definition.experiment,
-            math.ceil(definition.timesteps / definition.epoch_length),
             definition.epoch_length)
     for env in scores:
         score, duration = scores[env], durations[env]
