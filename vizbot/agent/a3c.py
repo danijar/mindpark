@@ -74,22 +74,22 @@ class A3C(Agent):
         value = model.add_output('value',
             tf.squeeze(dense(hidden, 1, tf.identity), [1]))
         policy = dense(hidden, self.actions.shape, tf.nn.softmax)
-        sample = tf.squeeze(tf.multinomial(policy, 1), [1])
+        sample = tf.squeeze(tf.multinomial(tf.log(policy), 1), [1])
         model.add_output('choice', tf.one_hot(sample, self.actions.shape))
         # Objectives.
         action = model.add_input('action', self.actions.shape)
         return_ = model.add_input('return_')
         advantage = return_ - value
-        gradient = tf.reduce_sum(tf.log(policy * action + 1e-9))
+        logprob = tf.log(tf.reduce_max(policy * action, 1) + 1e-9)
         entropy = tf.reduce_sum(tf.log(policy + 1e-9) * policy)
-        actor = gradient * advantage + self.config.regularize * entropy
+        actor = logprob * advantage + self.config.regularize * entropy
         critic = self.config.scale_critic_loss * (return_ - value) ** 2 / 2
         # Training.
         learning_rate = model.add_option(
             'learning_rate', float(self.config.initial_learning_rate))
         model.set_optimizer(self.config.optimizer(
             learning_rate, self.config.rms_decay))
-        model.add_cost('cost', tf.reduce_sum(critic) - tf.reduce_sum(actor))
+        model.add_cost('cost', tf.reduce_mean(critic) - tf.reduce_mean(actor))
 
     @staticmethod
     def _add_preprocesses(trainer, config):

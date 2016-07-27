@@ -1,19 +1,17 @@
 experiment: full
 epochs: 100
-train_steps: 8e4
+train_steps: 5e4
 test_steps: 1e4
-repeats: 2
+repeats: 1
 envs:
   - SimplePong-v0
-  - SimpleBreakout-v0
-  - SimpleDeathmatch-v0
 agents:
-  -
-    name: DQN
-    type: DQN
   -
     name: A3C
     type: A3C
+  -
+    name: DQN
+    type: DQN
   -
     name: Random
     type: Random

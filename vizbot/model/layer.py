@@ -71,7 +71,8 @@ def network_drqn(model, x):
     x = conv2d(x, 32, 8, 4, tf.nn.relu)
     x = conv2d(x, 64, 4, 2, tf.nn.relu)
     x = conv2d(x, 64, 3, 1, tf.nn.relu)
-    x = rnn(model, x, 512, tf.nn.rnn_cell.LSTMCell)
+    # x = rnn(model, x, 512, tf.nn.rnn_cell.LSTMCell)
+    x = rnn(model, x, 512)
     return x
 
 
@@ -80,7 +81,8 @@ def network_a3c_lstm(model, x):
     x = conv2d(x, 16, 8, 4, tf.nn.relu)
     x = conv2d(x, 32, 4, 2, tf.nn.relu)
     x = dense(x, 256, tf.nn.relu)
-    x = rnn(model, x, 256, tf.nn.rnn_cell.LSTMCell)
+    # x = rnn(model, x, 256, tf.nn.rnn_cell.LSTMCell)
+    x = rnn(model, x, 256)
     return x
 
 

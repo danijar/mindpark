@@ -149,7 +149,7 @@ class SARSA(Async):
         values = dense(default_network(state), self.actions.shape, tf.identity)
         policy = tf.nn.softmax(values)
         model.add_output('value', tf.reduce_sum(values * policy, 1))
-        sample = tf.squeeze(tf.multinomial(policy, 1), (1,))
+        sample = tf.squeeze(tf.multinomial(tf.log(policy), 1), (1,))
         model.add_output('choice', tf.one_hot(sample, self.actions.shape))
         model.add_cost('cost',
             (tf.reduce_sum(action * values, 1) - target) ** 2)

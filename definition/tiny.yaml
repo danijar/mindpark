@@ -8,24 +8,21 @@ envs:
   - SimpleDeathmatch-v0
 agents:
   -
-    name: DQN
-    type: DQN
-    epsilon_from: 1.0
-    epsilon_to: 0.1
-    epsilon_duration: 100
-    test_epsilon: 0.05
-    initial_learning_rate: 1e-3
-    replay_capacity: 1000
-  -
     name: LSTM-A3C
     type: A3C
-    heads: 8
+    learners: 3
     initial_learning_rate: 1e-3
     network: network_a3c_lstm
   -
+    name: DQN
+    type: DQN
+    epsilon_duration: 100
+    initial_learning_rate: 1e-3
+    replay_capacity: 1000
+  -
     name: FF-A3C
     type: A3C
-    heads: 8
+    learners: 3
     initial_learning_rate: 1e-3
     network: network_dqn
   -
