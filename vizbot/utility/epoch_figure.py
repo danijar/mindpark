@@ -13,9 +13,10 @@ class EpochFigure(DeviationFigure):
     duration information for the lines.
     """
 
-    def __init__(self, ncols, title, epoch_size):
+    def __init__(self, ncols, title, epochs, train_steps):
         super().__init__(ncols, title)
-        self._epoch_size = epoch_size
+        self._epochs = epochs
+        self._train_steps = train_steps
 
     def add(self, title, xlabel, ylabel, lines, durations):
         starts = self._compute_starts(durations)
@@ -39,15 +40,14 @@ class EpochFigure(DeviationFigure):
         for label, line in lines.items():
             start = starts[label]
             last = max(x[-1] for x in start)
-            epochs = math.ceil(last / self._epoch_size)
-            line = [self._average(x, y, epochs) for x, y in zip(line, start)]
+            line = [self._average(x, y) for x, y in zip(line, start)]
             averaged[label] = np.array(line, dtype=float)
         return averaged
 
-    def _average(self, values, starts, epochs):
-        sums, counts = np.zeros(epochs), np.zeros(epochs)
+    def _average(self, values, starts):
+        sums, counts = np.zeros(self._epochs), np.zeros(self._epochs)
         for value, start in zip(values, starts):
-            epoch = start // self._epoch_size
+            epoch = min(start // self._train_steps, self._epochs) - 1
             sums[epoch] += value
             counts[epoch] += 1
         empty = (counts == 0)

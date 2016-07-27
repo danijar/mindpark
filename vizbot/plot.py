@@ -62,9 +62,12 @@ def plot_experiment(experiment, filename):
     scores, durations = read_result(experiment)
     plot = EpochFigure(len(scores),
             definition.experiment,
-            definition.epoch_length)
+            definition.epochs,
+            definition.train_steps)
     for env in scores:
         score, duration = scores[env], durations[env]
+        if not len(score):
+            continue
         plot.add(env, 'Training Epochs', 'Average Reward', score, duration)
     plot.save(os.path.join(experiment, filename))
 
