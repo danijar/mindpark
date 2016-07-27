@@ -35,5 +35,5 @@ class GymEnv(Env):
 
     def close(self):
         if self._directory:
-            self._env.monitor.stop()
+            self._env.monitor.close()
         self._env.close()
