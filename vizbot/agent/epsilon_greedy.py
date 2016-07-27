@@ -10,6 +10,7 @@ class EpsilonGreedy(Agent):
         epsilon_from = 1.0
         epsilon_to = 0.1
         epsilon_duration = 5e5
+        test_epsilon = 0.05
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
@@ -19,7 +20,12 @@ class EpsilonGreedy(Agent):
             config.epsilon_from, config.epsilon_to, config.epsilon_duration)
 
     def step(self, state):
-        if self._random.rand() < self._epsilon(self.timestep):
+        super().step(state)
+        if self.training:
+            epsilon = self._epsilon(self.timestep)
+        else:
+            epsilon = self.config.test_epsilon
+        if self._random.rand() < epsilon:
             self._was_greedy = True
             return self._env.sample()
         self._was_greedy = False

@@ -10,8 +10,8 @@ import gym
 import numpy as np
 import vizbot.env
 import vizbot.agent
-from vizbot.core import Trainer, Agent, StopTraining
-from vizbot.utility import AttrDict, use_attrdicts, ensure_directory
+from vizbot.core import Trainer, Agent
+from vizbot.utility import use_attrdicts, ensure_directory
 
 
 class Benchmark:
@@ -22,13 +22,12 @@ class Benchmark:
     """
 
     def __init__(self, directory=None, parallel=1, videos=False,
-                 experience=False, stacktraces=False):
+                 stacktraces=False):
         if directory:
             directory = os.path.abspath(os.path.expanduser(directory))
         self._directory = directory
         self._parallel = parallel
         self._videos = videos
-        self._experience = experience
         self._stacktraces = stacktraces
         self._lock = Lock()
 
@@ -61,30 +60,27 @@ class Benchmark:
 
     def _run_task(self, directory, env, agent, definition):
         prefix = '{} on {}:'.format(agent.name, env)
-        trainer = Trainer(directory, env,
-            timesteps=definition.timesteps,
-            epoch_length=definition.epoch_length,
-            prefix=prefix,
-            experience=self._experience,
-            videos=self._videos)
         config = agent.type.defaults()
         if 'type' in config or 'name' in config:
             print('Warning: Override reserved config keys.')
         config.update(agent)
         directory and self._dump_yaml(config, directory, 'agent.yaml')
         try:
-            agent.type(trainer, AttrDict(config))()
+            trainer = Trainer(
+                directory, env, agent.type, config,
+                definition.epochs,
+                definition.train_steps,
+                definition.test_steps,
+                self._videos)
+            for epoch, score in enumerate(trainer):
+                message = 'Epoch {} with average score {:.2f}'
+                print(prefix, message.format(epoch + 1, score))
         except Exception as e:
             with self._lock:
                 print(prefix, 'Failed due to exception:')
                 print(e)
             if self._stacktraces:
                 traceback.print_exc()
-        except StopTraining:
-            pass
-        scores = trainer.scores
-        score = round(sum(scores) / len(scores), 3) if scores else 'none'
-        print(prefix, 'Finished with average score {}'.format(score))
 
     def _start_experiment(self, name):
         self._print_headline('Start experiment', style='=')
@@ -102,8 +98,9 @@ class Benchmark:
             definition = yaml.load(file_)
         definition = use_attrdicts(definition)
         definition.experiment = str(definition.experiment)
-        definition.timesteps = int(float(definition.timesteps))
-        definition.epoch_length = int(float(definition.epoch_length))
+        definition.epochs = int(float(definition.epochs))
+        definition.train_steps = int(float(definition.train_steps))
+        definition.test_steps = int(float(definition.test_steps))
         definition.repeats = int(float(definition.repeats))
         definition.envs = list(self._load_envs(definition.envs))
         definition.agents = list(self._load_agents(definition.agents))
@@ -131,16 +128,13 @@ class Benchmark:
         def warn(message):
             print('Warning:', message)
             input('Press return to continue.')
-        timesteps = definition.repeats * definition.timesteps
+        timesteps = \
+            definition.repeats * definition.epochs * definition.train_steps
         names = [x.name for x in definition.agents]
         if len(set(names)) < len(names):
             raise KeyError('each algorithm must have an unique name')
-        if self._experience and timesteps >= 10000:
-            warn('Storing 10000+ timesteps consumes a lot of disk space.')
         if not self._videos and timesteps >= 10000:
             warn('Training 10000+ timesteps. Consider capturing videos.')
-        if definition.epoch_length > definition.timesteps:
-            warn('Less than one epoch of timesteps.')
 
     def _dump_yaml(self, data, *path):
         def convert(obj):

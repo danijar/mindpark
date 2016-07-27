@@ -1,160 +1,117 @@
-import math
-import os
-from threading import Lock
-import numpy as np
+import functools
+from threading import Thread
 from vizbot.core import GymEnv, StopEpisode
-from vizbot.utility import Experience, ensure_directory
-
-
-class StopTraining(Exception):
-
-    def __init__(self, trainer):
-        super().__init__(self)
-        self.trainer = trainer
+from vizbot.utility import AttrDict, ensure_directory
 
 
 class Trainer:
 
-    def __init__(self, directory, env_name, timesteps, epoch_length=None,
-                 prefix=None, videos=False, experience=False,
-                 experience_maxlen=5e4):
-        """
-        Provide an interface to agents to train on an environment.
-
-        Args:
-            directory (path): Where to store results. Can be None for dry run.
-            env_name (str): The name of a registered Gym environment.
-            timesteps (int): The overall training duration in frames.
-            epoch_length (int): Every how many frames to print statistics.
-                Defaults to timesteps / 100.
-            prefix (str): Prefix for logging messages.
-            videos (int): Every how many episodes to record a video. False
-                disables recording.
-            experience (bool): Whether to store transition tuples as Numpy
-                arrays. Requires a lot of disk space.
-            experience_maxlen (int): Maxmium amount of transitions to store per
-                episode. Usually much higher than the normal episode length.
-                Needed to allocate memory beforehand.
-        """
+    def __init__(self, directory, env_name, agent_cls, agent_config,
+                 epochs, train_steps, test_steps, videos=10):
         if directory:
             ensure_directory(directory)
         self._directory = directory
         self._env_name = env_name
-        self._timesteps = int(float(timesteps))
-        self._epoch_length = int(epoch_length or timesteps // 100)
-        self._prefix = prefix
+        self._epochs = int(float(epochs))
+        self._train_steps = int(float(train_steps))
+        self._test_steps = int(float(test_steps))
         self._videos = directory and videos
-        self._experience = directory and experience
-        self._experience_maxlen = experience_maxlen
-        self._envs = []
+        self._previous_step = 0
+        self._train_step = 0
+        self._test_step = 0
         self._preprocesses = []
-        self._scores = []
-        self._durations = []
-        self._epoch = 0
-        self._episode = 0
-        self._timestep = 0
-        self._states = None
-        self._actions = None
-        self._running = True
-        self._lock = Lock()
+        self._agent = agent_cls(self, AttrDict(agent_config))
 
     @property
     def directory(self):
         return self._directory
 
     @property
-    def running(self):
-        return self._running
-
-    @property
-    def episode(self):
-        return self._episode
+    def timesteps(self):
+        return self._epochs + self._train_steps
 
     @property
     def timestep(self):
-        return self._timestep
-
-    @property
-    def scores(self):
-        return self._scores
-
-    @property
-    def durations(self):
-        return self._durations
+        return self._previous_step + self._train_step
 
     def add_preprocess(self, preprocess_cls, *args, **kwargs):
-        if self._envs:
-            raise RuntimeError('must add preprocesses before creating envs')
         self._preprocesses.append((preprocess_cls, args, kwargs))
 
-    def create_env(self):
-        env = GymEnv(self._env_name, self._directory, self._video_callback)
+    def create_env(self, monitoring=False):
+        directory = monitoring and self._directory
+        env = GymEnv(self._env_name, directory, self._video_callback)
         for preprocess, args, kwargs in self._preprocesses:
             env = preprocess(env, *args, **kwargs)
-            self._envs.append(env)
         return env
 
-    def run_episode(self, agent, env):
-        if not self._running:
-            raise StopTraining(self)
-        with self._lock:
-            episode = self._episode
-            self._episode += 1
-        with env.lock:
-            score, duration = self._run_episode(env, agent, episode)
-        self._scores.append(score)
-        self._durations.append(duration)
-        with self._lock:
-            epoch_end = (self._epoch + 1) * self._epoch_length
-            if self._running and self._timestep >= epoch_end:
-                self._next_epoch()
-            if self._timestep >= self._timesteps:
-                self._stop_training()
+    def __iter__(self):
+        for _ in range(self._epochs):
+            self._agent.start_epoch()
+            for learner in self._agent.learners:
+                if learner is self._agent:
+                    continue
+                learner.start_epoch()
+            self._train(self._agent.learners)
+            score = self._test(self._agent.testee)
+            self._agent.stop_epoch()
+            for learner in self._agent.learners:
+                if learner is self._agent:
+                    continue
+                learner.stop_epoch()
+            yield score
 
-    def _run_episode(self, env, agent, episode):
-        if self._experience:
-            experience = Experience(self._experience_maxlen)
-        score, duration = 0, 0
-        agent.start()
+    def _train(self, learners):
+        def target(learner):
+            env = self.create_env()
+            while self._train_step < self._train_steps:
+                self._run_episode(env, learner, training=True)
+            env.close()
+        threads = []
+        self._previous_step += self._train_step
+        self._train_step = 0
+        for learner in learners:
+            assert len(learner.learners) == 1
+            assert learner.learners[0] is learner
+            threads.append(Thread(target=target, args=(learner,)))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+    def _test(self, testee):
+        scores = []
+        env = self.create_env(True)
+        self._test_step = 0
+        while self._test_step < self._test_steps:
+            score = self._run_episode(env, testee, training=False)
+            scores.append(score)
+        env.close()
+        return sum(scores) / len(scores)
+
+    def _run_episode(self, env, agent, training):
+        score = 0
+        agent.start_episode(training)
         try:
             state = env.reset()
+            # while self._test_step < self._test_steps:
             while True:
                 action = agent.step(state)
                 successor, reward = env.step(action)
                 transition = (state, action, reward, successor)
-                agent.experience(*transition)
-                if self._experience:
-                    experience.append(transition)
-                state = successor
+                if training:
+                    agent.experience(*transition)
                 score += reward
-                duration += 1
-                self._timestep += 1
+                state = successor
+                if training:
+                    self._train_step += 1
+                else:
+                    self._test_step += 1
         except StopEpisode:
             pass
-        agent.stop()
-        if self._experience:
-            experience.save(os.path.join(
-                self._directory, 'experience-{}.npz'.format(episode)))
-        return score, duration
+        agent.stop_episode()
+        return score
 
-    def _next_epoch(self):
-        self._epoch += 1
-        epochs = math.ceil(self._timesteps / self._epoch_length)
-        message = 'Epoch {{: >{}}} timestep {{: >{}}} average score {{}}'
-        message = message.format(len(str(epochs)), len(str(self._timesteps)))
-        score = self._scores[-self._epoch_length:]
-        score = sum(score) / len(score)
-        message = message.format(self._epoch, self.timestep, round(score, 4))
-        message = self._prefix + ' ' + message if self._prefix else message
-        print(message)
-
-    def _stop_training(self):
-        self._running = False
-        for env in self._envs:
-            with env.lock:
-                env.close()
-
-    def _video_callback(self, env_episode):
+    def _video_callback(self, ignore):
         if not self._videos:
             return False
-        return self.episode % self._videos == 0
+        return self._test_step % self._videos == 0

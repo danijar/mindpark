@@ -13,10 +13,32 @@ class Agent:
         self._config = config
         self._env = trainer.create_env()
         self._random = np.random.RandomState()
+        self._training = None
 
-    def __call__(self):
-        while self._trainer.running:
-            self._trainer.run_episode(self, self._env)
+    def start_epoch(self):
+        pass
+
+    def stop_epoch(self):
+        pass
+
+    def start_episode(self, training):
+        self._training = training
+
+    def stop_episode(self):
+        pass
+
+    def step(self, state):
+        pass
+
+    def experience(self, state, action, reward, successor):
+        pass
+
+    def close(self):
+        for learner in self.learners:
+            if learner is self:
+                continue
+            learner.close()
+        self._env.close()
 
     @property
     def states(self):
@@ -34,14 +56,14 @@ class Agent:
     def config(self):
         return self._config
 
-    def start(self):
-        pass
+    @property
+    def training(self):
+        return self._training
 
-    def step(self, state):
-        pass
+    @property
+    def learners(self):
+        return (self,)
 
-    def stop(self):
-        pass
-
-    def experience(self, state, action, reward, successor):
-        pass
+    @property
+    def testee(self):
+        return self

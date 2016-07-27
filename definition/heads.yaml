@@ -1,4 +1,4 @@
-experiment: full
+experiment: heads
 epochs: 100
 train_steps: 8e4
 test_steps: 1e4
@@ -9,11 +9,14 @@ envs:
   - SimpleDeathmatch-v0
 agents:
   -
-    name: DQN
-    type: DQN
-  -
-    name: A3C
+    name: A3C (16)
     type: A3C
+    heads: 16
   -
-    name: Random
-    type: Random
+    name: A3C (32)
+    type: A3C
+    heads: 32
+  -
+    name: A3C (64)
+    type: A3C
+    heads: 64

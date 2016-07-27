@@ -1,5 +1,3 @@
-from pprint import pprint
-import collections
 import numpy as np
 import tensorflow as tf
 from vizbot.agent import EpsilonGreedy
@@ -7,7 +5,7 @@ from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.preprocess import (
     Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage)
-from vizbot.utility import Experience, Every, Statistic, Decay, merge_dicts
+from vizbot.utility import Experience, Decay, merge_dicts
 
 
 class DQN(EpsilonGreedy):
@@ -20,18 +18,17 @@ class DQN(EpsilonGreedy):
         # Exploration.
         epsilon_from = 1.0
         epsilon_to = 0.1
-        epsilon_duration = 5e5
+        epsilon_duration = 1e6
+        test_epsilon = 0.05
         # Learning.
         network = 'network_dqn'
         replay_capacity = int(2e4)
         batch_size = 32
         initial_learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer
-        rms_decay= 0.99
+        rms_decay = 0.99
         # Logging.
-        print_cost = 10000
         start_learning = 100
-        save_model = int(1e5)
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
@@ -50,15 +47,31 @@ class DQN(EpsilonGreedy):
         # Learning.
         self._memory = Experience(config.replay_capacity)
         self._learning_rate = Decay(
-            float(config.initial_learning_rate), 0, self._trainer._timesteps)
-        self._costs = Statistic('Cost {:8.3f}', self.config.print_cost)
+            float(config.initial_learning_rate), 0, self._trainer.timesteps)
+        self._costs = []
 
-    def __call__(self):
-        save_model = Every(self.config.save_model)
-        while self._trainer.running:
-            if save_model(self._trainer.timestep) and self._trainer.directory:
-                self._actor.save(self._trainer.directory, 'model')
-            self._trainer.run_episode(self, self._env)
+    def stop_epoch(self):
+        super().stop_epoch()
+        if self._costs:
+            print('Cost {:8.3f}'.format(sum(self._costs) / len(self._costs)))
+        if self._trainer.directory:
+            self._actor.save(self._trainer.directory, 'model')
+
+    def experience(self, state, action, reward, successor):
+        self._memory.append((state, action, reward, successor))
+        if len(self._memory) == 1:
+            self._log_memory_size()
+        if len(self._memory) < self.config.start_learning:
+            return
+        state, action, reward, successor = \
+            self._memory.sample(self.config.batch_size)
+        target = self._compute_target(reward, successor)
+        self._target.weights = self._actor.weights
+        self._actor.set_option('learning_rate',
+            self._learning_rate(self.timestep))
+        cost = self._actor.train('cost',
+            state=state, action=action, target=target)
+        self._costs.append(cost)
 
     def _create_network(self, model):
         # Percetion.
@@ -91,22 +104,6 @@ class DQN(EpsilonGreedy):
         future[final] = 0
         target = reward + self.config.discount * future
         return target
-
-    def experience(self, state, action, reward, successor):
-        self._memory.append((state, action, reward, successor))
-        if len(self._memory) == 1:
-            self._log_memory_size()
-        if len(self._memory) < self.config.start_learning:
-            return
-        state, action, reward, successor = \
-            self._memory.sample(self.config.batch_size)
-        target = self._compute_target(reward, successor)
-        self._target.weights = self._actor.weights
-        self._actor.set_option('learning_rate',
-            self._learning_rate(self.timestep))
-        cost = self._actor.train('cost',
-            state=state, action=action, target=target)
-        self._costs(cost)
 
     def _log_memory_size(self):
         size = self._memory.nbytes / (1024 ** 3)
