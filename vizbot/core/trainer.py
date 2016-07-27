@@ -61,8 +61,7 @@ class Trainer:
             yield score
 
     def _train(self, learners):
-        def target(learner):
-            env = self.create_env()
+        def target(env, learner):
             while self._train_step < self._train_steps:
                 self._run_episode(env, learner, training=True)
             env.close()
@@ -72,7 +71,8 @@ class Trainer:
         for learner in learners:
             assert len(learner.learners) == 1
             assert learner.learners[0] is learner
-            threads.append(Thread(target=target, args=(learner,)))
+            env = self.create_env()
+            threads.append(Thread(target=target, args=(env, learner)))
         for thread in threads:
             thread.start()
         for thread in threads:
