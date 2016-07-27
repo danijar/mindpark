@@ -14,11 +14,14 @@ def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        'experiments',
+        'experiments', nargs='?', default='~/experiment/gym',
         help='glob expresstion of one or more experiment directories')
     parser.add_argument(
-        '-o', '--filename', default='comparison.pdf',
-        help='output filename of the plot; extension selects output format')
+        '-e', '--extension', default='pdf',
+        help='filename extension of the plot; selects output format')
+    parser.add_argument(
+        '-f', '--force', action='store_true', default=False,
+        help='replace existing plots')
     args = parser.parse_args()
     return args
 
@@ -60,10 +63,7 @@ def plot_experiment(experiment, filename):
         raise ValueError(experiment + ' does not contain a definition')
     definition = use_attrdicts(read_yaml(experiment, 'experiment.yaml'))
     scores, durations = read_result(experiment)
-    plot = EpochFigure(len(scores),
-            definition.experiment,
-            definition.epochs,
-            definition.train_steps)
+    plot = EpochFigure(len(scores), definition.experiment, definition.epochs)
     for env in scores:
         score, duration = scores[env], durations[env]
         if not len(score):
@@ -94,7 +94,12 @@ def main():
     if not paths:
         print('The glob expression does not match any path.')
     for path in paths:
-        plot_experiment(path, args.filename)
+        filename = os.path.basename(path) + '.' + args.extension
+        if os.path.isfile(os.path.join(path, filename)) and not args.force:
+            print('Skip existing plot', filename)
+            continue
+        print('Generate plot', filename)
+        plot_experiment(path, filename)
 
 
 if __name__ == '__main__':

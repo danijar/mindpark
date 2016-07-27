@@ -5,7 +5,7 @@ class Agent:
 
     @classmethod
     def defaults(cls):
-        discount = 0.95
+        discount = 0.99
         return locals()
 
     def __init__(self, trainer, config):
