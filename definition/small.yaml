@@ -1,0 +1,28 @@
+experiment: small
+epochs: 5
+train_steps: 5e4
+test_steps: 1e4
+repeats: 2
+envs:
+  - SimpleBreakout-v0
+  - SimpleDeathmatch-v0
+agents:
+  -
+    name: LSTM-A3C
+    type: A3C
+    initial_learning_rate: 1e-4
+    network: network_a3c_lstm
+  -
+    name: DQN
+    type: DQN
+    epsilon_duration: 1e5
+    initial_learning_rate: 1e-4
+    replay_capacity: 2e4
+  -
+    name: FF-A3C
+    type: A3C
+    initial_learning_rate: 1e-4
+    network: network_dqn
+  -
+    name: Random
+    type: Random
