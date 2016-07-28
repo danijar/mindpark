@@ -7,6 +7,7 @@ class EpsilonGreedy(Agent):
 
     @classmethod
     def defaults(cls):
+        epsilon_after = 1e5
         epsilon_from = 1.0
         epsilon_to = 0.1
         epsilon_duration = 5e5
@@ -22,7 +23,8 @@ class EpsilonGreedy(Agent):
     def step(self, state):
         super().step(state)
         if self.training:
-            epsilon = self._epsilon(self.timestep)
+            timestep = max(0, self.timestep - self.config.epsilon_after)
+            epsilon = self._epsilon(timestep)
         else:
             epsilon = self.config.test_epsilon
         if self._random.rand() < epsilon:

@@ -18,17 +18,18 @@ class DQN(EpsilonGreedy):
         # Exploration.
         epsilon_from = 1.0
         epsilon_to = 0.1
+        epsilon_after = 1e6
         epsilon_duration = 1e6
         test_epsilon = 0.05
         # Learning.
         network = 'network_dqn'
-        replay_capacity = int(2e5)
+        replay_capacity = int(1e6)
         batch_size = 32
         initial_learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer
         rms_decay = 0.99
         sync_target = 32
-        start_learning = 100
+        start_learning = 1e6
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):

@@ -29,7 +29,6 @@ class A3C(Agent):
         rms_decay = 0.99
         scale_critic_loss = 0.5
         # Logging.
-        load_dir = ''
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
