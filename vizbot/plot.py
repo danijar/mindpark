@@ -14,7 +14,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        'experiments', nargs='?', default='~/experiment/gym',
+        'experiments', nargs='?', default='~/experiment/gym/*',
         help='glob expresstion of one or more experiment directories')
     parser.add_argument(
         '-e', '--extension', default='pdf',
@@ -99,7 +99,10 @@ def main():
             print('Skip existing plot', filename)
             continue
         print('Generate plot', filename)
-        plot_experiment(path, filename)
+        try:
+            plot_experiment(path, filename)
+        except Exception as e:
+            print('Failed ({})'.format(str(e) or 'no message'))
 
 
 if __name__ == '__main__':
