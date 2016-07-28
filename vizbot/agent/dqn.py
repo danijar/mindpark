@@ -5,7 +5,7 @@ from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.preprocess import (
     Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage)
-from vizbot.utility import Experience, Decay, merge_dicts
+from vizbot.utility import Experience, Decay, Every, merge_dicts
 
 
 class DQN(EpsilonGreedy):
@@ -27,7 +27,7 @@ class DQN(EpsilonGreedy):
         initial_learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer
         rms_decay = 0.99
-        # Logging.
+        sync_target = 32
         start_learning = 100
         return merge_dicts(super().defaults(), locals())
 
@@ -43,7 +43,8 @@ class DQN(EpsilonGreedy):
         self._actor = Model(self._create_network)
         self._target = Model(self._create_network)
         self._target.weights = self._actor.weights
-        print(str(self._actor))
+        self._sync_target = Every(config.sync_target)
+        # print(str(self._actor))
         # Learning.
         self._memory = Experience(config.replay_capacity)
         self._learning_rate = Decay(
@@ -66,7 +67,8 @@ class DQN(EpsilonGreedy):
         state, action, reward, successor = \
             self._memory.sample(self.config.batch_size)
         target = self._compute_target(reward, successor)
-        self._target.weights = self._actor.weights
+        if self._sync_target(self.timestep):
+            self._target.weights = self._actor.weights
         self._actor.set_option('learning_rate',
             self._learning_rate(self.timestep))
         cost = self._actor.train('cost',
@@ -96,12 +98,10 @@ class DQN(EpsilonGreedy):
         return self._actor.compute('choice', state=state)
 
     def _compute_target(self, reward, successor):
-        finals = len(list(x for x in successor if x is None))
-        if finals:
-            print(finals, 'terminal states in current batch')
+        terminal = np.isnan(successor.reshape((len(successor), -1))).any(1)
+        successor = np.nan_to_num(successor)
         future = self._target.compute('value', state=successor)
-        final = np.isnan(successor.reshape((len(successor), -1))).any(1)
-        future[final] = 0
+        future[terminal] = 0
         target = reward + self.config.discount * future
         return target
 

@@ -36,7 +36,7 @@ class A3C(Agent):
         self._add_preprocesses(trainer, config)
         super().__init__(trainer, config)
         self.model = Model(self._create_network)
-        print(str(self.model))
+        # print(str(self.model))
         self.learning_rate = Decay(
             float(config.initial_learning_rate), 0, self._trainer.timesteps)
         self.costs = []
@@ -116,10 +116,10 @@ class Learner(Agent):
             self._model.reset_option('context')
 
     def step(self, state):
+        assert self.training
         return self._model.compute('choice', state=state)
 
     def experience(self, state, action, reward, successor):
-        super().experience(state, action, reward, successor)
         self._batch.append((state, action, reward, successor))
         done = (successor is None)
         if not done and len(self._batch) < self.config.apply_gradient:
@@ -171,4 +171,5 @@ class Testee(Agent):
             self._model.reset_option('context')
 
     def step(self, state):
+        assert not self.training
         return self._model.compute('choice', state=state)

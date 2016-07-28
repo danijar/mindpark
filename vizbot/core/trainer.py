@@ -28,7 +28,7 @@ class Trainer:
 
     @property
     def timesteps(self):
-        return self._epochs + self._train_steps
+        return self._epochs * self._train_steps
 
     @property
     def timestep(self):
@@ -53,12 +53,17 @@ class Trainer:
                 learner.start_epoch()
             self._train(self._agent.learners)
             score = self._test(self._agent.testee)
-            self._agent.stop_epoch()
             for learner in self._agent.learners:
                 if learner is self._agent:
                     continue
                 learner.stop_epoch()
+            self._agent.stop_epoch()
             yield score
+        for learner in self._agent.learners:
+            if learner is self._agent:
+                continue
+            learner.close()
+        self._agent.close()
 
     def _train(self, learners):
         def target(env, learner):
@@ -97,9 +102,8 @@ class Trainer:
             while True:
                 action = agent.step(state)
                 successor, reward = env.step(action)
-                transition = (state, action, reward, successor)
                 if training:
-                    agent.experience(*transition)
+                    agent.experience(state, action, reward, successor)
                 score += reward
                 state = successor
                 if training:
@@ -107,7 +111,7 @@ class Trainer:
                 else:
                     self._test_step += 1
         except StopEpisode:
-            pass
+            agent.experience(state, action, reward, None)
         agent.stop_episode()
         return score
 

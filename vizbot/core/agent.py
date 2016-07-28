@@ -34,10 +34,6 @@ class Agent:
         pass
 
     def close(self):
-        for learner in self.learners:
-            if learner is self:
-                continue
-            learner.close()
         self._env.close()
 
     @property
