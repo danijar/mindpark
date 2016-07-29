@@ -80,7 +80,7 @@ class A3C(Agent):
         return_ = model.add_input('return_')
         advantage = return_ - value
         logprob = tf.log(tf.reduce_max(policy * action, 1) + 1e-9)
-        entropy = tf.reduce_sum(tf.log(policy + 1e-9) * policy)
+        entropy = -tf.reduce_sum(tf.log(policy + 1e-9) * policy)
         actor = logprob * advantage + self.config.regularize * entropy
         critic = self.config.scale_critic_loss * (return_ - value) ** 2 / 2
         # Training.
