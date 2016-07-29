@@ -1,22 +1,23 @@
 experiment: tiny
-epochs: 2
+epochs: 5
 train_steps: 250
 test_steps: 200
 repeats: 1
 envs:
-  - SimpleBreakout-v0
+  - Breakout-v0
   - SimpleDeathmatch-v0
 agents:
+  -
+    name: DQN
+    type: DQN
+    epsilon_duration: 1000
+    initial_learning_rate: 1e-3
+    replay_capacity: 1000
+    start_learning: 50
+    epsilon_after: 50
   -
     name: LSTM-A3C
     type: A3C
     learners: 3
     initial_learning_rate: 1e-3
     network: network_a3c_lstm
-  -
-    name: DQN
-    type: DQN
-    epsilon_duration: 100
-    initial_learning_rate: 1e-3
-    replay_capacity: 1000
-    start_learning: 50

@@ -8,8 +8,7 @@ class FrameSkip(Preprocess):
     def __init__(self, env, amount):
         super().__init__(env)
         self._amount = amount
-        self._frames = np.empty((self._amount,) + self._env.states.shape)
-        self._noop = np.zeros(self._env.actions.shape)
+        self._frames = np.zeros((self._amount,) + self._env.states.shape)
 
     @property
     def states(self):
@@ -23,7 +22,7 @@ class FrameSkip(Preprocess):
     def reset(self):
         self._frames[0] = self._env.reset()
         for index in range(1, self._amount):
-            state, _ = self._env.step(self._noop)
+            state, _ = self._env.step(self._env.actions.sample())
             self._frames[index] = state
         return np.moveaxis(self._frames, 0, -1)
 

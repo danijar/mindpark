@@ -1,11 +1,11 @@
 experiment: heads
 epochs: 100
-train_steps: 8e4
+train_steps: 5e4
 test_steps: 1e4
 repeats: 2
 envs:
-  - SimplePong-v0
-  - SimpleBreakout-v0
+  - Pong-v0
+  - Breakout-v0
   - SimpleDeathmatch-v0
 agents:
   -

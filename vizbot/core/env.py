@@ -49,9 +49,3 @@ class Env:
         Optional hook for cleanup before the object gets destoyed.
         """
         pass
-
-    def noop(self):
-        return np.zeros(self.actions.shape)
-
-    def sample(self):
-        return np.array(self.actions.sample())

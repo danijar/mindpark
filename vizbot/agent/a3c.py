@@ -39,6 +39,7 @@ class A3C(Agent):
         self.learning_rate = Decay(
             float(config.initial_learning_rate), 0, self._trainer.timesteps)
         self.costs = []
+        self.values = []
         self.lock = Lock()
 
     @lazy_property
@@ -58,10 +59,14 @@ class A3C(Agent):
 
     def stop_epoch(self):
         super().stop_epoch()
-        if self.costs:
-            with self.lock:
+        with self.lock:
+            if self.costs:
                 average = sum(self.costs) / len(self.costs)
-                print('Cost {:12.5f}'.format(average))
+                print('Cost  {:12.5f}'.format(average))
+                self.costs = []
+            if self.values:
+                average = sum(self.values) / len(self.values)
+                print('Value {:12.5f}'.format(average))
                 self.costs = []
         if self._trainer.directory:
             self.model.save(self._trainer.directory, 'model')
@@ -72,11 +77,12 @@ class A3C(Agent):
         hidden = getattr(networks, self.config.network)(model, state)
         value = model.add_output('value',
             tf.squeeze(dense(hidden, 1, tf.identity), [1]))
-        policy = dense(hidden, self.actions.shape, tf.nn.softmax)
+        policy = dense(hidden, self.actions.n, tf.nn.softmax)
         sample = tf.squeeze(tf.multinomial(tf.log(policy), 1), [1])
-        model.add_output('choice', tf.one_hot(sample, self.actions.shape))
+        model.add_output('choice', sample)
         # Objectives.
-        action = model.add_input('action', self.actions.shape)
+        action = model.add_input('action', type_=tf.int32)
+        action = tf.one_hot(action, self.actions.n)
         return_ = model.add_input('return_')
         advantage = return_ - value
         logprob = tf.log(tf.reduce_max(policy * action, 1) + 1e-9)
@@ -116,7 +122,9 @@ class Learner(Agent):
 
     def step(self, state):
         assert self.training
-        return self._model.compute('choice', state=state)
+        choice, value = self._model.compute(('choice', 'value'), state=state)
+        self._master.values.append(value)
+        return choice
 
     def experience(self, state, action, reward, successor):
         self._batch.append((state, action, reward, successor))

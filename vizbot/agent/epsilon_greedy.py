@@ -29,7 +29,7 @@ class EpsilonGreedy(Agent):
             epsilon = self.config.test_epsilon
         if self._random.rand() < epsilon:
             self._was_greedy = True
-            return self._env.sample()
+            return self.actions.sample()
         self._was_greedy = False
         return self._step(state)
 

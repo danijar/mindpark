@@ -110,9 +110,14 @@ class Model:
 
     def compute(self, output, **data):
         data, single = self._prepare_data(data)
-        result = self._graph('output/' + output, data)
+        single_out = not isinstance(output, (tuple, list))
+        if single_out:
+            output = (output,)
+        result = self._graph(['output/' + x for x in output], data)
         if single:
-            result = np.squeeze(result, 0)
+            result = [np.squeeze(x, 0) for x in result]
+        if single_out:
+            result = result[0]
         return result
 
     @property

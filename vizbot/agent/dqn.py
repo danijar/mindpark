@@ -16,9 +16,9 @@ class DQN(EpsilonGreedy):
         downsample = 2
         frame_skip = 4
         # Exploration.
+        epsilon_after = 1e6
         epsilon_from = 1.0
         epsilon_to = 0.1
-        epsilon_after = 1e6
         epsilon_duration = 1e6
         test_epsilon = 0.05
         # Learning.
@@ -51,11 +51,19 @@ class DQN(EpsilonGreedy):
         self._learning_rate = Decay(
             float(config.initial_learning_rate), 0, self._trainer.timesteps)
         self._costs = []
+        self._maxqs = []
+
+    def start_epoch(self):
+        super().start_epoch()
+        self._costs = []
+        self._maxqs = []
 
     def stop_epoch(self):
         super().stop_epoch()
         if self._costs:
             print('Cost {:8.3f}'.format(sum(self._costs) / len(self._costs)))
+        if self._maxqs:
+            print('MaxQ {:8.3f}'.format(sum(self._maxqs) / len(self._maxqs)))
         if self._trainer.directory:
             self._actor.save(self._trainer.directory, 'model')
 
@@ -80,13 +88,14 @@ class DQN(EpsilonGreedy):
         # Percetion.
         state = model.add_input('state', self.states.shape)
         hidden = getattr(networks, self.config.network)(model, state)
-        values = dense(hidden, self.actions.shape, tf.identity)
+        values = dense(hidden, self.actions.n, tf.identity)
+        values = model.add_output('values', values)
         # Outputs.
-        action = model.add_input('action', self.actions.shape)
+        action = model.add_input('action', type_=tf.int32)
+        action = tf.one_hot(action, self.actions.n)
         target = model.add_input('target')
         model.add_output('value', tf.reduce_max(values, 1))
-        model.add_output('choice',
-            tf.one_hot(tf.argmax(values, 1), self.actions.shape))
+        model.add_output('choice', tf.argmax(values, 1))
         # Training.
         learning_rate = model.add_option(
             'learning_rate', float(self.config.initial_learning_rate))
@@ -96,6 +105,7 @@ class DQN(EpsilonGreedy):
             (tf.reduce_sum(action * values, 1) - target) ** 2)
 
     def _step(self, state):
+        self._maxqs.append(self._actor.compute('value', state=state))
         return self._actor.compute('choice', state=state)
 
     def _compute_target(self, reward, successor):

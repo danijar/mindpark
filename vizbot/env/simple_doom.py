@@ -1,7 +1,7 @@
 import numpy as np
 import gym
 from gym.core import Env
-from gym.spaces import HighLow
+from gym.spaces import Discrete
 from doom_py import ScreenResolution
 from vizbot.utility import lazy_property
 
@@ -31,8 +31,7 @@ class SimpleDoom(Env):
 
     @lazy_property
     def action_space(self):
-        matrix = self._env.action_space.matrix[self.AVAILABLE_ACTIONS]
-        return HighLow(matrix)
+        return Discrete(len(self.AVAILABLE_ACTIONS))
 
     @property
     def metadata(self):
@@ -43,13 +42,9 @@ class SimpleDoom(Env):
         return self._env.monitor
 
     def _step(self, action):
-        assert len(action) == len(self.AVAILABLE_ACTIONS)
-        full_action = np.zeros(self._env.action_space.num_rows)
-        for index, value in zip(self.AVAILABLE_ACTIONS, action):
-            full_action[index] = value
-        # Work around drop weapon bug in parent class.
-        full_action[33] = 0
-        state, reward, done, info = self._env._step(full_action)
+        box = np.zeros(self._env.action_space.num_rows)
+        box[self.AVAILABLE_ACTIONS[action]] = 1
+        state, reward, done, info = self._env._step(box)
         return state, reward, done, info
 
     def _close(self):
