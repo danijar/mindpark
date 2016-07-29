@@ -140,16 +140,16 @@ class Learner(Agent):
         states, actions, rewards, _ = transitions
         returns = self._compute_eligibilities(rewards, return_)
         self._decay_learning_rate()
-        with self._master.lock:
-            if self._master.model.has_option('context'):
-                context = self._context_last_batch
-                if context is not None:
-                    self._master.model.set_option('context', context)
-                else:
-                    self._master.model.reset_option('context')
-            cost = self._master.model.train('cost',
-                action=actions, state=states, return_=returns)
-            self._master.costs.append(cost)
+        if self._master.model.has_option('context'):
+            context = self._context_last_batch
+            if context is not None:
+                self._master.model.set_option('context', context)
+            else:
+                self._master.model.reset_option('context')
+        delta, cost = self._master.model.delta('cost',
+            action=actions, state=states, return_=returns)
+        self._master.model.apply(delta)
+        self._master.costs.append(cost)
         if self._model.has_option('context'):
             self._context_last_batch = self._model.get_option('context')
 

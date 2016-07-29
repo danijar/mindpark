@@ -23,7 +23,7 @@ class DQN(EpsilonGreedy):
         test_epsilon = 0.05
         # Learning.
         network = 'network_dqn'
-        replay_capacity = int(1e6)
+        replay_capacity = int(1e5)  # 1e6
         batch_size = 32
         initial_learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer
