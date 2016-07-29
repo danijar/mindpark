@@ -16,6 +16,7 @@ class Trainer:
         self._train_steps = int(float(train_steps))
         self._test_steps = int(float(test_steps))
         self._videos = directory and videos
+        self._video = None
         self._previous_step = 0
         self._train_step = 0
         self._test_step = 0
@@ -85,6 +86,7 @@ class Trainer:
 
     def _test(self, testee):
         scores = []
+        self._video = 0
         env = self.create_env(True)
         self._test_step = 0
         while self._test_step < self._test_steps:
@@ -118,4 +120,8 @@ class Trainer:
     def _video_callback(self, ignore):
         if not self._videos:
             return False
-        return self._test_step % self._videos == 0
+        every = self._test_steps / self._videos
+        if self._test_step < self._video * every:
+            return False
+        self._video += 1
+        return True

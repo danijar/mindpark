@@ -25,9 +25,9 @@ def parse_args():
         help='no not monitor or store results',
         default=False)
     parser.add_argument(
-        '-c', '--videos', type=nearest_int,
-        help='if and every how many episodes to capture videos',
-        default=10)
+        '-v', '--videos', type=nearest_int,
+        help='if and how many videos to capture per testing phase',
+        default=1)
     parser.add_argument(
         '-q', '--quiet', action='store_true',
         help='do not print stack traces for exceptions raised in agents',
