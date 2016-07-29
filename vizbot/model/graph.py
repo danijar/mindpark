@@ -11,9 +11,10 @@ class Graph:
     graph collections internally, so that they are available after loading.
     """
 
-    def __init__(self):
+    def __init__(self, threads=None):
         self._graph = tf.Graph()
-        self._sess = tf.Session(graph=self._graph)
+        config = threads and tf.ConfigProto(intra_op_parallelism_threads=threads)
+        self._sess = tf.Session('', self._graph, config)
         self._saver = None
         self._scope = None
 

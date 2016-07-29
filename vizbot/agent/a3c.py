@@ -47,7 +47,7 @@ class A3C(Agent):
         learners = []
         for _ in range(self.config.learners):
             config = AttrDict(self.config.copy())
-            model = Model(self._create_network)
+            model = Model(self._create_network, threads=1)
             model.weights = self.model.weights
             learner = Learner(self._trainer, self, model, config)
             learners.append(learner)

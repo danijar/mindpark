@@ -11,7 +11,7 @@ class Model:
     cost functions, compute gradients for costs, and apply gradients.
     """
 
-    def __init__(self, creator=None, load_path=None):
+    def __init__(self, creator=None, load_path=None, threads=None):
         """
         Create a new model. Either load_path or creator must be specified.
 
@@ -23,7 +23,7 @@ class Model:
                 operations can be added to the graph.
         """
         self._clip_delta = 10
-        self._graph = Graph()
+        self._graph = Graph(threads)
         self._optimizer = None
         if load_path:
             try:
