@@ -1,4 +1,4 @@
-experiment: tiny
+experiment: test
 epochs: 5
 train_steps: 250
 test_steps: 200
@@ -8,6 +8,12 @@ envs:
   - SimpleDeathmatch-v0
 agents:
   -
+    name: LSTM-A3C
+    type: A3C
+    learners: 3
+    initial_learning_rate: 1e-3
+    network: network_a3c_lstm
+  -
     name: DQN
     type: DQN
     epsilon_duration: 1000
@@ -15,9 +21,3 @@ agents:
     replay_capacity: 1000
     start_learning: 50
     epsilon_after: 50
-  -
-    name: LSTM-A3C
-    type: A3C
-    learners: 3
-    initial_learning_rate: 1e-3
-    network: network_a3c_lstm

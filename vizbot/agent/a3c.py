@@ -40,6 +40,7 @@ class A3C(Agent):
             float(config.initial_learning_rate), 0, self._trainer.timesteps)
         self.costs = []
         self.values = []
+        self.choices = []
         self.lock = Lock()
 
     @lazy_property
@@ -68,6 +69,11 @@ class A3C(Agent):
                 average = sum(self.values) / len(self.values)
                 print('Value {:12.5f}'.format(average))
                 self.costs = []
+            if self.choices:
+                dist = np.bincount(self.choices) / len(self.choices)
+                dist = ' '.join('{:.2f}'.format(x) for x in dist)
+                print('Choices [{}]'.format(dist))
+                self.choices = []
         if self._trainer.directory:
             self.model.save(self._trainer.directory, 'model')
 
@@ -123,6 +129,7 @@ class Learner(Agent):
     def step(self, state):
         assert self.training
         choice, value = self._model.compute(('choice', 'value'), state=state)
+        self._master.choices.append(choice)
         self._master.values.append(value)
         return choice
 

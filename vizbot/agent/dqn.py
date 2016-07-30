@@ -16,7 +16,6 @@ class DQN(EpsilonGreedy):
         downsample = 2
         frame_skip = 4
         # Exploration.
-        epsilon_after = 1e6
         epsilon_from = 1.0
         epsilon_to = 0.1
         epsilon_duration = 1e6
@@ -24,12 +23,13 @@ class DQN(EpsilonGreedy):
         # Learning.
         network = 'network_dqn'
         replay_capacity = int(1e5)  # 1e6
+        epsilon_after = replay_capacity
         batch_size = 32
         initial_learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer
         rms_decay = 0.99
         sync_target = 32
-        start_learning = 1e6
+        start_learning = replay_capacity
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
@@ -50,8 +50,8 @@ class DQN(EpsilonGreedy):
         self._memory = Experience(config.replay_capacity)
         self._learning_rate = Decay(
             float(config.initial_learning_rate), 0, self._trainer.timesteps)
-        self._costs = []
-        self._maxqs = []
+        self._costs = None
+        self._maxqs = None
 
     def start_epoch(self):
         super().start_epoch()
@@ -105,8 +105,10 @@ class DQN(EpsilonGreedy):
             (tf.reduce_sum(action * values, 1) - target) ** 2)
 
     def _step(self, state):
-        self._maxqs.append(self._actor.compute('value', state=state))
-        return self._actor.compute('choice', state=state)
+        choice, value = self._actor.compute(('choice', 'value'), state=state)
+        if not self.training:
+            self._maxqs.append(value)
+        return choice
 
     def _compute_target(self, reward, successor):
         terminal = np.isnan(successor.reshape((len(successor), -1))).any(1)
