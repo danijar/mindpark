@@ -22,7 +22,7 @@ class Benchmark:
     """
 
     def __init__(self, directory=None, parallel=1, videos=False,
-                 stacktraces=False):
+                 stacktraces=True):
         if directory:
             directory = os.path.abspath(os.path.expanduser(directory))
         self._directory = directory

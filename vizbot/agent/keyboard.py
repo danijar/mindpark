@@ -3,21 +3,29 @@ import collections
 import numpy as np
 import pyglet
 from vizbot.core import Agent
-from vizbot.preprocess import Grayscale, Downsample, FrameSkip
+from vizbot.preprocess import (
+    Grayscale, Downsample, FrameSkip, Crop, Delta, NormalizeImage)
 from vizbot.utility import AttrDict, clamp
 
 
 class Keyboard(Agent):
 
-    def __init__(self, trainer, fps=30, sensitivity=0.3):
-        super().__init__(trainer)
+    @staticmethod
+    def defaults():
+        fps = 30
+        sensitivity = 0.3
+        return locals()
+
+    def __init__(self, trainer, config):
+        super().__init__(trainer, config)
         self._trainer.add_preprocess(Downsample, 2)
         self._trainer.add_preprocess(FrameSkip, 1)
         self._trainer.add_preprocess(Grayscale)
-        self._viewer = Viewer(fps=fps)
-        self._fps = fps
+        # self._trainer.add_preprocess(Crop, (0, 0, 0), (1, 1, 1))
+        self._trainer.add_preprocess(Delta)
+        self._trainer.add_preprocess(NormalizeImage)
+        self._viewer = Viewer(fps=self.config.fps)
         self._time = None
-        self._sensitivity = sensitivity
 
     def __del__(self):
         try:
@@ -25,16 +33,19 @@ class Keyboard(Agent):
         except AttributeError:
             pass
 
-    def start(self):
+    def start_episode(self, training):
+        super().start_episode(training)
         self._time = time.time()
 
     def step(self, state):
         self._viewer(state)
-        action = self._noop()
+        action = np.zeros(self.actions.n)
         action = self._apply_keyboard(action, self._viewer.pressed_keys())
         delta = self._viewer.delta()
-        delta = self._sensitivity * delta[0], self._sensitivity * delta[1]
+        sensitivity = self.config.sensitivity
+        delta = sensitivity * delta[0], sensitivity * delta[1]
         action = self._apply_mouse(action, delta)
+        action = action.argmax()
         return action
 
     def _apply_keyboard(self, action, pressed):
@@ -54,11 +65,10 @@ class KeyboardDoom(Keyboard):
         number_7='weapon_7')
 
     COMMANDS = ((
-        'fire right left backward forward turn_left turn_right rotate_y '
-        'rotate_x').split())
+        'fire right left backward forward turn_left turn_right').split())
 
-    def __init__(self, trainer, fps=30, sensitivity=0.3, render_state=True):
-        super().__init__(trainer, fps, sensitivity)
+    def __init__(self, trainer, config):
+        super().__init__(trainer, config)
 
     def _apply_keyboard(self, action, pressed):
         for key in pressed:
@@ -68,8 +78,10 @@ class KeyboardDoom(Keyboard):
         return action
 
     def _apply_mouse(self, action, delta):
-        action[self.COMMANDS.index('rotate_x')] = int(clamp(delta[0], -10, 10))
-        action[self.COMMANDS.index('rotate_y')] = int(clamp(delta[1], -10, 10))
+        if delta[0] > 0:
+            action[self.COMMANDS.index('turn_left')] = 1
+        elif delta[0] < 0:
+            action[self.COMMANDS.index('turn_right')] = 1
         return action
 
 
@@ -147,7 +159,7 @@ class Viewer:
         raise KeyboardInterrupt
 
     def _load(self, image):
-        image = image.astype(np.uint8)
+        image = (image * 255).astype(np.uint8)
         if len(image.shape) == 2:
             image = np.stack([image] * 3, axis=-1).copy()
         image = pyglet.image.ImageData(

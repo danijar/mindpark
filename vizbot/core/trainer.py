@@ -71,6 +71,10 @@ class Trainer:
             while self._train_step < self._train_steps:
                 self._run_episode(env, learner, training=True)
             env.close()
+        if len(learners) == 1:
+            env = self.create_env()
+            target(env, learners[0])
+            return
         threads = []
         self._previous_step += self._train_step
         self._train_step = 0

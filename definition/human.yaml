@@ -1,0 +1,11 @@
+experiment: human
+epochs: 1
+train_steps: 1e6
+test_steps: 1e6
+repeats: 1
+envs:
+  - SimpleDeathmatch-v0
+agents:
+  -
+    name: Human
+    type: KeyboardDoom
