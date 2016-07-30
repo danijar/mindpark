@@ -4,7 +4,7 @@ from vizbot.agent import EpsilonGreedy
 from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.preprocess import (
-    Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage)
+    Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage, Delta)
 from vizbot.utility import Experience, Decay, Every, merge_dicts
 
 
@@ -14,7 +14,7 @@ class DQN(EpsilonGreedy):
     def defaults(cls):
         # Preprocesses.
         downsample = 2
-        frame_skip = 7
+        frame_skip = 6
         delta = True
         # Exploration.
         epsilon_from = 1.0
@@ -23,19 +23,20 @@ class DQN(EpsilonGreedy):
         test_epsilon = 0.05
         # Learning.
         network = 'network_dqn'
-        replay_capacity = int(1e5)  # 1e6
-        epsilon_after = replay_capacity
+        replay_capacity = 1e5  # 1e6
+        epsilon_after = 1e5
+        start_learning = 1e5
         batch_size = 32
         initial_learning_rate = 1e-4
         optimizer = tf.train.RMSPropOptimizer
         rms_decay = 0.99
         sync_target = 32
-        start_learning = replay_capacity
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
         self._add_preprocesses(trainer, config)
         super().__init__(trainer, config)
+        self.config.start_learning = int(float(self.config.start_learning))
         # Network.
         self._actor = Model(self._create_network)
         self._target = Model(self._create_network)
@@ -43,7 +44,7 @@ class DQN(EpsilonGreedy):
         self._sync_target = Every(config.sync_target)
         # print(str(self._actor))
         # Learning.
-        self._memory = Experience(config.replay_capacity)
+        self._memory = Experience(int(float(config.replay_capacity)))
         self._learning_rate = Decay(
             float(config.initial_learning_rate), 0, self._trainer.timesteps)
         self._costs = None

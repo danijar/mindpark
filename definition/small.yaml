@@ -17,9 +17,9 @@ agents:
     type: DQN
     epsilon_duration: 1e5
     initial_learning_rate: 1e-4
-    replay_capacity: 2e4
-    start_learning: 1e5
-    epsilon_after: 1e5
+    replay_capacity: 1e4
+    start_learning: 1e4
+    epsilon_after: 1e4
   -
     name: FF-A3C
     type: A3C

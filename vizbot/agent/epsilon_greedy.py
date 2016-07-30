@@ -17,6 +17,7 @@ class EpsilonGreedy(Agent):
     def __init__(self, trainer, config):
         super().__init__(trainer, config)
         self._was_greedy = None
+        self.config.epsilon_after = int(float(self.config.epsilon_after))
         self._epsilon = Decay(
             config.epsilon_from, config.epsilon_to, config.epsilon_duration)
 
