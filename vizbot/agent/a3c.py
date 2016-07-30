@@ -27,8 +27,7 @@ class A3C(Agent):
         initial_learning_rate = 7e-4
         optimizer = tf.train.RMSPropOptimizer
         rms_decay = 0.99
-        scale_critic_loss = 0.5
-        # Logging.
+        scale_critic_loss = 1  # 0.5
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
@@ -103,7 +102,7 @@ class A3C(Agent):
             'learning_rate', float(self.config.initial_learning_rate))
         model.set_optimizer(self.config.optimizer(
             learning_rate, self.config.rms_decay))
-        model.add_cost('cost', tf.reduce_mean(critic) - tf.reduce_mean(actor))
+        model.add_cost('cost', critic - tf.reduce_mean(actor))
 
     @staticmethod
     def _add_preprocesses(trainer, config):
@@ -158,6 +157,7 @@ class Learner(Agent):
                 self._master.model.reset_option('context')
         delta, cost = self._master.model.delta('cost',
             action=actions, state=states, return_=returns)
+        # self._log_gradient(delta)
         self._master.model.apply(delta)
         self._master.costs.append(cost)
         if self._model.has_option('context'):
@@ -174,6 +174,12 @@ class Learner(Agent):
     def _decay_learning_rate(self):
         self._master.model.set_option('learning_rate',
             self._master.learning_rate(self.timestep))
+
+    def _log_gradient(self, delta):
+        keys = sorted(delta.keys())
+        vals = [delta[x].mean() for x in keys]
+        for key, val in zip(keys, vals):
+            print('{:<40} {:16.10f}'.format(key, val))
 
 
 class Testee(Agent):

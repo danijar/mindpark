@@ -4,7 +4,7 @@ import numpy as np
 import pyglet
 from vizbot.core import Agent
 from vizbot.preprocess import (
-    Grayscale, Downsample, FrameSkip, Crop, Delta, NormalizeImage)
+    Grayscale, Downsample, FrameSkip, Delta, NormalizeImage)
 from vizbot.utility import AttrDict, clamp
 
 
@@ -21,7 +21,6 @@ class Keyboard(Agent):
         self._trainer.add_preprocess(Downsample, 2)
         self._trainer.add_preprocess(FrameSkip, 1)
         self._trainer.add_preprocess(Grayscale)
-        # self._trainer.add_preprocess(Crop, (0, 0, 0), (1, 1, 1))
         self._trainer.add_preprocess(Delta)
         self._trainer.add_preprocess(NormalizeImage)
         self._viewer = Viewer(fps=self.config.fps)
