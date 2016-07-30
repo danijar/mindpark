@@ -7,13 +7,17 @@ class FrameSkip(Preprocess):
 
     def __init__(self, env, amount):
         super().__init__(env)
+        low, high = self._env.states.low, self._env.states.high
+        self._low, self._high = low.flatten()[0], high.flatten()[0]
+        assert (low == self._low).all()
+        assert (high == self._high).all()
         self._amount = amount
         self._frames = np.zeros((self._amount,) + self._env.states.shape)
 
     @property
     def states(self):
         shape = self._env.states.shape + (self._amount,)
-        return Box(0, 255, shape)
+        return Box(self._low, self._high, shape)
 
     @property
     def actions(self):

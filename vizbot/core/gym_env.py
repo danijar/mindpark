@@ -24,16 +24,23 @@ class GymEnv(Env):
 
     def reset(self):
         self._done = False
-        return self._env.reset()
+        state = self._env.reset()
+        state = self._process_state(state)
+        return state
 
     def step(self, action):
         if self._done:
             raise StopEpisode(self)
         state, reward, done, _ = self._env.step(action)
         self._done = done
+        state = self._process_state(state)
         return state, reward
 
     def close(self):
         if self._directory:
             self._env.monitor.close()
         self._env.close()
+
+    @staticmethod
+    def _process_state(state):
+        return state.astype(float)

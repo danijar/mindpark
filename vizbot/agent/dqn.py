@@ -14,7 +14,8 @@ class DQN(EpsilonGreedy):
     def defaults(cls):
         # Preprocesses.
         downsample = 2
-        frame_skip = 4
+        frame_skip = 7
+        delta = True
         # Exploration.
         epsilon_from = 1.0
         epsilon_to = 0.1
@@ -33,12 +34,7 @@ class DQN(EpsilonGreedy):
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
-        # Preprocessing.
-        trainer.add_preprocess(NormalizeReward)
-        trainer.add_preprocess(NormalizeImage)
-        trainer.add_preprocess(Grayscale)
-        trainer.add_preprocess(Downsample, config.downsample)
-        trainer.add_preprocess(FrameSkip, config.frame_skip)
+        self._add_preprocesses(trainer, config)
         super().__init__(trainer, config)
         # Network.
         self._actor = Model(self._create_network)
@@ -121,3 +117,13 @@ class DQN(EpsilonGreedy):
     def _log_memory_size(self):
         size = self._memory.nbytes / (1024 ** 3)
         print('Replay memory size', round(size, 2), 'GB')
+
+    @staticmethod
+    def _add_preprocesses(trainer, config):
+        trainer.add_preprocess(NormalizeReward)
+        trainer.add_preprocess(Grayscale)
+        trainer.add_preprocess(Downsample, config.downsample)
+        if config.delta:
+            trainer.add_preprocess(Delta)
+        trainer.add_preprocess(FrameSkip, config.frame_skip)
+        trainer.add_preprocess(NormalizeImage)

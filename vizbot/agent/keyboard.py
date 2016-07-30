@@ -4,7 +4,7 @@ import numpy as np
 import pyglet
 from vizbot.core import Agent
 from vizbot.preprocess import (
-    Grayscale, Downsample, FrameSkip, Delta, NormalizeImage)
+    Grayscale, Downsample, FrameSkip, Delta, NormalizeImage, NormalizeReward)
 from vizbot.utility import AttrDict, clamp
 
 
@@ -18,11 +18,16 @@ class Keyboard(Agent):
 
     def __init__(self, trainer, config):
         super().__init__(trainer, config)
-        self._trainer.add_preprocess(Downsample, 2)
-        self._trainer.add_preprocess(FrameSkip, 1)
-        self._trainer.add_preprocess(Grayscale)
-        self._trainer.add_preprocess(Delta)
-        self._trainer.add_preprocess(NormalizeImage)
+        trainer.add_preprocess(NormalizeReward)
+
+        # Network preprocessing.
+        # trainer.add_preprocess(NormalizeReward)
+        # trainer.add_preprocess(Grayscale)
+        # trainer.add_preprocess(Downsample, 2)
+        # trainer.add_preprocess(Delta)
+        # trainer.add_preprocess(FrameSkip, 3)
+
+        trainer.add_preprocess(NormalizeImage)
         self._viewer = Viewer(fps=self.config.fps)
         self._time = None
 

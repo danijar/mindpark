@@ -7,7 +7,7 @@ from vizbot.core import Agent
 from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.preprocess import (
-    Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage)
+    Grayscale, Downsample, FrameSkip, NormalizeReward, NormalizeImage, Delta)
 from vizbot.utility import (
     AttrDict, Experience, Decay, merge_dicts, lazy_property)
 
@@ -19,7 +19,8 @@ class A3C(Agent):
         network = 'network_a3c_lstm'
         # Preprocesses.
         downsample = 2
-        frame_skip = 4
+        frame_skip = 6
+        delta = True
         # Learning.
         learners = 16
         apply_gradient = 5
@@ -85,9 +86,10 @@ class A3C(Agent):
         hidden = getattr(networks, self.config.network)(model, state)
         value = model.add_output('value',
             tf.squeeze(dense(hidden, 1, tf.identity), [1]))
-        policy = dense(hidden, self.actions.n, tf.nn.softmax)
-        sample = tf.squeeze(tf.multinomial(tf.log(policy), 1), [1])
-        model.add_output('choice', sample)
+        policy = model.add_output('policy',
+            dense(hidden, self.actions.n, tf.nn.softmax))
+        # sample = tf.squeeze(tf.multinomial(tf.log(policy), 1), [1])
+        # model.add_output('choice', sample)
         # Objectives.
         action = model.add_input('action', type_=tf.int32)
         action = tf.one_hot(action, self.actions.n)
@@ -102,15 +104,17 @@ class A3C(Agent):
             'learning_rate', float(self.config.initial_learning_rate))
         model.set_optimizer(self.config.optimizer(
             learning_rate, self.config.rms_decay))
-        model.add_cost('cost', critic - tf.reduce_mean(actor))
+        model.add_cost('cost', critic - actor)
 
     @staticmethod
     def _add_preprocesses(trainer, config):
         trainer.add_preprocess(NormalizeReward)
-        trainer.add_preprocess(NormalizeImage)
         trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, config.downsample)
+        if config.delta:
+            trainer.add_preprocess(Delta)
         trainer.add_preprocess(FrameSkip, config.frame_skip)
+        trainer.add_preprocess(NormalizeImage)
 
 
 class Learner(Agent):
@@ -130,7 +134,8 @@ class Learner(Agent):
 
     def step(self, state):
         assert self.training
-        choice, value = self._model.compute(('choice', 'value'), state=state)
+        policy, value = self._model.compute(('policy', 'value'), state=state)
+        choice = self._random.choice(self.actions.n, p=policy)
         self._master.choices.append(choice)
         self._master.values.append(value)
         return choice
@@ -195,4 +200,6 @@ class Testee(Agent):
 
     def step(self, state):
         assert not self.training
-        return self._model.compute('choice', state=state)
+        policy = self._model.compute('policy', state=state)
+        choice = self._random.choice(self.actions.n, p=policy)
+        return choice

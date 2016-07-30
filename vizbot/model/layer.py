@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.contrib import layers
 
 
-def conv2d(x, filters, size, stride, activation=tf.nn.elu, pool=None):
+def conv2d(x, filters, size, stride, activation=tf.nn.relu, pool=None):
     x = layers.convolution2d(
         x, filters, [size, size], stride, 'VALID', activation)
     if pool:
@@ -12,7 +12,7 @@ def conv2d(x, filters, size, stride, activation=tf.nn.elu, pool=None):
     return x
 
 
-def dense(x, size, activation=tf.nn.elu):
+def dense(x, size, activation=tf.nn.relu):
     x = tf.reshape(x, (-1, int(np.prod(x.get_shape()[1:]))))
     x = layers.fully_connected(x, size, activation)
     return x
