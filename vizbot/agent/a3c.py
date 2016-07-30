@@ -38,9 +38,9 @@ class A3C(Agent):
         # print(str(self.model))
         self.learning_rate = Decay(
             float(config.initial_learning_rate), 0, self._trainer.timesteps)
-        self.costs = []
-        self.values = []
-        self.choices = []
+        self.costs = None
+        self.values = None
+        self.choices = None
         self.lock = Lock()
 
     @lazy_property
@@ -58,22 +58,25 @@ class A3C(Agent):
     def testee(self):
         return Testee(self._trainer, self.model, AttrDict(self.config.copy()))
 
+    def start_epoch(self):
+        super().start_epoch()
+        self.costs = []
+        self.values = []
+        self.choices = []
+
     def stop_epoch(self):
         super().stop_epoch()
         with self.lock:
             if self.costs:
                 average = sum(self.costs) / len(self.costs)
                 print('Cost  {:12.5f}'.format(average))
-                self.costs = []
             if self.values:
                 average = sum(self.values) / len(self.values)
                 print('Value {:12.5f}'.format(average))
-                self.costs = []
             if self.choices:
                 dist = np.bincount(self.choices) / len(self.choices)
                 dist = ' '.join('{:.2f}'.format(x) for x in dist)
                 print('Choices [{}]'.format(dist))
-                self.choices = []
         if self._trainer.directory:
             self.model.save(self._trainer.directory, 'model')
 
