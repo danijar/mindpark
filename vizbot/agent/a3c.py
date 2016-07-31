@@ -86,18 +86,17 @@ class A3C(Agent):
         hidden = getattr(networks, self.config.network)(model, state)
         value = model.add_output('value',
             tf.squeeze(dense(hidden, 1, tf.identity), [1]))
-        policy = model.add_output('policy',
-            dense(hidden, self.actions.n, tf.nn.softmax))
-        # sample = tf.squeeze(tf.multinomial(tf.log(policy), 1), [1])
-        # model.add_output('choice', sample)
+        policy = dense(value, self.actions.n, tf.nn.softmax)
+        model.add_output('choice',
+            tf.squeeze(tf.multinomial(tf.log(policy), 1), [1]))
         # Objectives.
         action = model.add_input('action', type_=tf.int32)
         action = tf.one_hot(action, self.actions.n)
         return_ = model.add_input('return_')
-        logprob = tf.log(tf.reduce_max(policy * action, 1) + 1e-9)
-        entropy = -tf.reduce_sum(tf.log(policy + 1e-9) * policy)
+        logprob = tf.log(tf.reduce_sum(policy * action, 1) + 1e-13)
+        entropy = -tf.reduce_sum(tf.log(policy + 1e-13) * policy)
         advantage = tf.stop_gradient(return_ - value)
-        actor = logprob * advantage + self.config.regularize * entropy
+        actor = advantage * logprob + self.config.regularize * entropy
         critic = self.config.scale_critic_loss * (return_ - value) ** 2 / 2
         # Training.
         learning_rate = model.add_option(
@@ -136,8 +135,7 @@ class Learner(Agent):
 
     def step(self, state):
         assert self.training
-        policy, value = self._model.compute(('policy', 'value'), state=state)
-        choice = self._random.choice(self.actions.n, p=policy)
+        choice, value = self._model.compute(('choice', 'value'), state=state)
         self._master.choices.append(choice)
         self._master.values.append(value)
         return choice
@@ -147,7 +145,7 @@ class Learner(Agent):
         done = (successor is None)
         if not done and len(self._batch) < self.config.apply_gradient:
             return
-        return_= 0 if done else self._master.model.compute('value',state=state)
+        return_= 0 if done else self._model.compute('value',state=state)
         self._train(self._batch.access(), return_)
         self._batch.clear()
         self._model.weights = self._master.model.weights
@@ -156,13 +154,13 @@ class Learner(Agent):
         states, actions, rewards, _ = transitions
         returns = self._compute_eligibilities(rewards, return_)
         self._decay_learning_rate()
-        if self._master.model.has_option('context'):
+        if self._model.has_option('context'):
             context = self._context_last_batch
             if context is not None:
-                self._master.model.set_option('context', context)
+                self._model.set_option('context', context)
             else:
-                self._master.model.reset_option('context')
-        delta, cost = self._master.model.delta('cost',
+                self._model.reset_option('context')
+        delta, cost = self._model.delta('cost',
             action=actions, state=states, return_=returns)
         # self._log_gradient(delta)
         self._master.model.apply(delta)
@@ -179,14 +177,15 @@ class Learner(Agent):
         return returns
 
     def _decay_learning_rate(self):
-        self._master.model.set_option('learning_rate',
-            self._master.learning_rate(self.timestep))
+        learning_rate = self._master.learning_rate(self.timestep)
+        self._model.set_option('learning_rate', learning_rate)  # Remove.
+        self._master.model.set_option('learning_rate', learning_rate)
 
     def _log_gradient(self, delta):
         keys = sorted(delta.keys())
         vals = [delta[x].mean() for x in keys]
         for key, val in zip(keys, vals):
-            print('{:<40} {:16.10f}'.format(key, val))
+            print('{:<40} {:20.16f}'.format(key, val))
 
 
 class Testee(Agent):
@@ -202,6 +201,4 @@ class Testee(Agent):
 
     def step(self, state):
         assert not self.training
-        policy = self._model.compute('policy', state=state)
-        choice = self._random.choice(self.actions.n, p=policy)
-        return choice
+        return self._model.compute('choice', state=state)
