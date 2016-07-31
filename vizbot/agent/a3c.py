@@ -109,11 +109,13 @@ class A3C(Agent):
     @staticmethod
     def _add_preprocesses(trainer, config):
         trainer.add_preprocess(NormalizeReward)
-        trainer.add_preprocess(Grayscale)
+        if config.frame_skip:
+            trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, config.downsample)
         if config.delta:
             trainer.add_preprocess(Delta)
-        trainer.add_preprocess(FrameSkip, config.frame_skip)
+        if config.frame_skip:
+            trainer.add_preprocess(FrameSkip, config.frame_skip)
         trainer.add_preprocess(NormalizeImage)
 
 
