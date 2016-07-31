@@ -94,9 +94,9 @@ class A3C(Agent):
         action = model.add_input('action', type_=tf.int32)
         action = tf.one_hot(action, self.actions.n)
         return_ = model.add_input('return_')
-        advantage = return_ - value
         logprob = tf.log(tf.reduce_max(policy * action, 1) + 1e-9)
         entropy = -tf.reduce_sum(tf.log(policy + 1e-9) * policy)
+        advantage = tf.stop_gradient(return_ - value)
         actor = logprob * advantage + self.config.regularize * entropy
         critic = self.config.scale_critic_loss * (return_ - value) ** 2 / 2
         # Training.
