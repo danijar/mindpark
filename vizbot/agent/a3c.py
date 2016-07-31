@@ -28,7 +28,7 @@ class A3C(Agent):
         initial_learning_rate = 7e-4
         optimizer = tf.train.RMSPropOptimizer
         rms_decay = 0.99
-        scale_critic_loss = 1  # 0.5
+        scale_critic_loss = 0.5
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):

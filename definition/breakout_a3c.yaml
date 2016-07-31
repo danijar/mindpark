@@ -1,0 +1,14 @@
+experiment: breakout_a3c
+epochs: 100
+train_steps: 5e4
+test_steps: 1e4
+repeats: 1
+envs:
+  - Breakout-v0
+  - SimpleDeathmatch-v0
+agents:
+  -
+    name: LSTM-A3C
+    type: A3C
+    initial_learning_rate: 1e-4
+    regularize: 10
