@@ -1,6 +1,6 @@
 experiment: heads
 epochs: 100
-train_steps: 5e4
+train_steps: 8e5
 test_steps: 1e4
 repeats: 2
 envs:

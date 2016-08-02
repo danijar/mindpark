@@ -20,7 +20,7 @@ class A3C(Agent):
         # Preprocesses.
         downsample = 2
         frame_skip = 6
-        delta = True
+        delta = False
         # Learning.
         learners = 16
         apply_gradient = 5

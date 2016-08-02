@@ -101,6 +101,7 @@ class Trainer:
 
     def _run_episode(self, env, agent, training):
         score = 0
+        reward = None
         agent.start_episode(training)
         try:
             state = env.reset()
@@ -117,7 +118,11 @@ class Trainer:
                 else:
                     self._test_step += 1
         except StopEpisode:
+            pass
+        if reward is not None:
             agent.experience(state, action, reward, None)
+        else:
+            print('Episode ended early.')
         agent.stop_episode()
         return score
 

@@ -1,6 +1,6 @@
 experiment: full
 epochs: 100
-train_steps: 5e4
+train_steps: 1e5
 test_steps: 1e4
 repeats: 1
 envs:
@@ -13,6 +13,6 @@ agents:
   -
     name: DQN
     type: DQN
-  -
-    name: Random
-    type: Random
+#  -
+#    name: Random
+#    type: Random

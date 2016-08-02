@@ -10,12 +10,24 @@ from vizbot.utility import Experience, Decay, Every, merge_dicts
 
 class DQN(EpsilonGreedy):
 
+    """
+    Algorithm: Deep Q-Network (DQN)
+    Paper: Human-level control through deep reinforcement learning
+    Authors: Mnih et al. 2015
+    PDF: https://goo.gl/Y3e373
+
+    TODO:
+    - Idle for no_op_max=30 timesteps at the beginning of each episode.
+    - Use RMSProp parameters from the paper.
+    """
+
     @classmethod
     def defaults(cls):
+
         # Preprocesses.
         downsample = 2
         frame_skip = 6
-        delta = True
+        delta = False
         # Exploration.
         epsilon_from = 1.0
         epsilon_to = 0.1
@@ -23,14 +35,14 @@ class DQN(EpsilonGreedy):
         test_epsilon = 0.05
         # Learning.
         network = 'network_dqn'
-        replay_capacity = 1e5  # 1e6
-        epsilon_after = 1e5
-        start_learning = 1e5
+        replay_capacity = 2e5  # 1e6
+        epsilon_after = 5e4
+        start_learning = 5e4
         batch_size = 32
-        initial_learning_rate = 1e-4
+        initial_learning_rate = 2.5e-4
         optimizer = tf.train.RMSPropOptimizer
         rms_decay = 0.99
-        sync_target = 32
+        sync_target = 10000
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, trainer, config):
@@ -122,9 +134,11 @@ class DQN(EpsilonGreedy):
     @staticmethod
     def _add_preprocesses(trainer, config):
         trainer.add_preprocess(NormalizeReward)
-        trainer.add_preprocess(Grayscale)
+        if config.frame_skip:
+            trainer.add_preprocess(Grayscale)
         trainer.add_preprocess(Downsample, config.downsample)
         if config.delta:
             trainer.add_preprocess(Delta)
-        trainer.add_preprocess(FrameSkip, config.frame_skip)
+        if config.frame_skip:
+            trainer.add_preprocess(FrameSkip, config.frame_skip)
         trainer.add_preprocess(NormalizeImage)
