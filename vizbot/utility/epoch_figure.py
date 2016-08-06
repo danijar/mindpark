@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 from vizbot.utility.deviation_figure import DeviationFigure
@@ -10,14 +11,16 @@ class EpochFigure(DeviationFigure):
     duration information for the lines.
     """
 
-    def __init__(self, ncols, title, epochs):
-        super().__init__(ncols, title)
+    def __init__(self, ncols, title, resolution, epochs, epoch_length):
+        super().__init__(ncols, title, resolution)
         self._epochs = epochs + 1
+        self._bins = resolution * self._epochs
+        self._bin_size = epoch_length / resolution
 
     def add(self, title, xlabel, ylabel, lines, durations):
         lines = self._average_lines(lines, durations)
         ax = super().add(title, xlabel, ylabel, **lines)
-        ax.set_xlim(0, max(x.shape[1] for x in lines.values()) - 1)
+        ax.set_xlim(0, self._epochs)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.xaxis.set_major_formatter(FuncFormatter(self._formatter))
 
@@ -25,30 +28,30 @@ class EpochFigure(DeviationFigure):
         return str(int(value))
 
     def _average_lines(self, lines, durations):
-        timesteps = max(max(sum(y) for y in x) for x in durations.values())
         starts = self._compute_starts(durations)
         averaged = {}
         for label, line in lines.items():
-            start = starts[label]
-            last = max(x[-1] for x in start)
-            line = [self._average(x, y, timesteps) for x, y in zip(line, start)]
+            start, duration = starts[label], durations[label]
+            last = max(x[-1] + y[-1] for x, y in zip(start, duration))
+            size = max(self._bin_size, last / self._bins)
+            line = [self._average(x, y, size) for x, y in zip(line, start)]
             averaged[label] = np.array(line, dtype=float)
         return averaged
 
-    def _average(self, values, starts, timesteps):
+    def _average(self, values, starts, size):
         assert len(values) == len(starts)
-        sums, counts = np.zeros(self._epochs), np.zeros(self._epochs)
+        sums, counts = np.zeros(self._bins), np.zeros(self._bins)
         clamped = 0
         for value, start in zip(values, starts):
-            epoch = int(start * self._epochs / timesteps)
-            if epoch >= self._epochs:
+            epoch = int(start / size)
+            if epoch >= self._bins:
                 clamped += 1
-                epoch = self._epochs - 1
+                epoch = self._bins - 1
             sums[epoch] += value
             counts[epoch] += 1
-        empty = (counts == 0)
-        averages = sums / np.maximum(counts, 1)
-        averages[empty] = np.nan
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            averages = sums / counts
         if clamped:
             print('Clamped', clamped, 'eposides to last epoch.')
         return averages

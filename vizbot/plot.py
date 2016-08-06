@@ -10,7 +10,6 @@ from vizbot.utility import use_attrdicts, get_subdirs, color_stack_trace
 
 
 def parse_args():
-    nearest_int = lambda x: int(float(x))
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
@@ -62,7 +61,10 @@ def plot_experiment(experiment, filename):
         raise ValueError(experiment + ' does not contain a definition')
     definition = use_attrdicts(read_yaml(experiment, 'experiment.yaml'))
     scores, durations = read_result(experiment)
-    plot = EpochFigure(len(scores), definition.experiment, definition.epochs)
+    resolution = 1
+    plot = EpochFigure(
+        len(scores), definition.experiment, resolution,
+        definition.epochs, definition.test_steps)
     for env in sorted(scores.keys()):
         score, duration = scores[env], durations[env]
         if not len(score):

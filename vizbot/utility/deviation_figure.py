@@ -1,4 +1,5 @@
 import os
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from vizbot.utility.other import ensure_directory
@@ -19,7 +20,7 @@ class DeviationFigure:
     LINE = dict(markersize=5, markeredgewidth=0)
     LEGEND = dict(loc='best', fontsize='medium', labelspacing=0, numpoints=1)
 
-    def __init__(self, ncols, title, offset=0):
+    def __init__(self, ncols, title, resolution=1):
         """
         Create a figure that can hold a certain amount of plots.
         """
@@ -27,7 +28,7 @@ class DeviationFigure:
         self._fig = plt.figure(figsize=(12, 4))
         self._fig.suptitle(title, fontsize=16)
         self._index = 1
-        self._offset = offset
+        self._resolution = resolution
 
     def add(self, title, xlabel, ylabel, **lines):
         """
@@ -35,11 +36,13 @@ class DeviationFigure:
         to data. Data is an array of multiple runs over which to compute the
         standard deviation.
         """
-        lines = sorted(lines.items(), key=lambda x: -np.sum(x[1]))
         ax = self._next_plot()
         ax.set_title(title)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            lines = sorted(lines.items(), key=lambda x: -np.nanmean(x[1]))
         for index, (label, line) in enumerate(lines):
             color = self.COLORS[index]
             marker = self.MARKERS[index]
@@ -64,9 +67,11 @@ class DeviationFigure:
         return ax
 
     def _plot(self, ax, label, line, color, marker):
-        means = line.mean(axis=0)
-        stds = line.std(axis=0)
-        domain = np.arange(self._offset, self._offset + line.shape[1])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            means = np.nanmean(line, axis=0)
+            stds = np.nanstd(line, axis=0)
+        domain = np.linspace(0, len(means) / self._resolution, len(means))
         ax.fill_between(
             domain, means - stds, means + stds, color=color, **self.AREA)
         ax.plot(
