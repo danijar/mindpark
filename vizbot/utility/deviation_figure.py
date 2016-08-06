@@ -43,10 +43,14 @@ class DeviationFigure:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=RuntimeWarning)
             lines = sorted(lines.items(), key=lambda x: -np.nanmean(x[1]))
+        latest = 0
         for index, (label, line) in enumerate(lines):
+            last = line.shape[1] / self._resolution - 1 / self._resolution
             color = self.COLORS[index]
             marker = self.MARKERS[index]
-            self._plot(ax, label, line, color, marker)
+            self._plot(ax, label, line, last, color, marker)
+            latest = max(latest, last)
+        ax.set_xlim(0, latest)
         leg = ax.legend(**self.LEGEND)
         leg.get_frame().set_edgecolor('white')
         return ax
@@ -66,12 +70,12 @@ class DeviationFigure:
         self._index += 1
         return ax
 
-    def _plot(self, ax, label, line, color, marker):
+    def _plot(self, ax, label, line, last, color, marker):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=RuntimeWarning)
             means = np.nanmean(line, axis=0)
             stds = np.nanstd(line, axis=0)
-        domain = np.linspace(0, len(means) / self._resolution, len(means))
+        domain = np.linspace(0, last, len(means))
         ax.fill_between(
             domain, means - stds, means + stds, color=color, **self.AREA)
         ax.plot(

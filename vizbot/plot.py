@@ -21,6 +21,9 @@ def parse_args():
     parser.add_argument(
         '-f', '--force', action='store_true', default=False,
         help='replace existing plots')
+    parser.add_argument(
+        '-r', '--resolution', type=int, default=1,
+        help='amount of plotted points per epoch')
     args = parser.parse_args()
     return args
 
@@ -55,13 +58,12 @@ def read_result(experiment):
     return scores, durations
 
 
-def plot_experiment(experiment, filename):
+def plot_experiment(experiment, filename, resolution):
     from vizbot.utility import EpochFigure
     if not os.path.isfile(os.path.join(experiment, 'experiment.yaml')):
         raise ValueError(experiment + ' does not contain a definition')
     definition = use_attrdicts(read_yaml(experiment, 'experiment.yaml'))
     scores, durations = read_result(experiment)
-    resolution = 1
     plot = EpochFigure(
         len(scores), definition.experiment, resolution,
         definition.epochs, definition.test_steps)
@@ -102,7 +104,7 @@ def main():
             print('Skip existing plot', filename)
             continue
         print('Generate plot', filename)
-        plot_experiment(path, filename)
+        plot_experiment(path, filename, args.resolution)
 
 
 if __name__ == '__main__':

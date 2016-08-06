@@ -13,14 +13,13 @@ class EpochFigure(DeviationFigure):
 
     def __init__(self, ncols, title, resolution, epochs, epoch_length):
         super().__init__(ncols, title, resolution)
-        self._epochs = epochs + 1
-        self._bins = resolution * self._epochs
-        self._bin_size = epoch_length / resolution
+        self._resolution = resolution
+        self._bins = resolution * (epochs + 1)
+        self._bin_size = epoch_length / self._resolution
 
     def add(self, title, xlabel, ylabel, lines, durations):
         lines = self._average_lines(lines, durations)
         ax = super().add(title, xlabel, ylabel, **lines)
-        ax.set_xlim(0, self._epochs)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.xaxis.set_major_formatter(FuncFormatter(self._formatter))
 
