@@ -29,11 +29,20 @@ def rnn(model, x, size, cell=tf.nn.rnn_cell.GRUCell, activation=tf.tanh):
     return x
 
 
-def network_dqn(model, x):
+def network_dqn_2013(model, x):
     # Mnih et al. (2013)
     x = conv2d(x, 16, 8, 4, tf.nn.relu)
     x = conv2d(x, 32, 4, 2, tf.nn.relu)
     x = dense(x, 256, tf.nn.relu)
+    return x
+
+
+def network_dqn_2015(model, x):
+    # Mnih et al. (2015)
+    x = conv2d(x, 32, 8, 4, tf.nn.relu)
+    x = conv2d(x, 64, 4, 2, tf.nn.relu)
+    x = conv2d(x, 64, 3, 1, tf.nn.relu)
+    x = dense(x, 512, tf.nn.relu)
     return x
 
 

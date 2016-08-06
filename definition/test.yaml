@@ -1,23 +1,22 @@
-experiment: test
-epochs: 3
-train_steps: 250
-test_steps: 200
+experiment: small
+epochs: 5
+train_steps: 5000
+test_steps: 1000
 repeats: 2
 envs:
   - Pong-v0
-  - SimpleDeathmatch-v0
+  - Breakout-v0
 agents:
   -
     name: LSTM-A3C
     type: A3C
-    learners: 3
+    learners: 4
     initial_learning_rate: 1e-3
-    network: network_a3c_lstm
   -
     name: DQN
     type: DQN
-    epsilon_duration: 1000
+    epsilon_duration: 10000
     initial_learning_rate: 1e-3
-    replay_capacity: 1000
-    start_learning: 50
-    epsilon_after: 50
+    replay_capacity: 2000
+    start_learning: 500
+    epsilon_after: 500

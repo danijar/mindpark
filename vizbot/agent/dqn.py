@@ -34,7 +34,7 @@ class DQN(EpsilonGreedy):
         epsilon_duration = 1e6
         test_epsilon = 0.05
         # Learning.
-        network = 'network_dqn'
+        network = 'network_dqn_2015'
         replay_capacity = 2e5  # 1e6
         epsilon_after = 5e4
         start_learning = 5e4
