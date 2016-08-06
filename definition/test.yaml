@@ -1,10 +1,10 @@
 experiment: test
-epochs: 5
+epochs: 3
 train_steps: 250
 test_steps: 200
-repeats: 1
+repeats: 2
 envs:
-  - Breakout-v0
+  - Pong-v0
   - SimpleDeathmatch-v0
 agents:
   -

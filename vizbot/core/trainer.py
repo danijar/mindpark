@@ -46,20 +46,33 @@ class Trainer:
         return env
 
     def __iter__(self):
+        self._start_epoch()
+        score = self._test(self._agent.testee)
+        self._stop_epoch()
+        yield score
         for _ in range(self._epochs):
-            self._agent.start_epoch()
-            for learner in self._agent.learners:
-                if learner is self._agent:
-                    continue
-                learner.start_epoch()
+            self._start_epoch()
             self._train(self._agent.learners)
             score = self._test(self._agent.testee)
-            for learner in self._agent.learners:
-                if learner is self._agent:
-                    continue
-                learner.stop_epoch()
-            self._agent.stop_epoch()
+            self._stop_epoch()
             yield score
+        self._close()
+
+    def _start_epoch(self):
+        self._agent.start_epoch()
+        for learner in self._agent.learners:
+            if learner is self._agent:
+                continue
+            learner.start_epoch()
+
+    def _stop_epoch(self):
+        for learner in self._agent.learners:
+            if learner is self._agent:
+                continue
+            learner.stop_epoch()
+        self._agent.stop_epoch()
+
+    def _close(self):
         for learner in self._agent.learners:
             if learner is self._agent:
                 continue
@@ -119,10 +132,10 @@ class Trainer:
                     self._test_step += 1
         except StopEpisode:
             pass
-        if reward is not None:
-            agent.experience(state, action, reward, None)
-        else:
+        if reward is None:
             print('Episode ended early.')
+        elif training:
+            agent.experience(state, action, reward, None)
         agent.stop_episode()
         return score
 

@@ -58,7 +58,6 @@ def read_result(experiment):
 
 def plot_experiment(experiment, filename):
     from vizbot.utility import EpochFigure
-    scores, durations = read_result(experiment)
     if not os.path.isfile(os.path.join(experiment, 'experiment.yaml')):
         raise ValueError(experiment + ' does not contain a definition')
     definition = use_attrdicts(read_yaml(experiment, 'experiment.yaml'))
@@ -68,7 +67,7 @@ def plot_experiment(experiment, filename):
         score, duration = scores[env], durations[env]
         if not len(score):
             continue
-        plot.add(env, 'Training Epochs', 'Average Reward', score, duration)
+        plot.add(env, 'Training Epoch', 'Average Return', score, duration)
     plot.save(os.path.join(experiment, filename))
 
 
@@ -94,15 +93,14 @@ def main():
     if not paths:
         print('The glob expression does not match any path.')
     for path in paths:
+        if not os.path.isfile(os.path.join(path, 'experiment.yaml')):
+            continue
         filename = os.path.basename(path) + '.' + args.extension
         if os.path.isfile(os.path.join(path, filename)) and not args.force:
             print('Skip existing plot', filename)
             continue
         print('Generate plot', filename)
-        try:
-            plot_experiment(path, filename)
-        except Exception as e:
-            print('Failed ({})'.format(str(e) or 'no message'))
+        plot_experiment(path, filename)
 
 
 if __name__ == '__main__':

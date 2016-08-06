@@ -17,7 +17,7 @@ class DeviationFigure:
 
     LABEL_ARGS = AttrDict(loc='best', fontsize='medium', labelspacing=0)
 
-    def __init__(self, ncols, title):
+    def __init__(self, ncols, title, offset=0):
         """
         Create a figure that can hold a certain amount of plots.
         """
@@ -25,6 +25,7 @@ class DeviationFigure:
         self._fig = plt.figure(figsize=(12, 4))
         self._fig.suptitle(title, fontsize=16)
         self._index = 1
+        self._offset = offset
 
     def add(self, title, xlabel, ylabel, **lines):
         """
@@ -62,6 +63,7 @@ class DeviationFigure:
     def _plot(self, ax, label, line, color):
         means = line.mean(axis=0)
         stds = line.std(axis=0)
-        area = np.arange(len(means)), means - stds, means + stds
-        ax.fill_between(*area, color=color, alpha=0.15)
-        ax.plot(means, label=label, color=color)
+        domain = np.arange(self._offset, self._offset + line.shape[1])
+        ax.fill_between(
+            domain, means - stds, means + stds, color=color, alpha=0.15)
+        ax.plot(domain, means, label=label, color=color)

@@ -73,8 +73,13 @@ class Benchmark:
                 definition.test_steps,
                 self._videos)
             for epoch, score in enumerate(trainer):
-                message = 'Epoch {} timestep {} average score {:.2f}'
-                print(prefix, message.format(epoch + 1, trainer.timestep, score))
+                if not epoch:
+                    message = 'Before training average score {:.2f}'
+                    message = message.format(score)
+                else:
+                    message = 'Epoch {} timestep {} average score {:.2f}'
+                    message = message.format(epoch, trainer.timestep, score)
+                print(prefix, message)
         except Exception as e:
             with self._lock:
                 print(prefix, 'Failed due to exception:')
