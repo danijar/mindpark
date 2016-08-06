@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from vizbot.utility.attrdict import AttrDict
 from vizbot.utility.other import ensure_directory
 
 
@@ -12,10 +11,13 @@ class DeviationFigure:
     standard deviation.
     """
 
-    COLORS = ('#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33',
+    COLORS = (
+        '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33',
         '#a65628', '#f781bf')
-
-    LABEL_ARGS = AttrDict(loc='best', fontsize='medium', labelspacing=0)
+    MARKERS = 'so^Dp>d<'
+    AREA = dict(alpha=0.15)
+    LINE = dict(markersize=5, markeredgewidth=0)
+    LEGEND = dict(loc='best', fontsize='medium', labelspacing=0, numpoints=1)
 
     def __init__(self, ncols, title, offset=0):
         """
@@ -40,8 +42,9 @@ class DeviationFigure:
         ax.set_ylabel(ylabel)
         for index, (label, line) in enumerate(lines):
             color = self.COLORS[index]
-            self._plot(ax, label, line, color)
-        leg = ax.legend(**self.LABEL_ARGS)
+            marker = self.MARKERS[index]
+            self._plot(ax, label, line, color, marker)
+        leg = ax.legend(**self.LEGEND)
         leg.get_frame().set_edgecolor('white')
         return ax
 
@@ -60,10 +63,12 @@ class DeviationFigure:
         self._index += 1
         return ax
 
-    def _plot(self, ax, label, line, color):
+    def _plot(self, ax, label, line, color, marker):
         means = line.mean(axis=0)
         stds = line.std(axis=0)
         domain = np.arange(self._offset, self._offset + line.shape[1])
         ax.fill_between(
-            domain, means - stds, means + stds, color=color, alpha=0.15)
-        ax.plot(domain, means, label=label, color=color)
+            domain, means - stds, means + stds, color=color, **self.AREA)
+        ax.plot(
+            domain, means, label=label, color=color, marker=marker,
+            **self.LINE)

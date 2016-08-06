@@ -63,7 +63,7 @@ def plot_experiment(experiment, filename):
     definition = use_attrdicts(read_yaml(experiment, 'experiment.yaml'))
     scores, durations = read_result(experiment)
     plot = EpochFigure(len(scores), definition.experiment, definition.epochs)
-    for env in scores:
+    for env in sorted(scores.keys()):
         score, duration = scores[env], durations[env]
         if not len(score):
             continue
