@@ -1,6 +1,5 @@
 experiment: breakout-a3c
 epochs: 100
-train_steps: 8e5
 test_steps: 1e4
 repeats: 1
 envs:
@@ -9,3 +8,4 @@ agents:
   -
     name: A3C
     type: A3C
+    train_steps: 8e5

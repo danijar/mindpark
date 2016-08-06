@@ -1,6 +1,5 @@
 experiment: heads
 epochs: 100
-train_steps: 8e5
 test_steps: 1e4
 repeats: 2
 envs:
@@ -12,11 +11,14 @@ agents:
     name: A3C (16)
     type: A3C
     heads: 16
+    train_steps: 8e5
   -
     name: A3C (32)
     type: A3C
     heads: 32
+    train_steps: 8e5
   -
     name: A3C (64)
     type: A3C
     heads: 64
+    train_steps: 8e5

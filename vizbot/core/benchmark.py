@@ -56,10 +56,10 @@ class Benchmark:
         name = '-'.join(re.findall(r'[a-z0-9]+', agent.name.lower()))
         agent_dir = template.format(name, repeat)
         directory = experiment and os.path.join(experiment, env, agent_dir)
-        self._run_task(directory, env, agent, definition)
+        self._run_task(directory, env, agent, repeat, definition)
 
-    def _run_task(self, directory, env, agent, definition):
-        prefix = '{} on {}:'.format(agent.name, env)
+    def _run_task(self, directory, env, agent, repeat, definition):
+        prefix = '{} on {} ({}):'.format(agent.name, env, repeat)
         config = agent.type.defaults()
         if 'type' in config or 'name' in config:
             print('Warning: Override reserved config keys.')
@@ -69,7 +69,7 @@ class Benchmark:
             trainer = Trainer(
                 directory, env, agent.type, config,
                 definition.epochs,
-                definition.train_steps,
+                agent.train_steps,
                 definition.test_steps,
                 self._videos)
             for epoch, score in enumerate(trainer):
@@ -104,7 +104,6 @@ class Benchmark:
         definition = use_attrdicts(definition)
         definition.experiment = str(definition.experiment)
         definition.epochs = int(float(definition.epochs))
-        definition.train_steps = int(float(definition.train_steps))
         definition.test_steps = int(float(definition.test_steps))
         definition.repeats = int(float(definition.repeats))
         definition.envs = list(self._load_envs(definition.envs))
@@ -127,19 +126,15 @@ class Benchmark:
             if not issubclass(agent.type, vizbot.core.Agent):
                 raise KeyError('{} is not an agent'.format(agent.type))
             agent.name = str(agent.name)
+            agent.train_steps = int(float(agent.train_steps))
             yield agent
 
     def _validate_definition(self, definition):
-        def warn(message):
-            print('Warning:', message)
-            input('Press return to continue.')
-        timesteps = \
-            definition.repeats * definition.epochs * definition.train_steps
         names = [x.name for x in definition.agents]
         if len(set(names)) < len(names):
             raise KeyError('each algorithm must have an unique name')
-        if not self._videos and timesteps >= 10000:
-            warn('Training 10000+ timesteps. Consider capturing videos.')
+        if not all(hasattr(x, 'train_steps') for x in definition.agents):
+            raise KeyError('each algorithm must have a training duration')
 
     def _dump_yaml(self, data, *path):
         def convert(obj):

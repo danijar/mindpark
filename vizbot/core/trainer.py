@@ -1,4 +1,3 @@
-import functools
 from threading import Thread
 from vizbot.core import GymEnv, StopEpisode
 from vizbot.utility import AttrDict, ensure_directory
