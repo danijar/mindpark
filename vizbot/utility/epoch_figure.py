@@ -12,9 +12,9 @@ class EpochFigure(DeviationFigure):
 
     def __init__(self, charts, title, epochs, resolution=1):
         super().__init__(charts, title)
+        self._epochs = epochs
         self._resolution = resolution
         self._bins = (1 + epochs) * resolution
-        self._last_tick = (epochs + 1) - 1 / resolution
 
     def add(self, title, xlabel, ylabel, lines):
         """
@@ -22,10 +22,12 @@ class EpochFigure(DeviationFigure):
         nested lists over repeats, epochs, and episodes.
         """
         lines = {k: self._pad(self._average(v)) for k, v in lines.items()}
-        domain = np.linspace(0, self._last_tick, self._bins)
+        last_tick = (self._epochs + 1) - 1 / self._resolution
+        domain = np.linspace(0, last_tick, self._bins)
         ax = super().add(title, xlabel, ylabel, domain, lines)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: str(int(x))))
+        self._align_markers_at_ticks(ax)
 
     def _average(self, line):
         """
@@ -51,6 +53,11 @@ class EpochFigure(DeviationFigure):
         for repeat, values in enumerate(line):
             padded[repeat, :len(values)] = values
         return padded.T
+
+    def _align_markers_at_ticks(self, ax):
+        ticks = ax.xaxis.get_major_locator()()
+        ticks = [int(x) * self._resolution for x in ticks if x <= self._epochs]
+        ax.lines[0].set_markevery(ticks)
 
     @staticmethod
     def _chunk(collection, bins):
