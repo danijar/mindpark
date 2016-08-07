@@ -1,3 +1,4 @@
+import re
 import traceback
 import errno
 import functools
@@ -66,3 +67,17 @@ def color_stack_trace(type_, value, trace):
     except Exception:
         sys.stderr.write(text)
         sys.stderr.write('Failed to colorize the traceback.')
+
+
+def natural_sorted(collection):
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    key = lambda key: [convert(x) for x in re.split('([0-9]+)', key)]
+    return sorted(collection, key=key)
+
+
+def flatten(collection):
+    if collection == []:
+        return collection
+    if isinstance(collection[0], list):
+        return flatten(collection[0]) + flatten(collection[1:])
+    return collection[:1] + flatten(collection[1:])
