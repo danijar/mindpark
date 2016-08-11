@@ -1,6 +1,5 @@
-from .agent import Agent
-from .env import Env, StopEpisode
-from .gym_env import GymEnv
-from .preprocess import Preprocess
-from .trainer import Trainer
-from .benchmark import Benchmark
+from .interface import Interface
+from .policy import Policy
+from .sequential import Sequential
+from .algorithm import Algorithm
+from .env import Env

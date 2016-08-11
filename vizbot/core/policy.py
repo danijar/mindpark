@@ -44,12 +44,11 @@ class Policy:
     def end_episode(self):
         self._training = None
 
-    def observe(self, observation):
+    def observe(self, reward, observation):
         self._timestep += 1
 
     def perform(self, action):
         return action
 
     def experience(self, observation, action, reward, successor):
-        # TODO: How to propagate rewards and call this function?
         pass

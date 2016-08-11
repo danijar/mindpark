@@ -6,70 +6,103 @@ class Sequential(Policy):
 
     def __init__(self, observations, actions):
         super().__init__(observations, actions)
-        self._policies = []
+        self._steps = []
 
     @property
     def above_observations(self):
-        if not self._policies:
+        if not self._steps:
             return self.below
-        return self._policies[-1].above_observations
+        return self._steps[-1].policy.above_observations
 
     @property
     def above_actions(self):
-        if not self._policies:
+        if not self._steps:
             return self.below
-        return self._policies[-1].above_actions
-
-    def begin_episode(self, training):
-        super().begin_episode(training)
-        for policy in self._policies:
-            policy.begin_episode(training)
-
-    def end_episode(self):
-        super().end_episode()
-        for policy in self._policies:
-            policy.end_episode()
-
-    def observe(self, observation):
-        super().observe(observation)
-        return self._simulate(0, observation, None)
-
-    def perform(self, action):
-        super().perform(action)
-        return self._simulate(len(self._policies) - 1, None, action)
+        return self._steps[-1].policy.above_actions
 
     def add(self, policy, *args, **kwargs):
         if not isinstance(policy, Policy):
             policy = policy(self.above, *args, **kwargs)
         elif args or kwargs:
             raise ValueError('cannot specify args for instantiated policy')
-        self._policies.append(policy)
+        self._steps.append(Step(policy))
 
-    def _simulate(self, level, observation, action):
+    def begin_episode(self, training):
+        super().begin_episode(training)
+        for step in self._steps:
+            step.policy.begin_episode(training)
+
+    def end_episode(self):
+        super().end_episode()
+        for step in self._steps:
+            step.policy.end_episode()
+
+    def observe(self, reward, observation):
+        super().observe(reward, observation)
+        return self._simulate(0, (reward, observation), None)
+
+    def perform(self, action):
+        super().perform(action)
+        return self._simulate(len(self._steps) - 1, None, action)
+
+    def _simulate(self, level, input_, output):
         while True:
             if level < 0:
-                assert action is not None
-                return action
-            if level >= len(self._policies):
-                assert observation is not None
-                raise observation
-            level, observation, action = self._simulate(
-                level, observation, action)
+                assert output is not None
+                return output
+            if level >= len(self._steps):
+                assert input_ is not None
+                raise input_
+            level, input_, output = self._step(level, input_, output)
+
+    def _step(self, level, input_, output):
+        assert (input_ is None) != (output is None)
+        step = self._steps[level]
+        try:
+            if input_ is not None:
+                output = step.observe(*input_)
+            elif output is not None:
+                output = step.perform(output)
+            if output is None:
+                raise ValueError('action cannot be None')
+            input_ = None
+            level -= 1
+        except tuple as e:
+            self._validate_raised_input(e)
+            input_ = e
+            output = None
+            level += 1
+        return level, input_, output
+
+    @staticmethod
+    def _validate_raised_input(e):
+        if len(e) != 2:
+            raise ValueError('should raise reward and observation')
+        if not isinstance(e[0], (float, int)):
+            raise ValueError('reward must be a number')
+        if not isinstance(e[1], np.ndarray):
+            raise ValueError('observation must be a Numpy array')
+
+
+class Step:
+
+    def __init__(self, policy):
+        self.policy = policy
+        self._last_observation = None
+        self._last_action = None
+
+    def observe(self, reward, observation):
+        if not (self._last_observation is None or self._last_action is None):
+            self.policy.experience(
+                self._last_observation, self._last_action, reward, observation)
+            self._last_observation = None
+            self._last_action = None
+        self._last_observation = observation
+        action = self.policy.observe(reward, observation)
+        self._last_action = action
         return action
 
-    def _step(self, level, observation, action):
-        assert observation is None or action is None
-        policy = self._policies[level]
-        try:
-            if observation is not None:
-                action = policy.observe(observation)
-                observation = None
-            elif action is not None:
-                action = policy.perform(action)
-            if action is None:
-                raise ValueError('action cannot be None')
-            level -= 1
-        except np.ndarray as observation:
-            action = None
-            level += 1
-        return level, observation, action
+    def perform(self, action):
+        action = self.policy.perform(action)
+        self._last_action = action
+        return action
