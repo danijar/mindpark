@@ -61,6 +61,9 @@ class DeviationFigure:
         self._fig.tight_layout(rect=[0, 0, 1, .93])
         self._fig.savefig(filepath, dpi=300)
 
+    def close(self):
+        plt.close(self._fig)
+
     def _next_plot(self):
         if self._index > self._ncols:
             raise RuntimeError

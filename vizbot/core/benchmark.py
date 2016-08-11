@@ -7,10 +7,9 @@ from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 import yaml
 import gym
-import numpy as np
 import vizbot.env
 import vizbot.agent
-from vizbot.core import Trainer, Agent
+from vizbot.core import Trainer
 from vizbot.utility import use_attrdicts, ensure_directory
 
 
@@ -35,7 +34,8 @@ class Benchmark:
         start = time.time()
         definition = self._load_definition(definition)
         experiment = self._start_experiment(definition.experiment)
-        experiment and self._dump_yaml(definition,experiment,'experiment.yaml')
+        name = os.path.basename(experiment)
+        experiment and self._dump_yaml(definition, experiment, name + '.yaml')
         tasks = itertools.product(
             range(definition.repeats), definition.envs, definition.agents)
         with ThreadPoolExecutor(max_workers=self._parallel) as executor:

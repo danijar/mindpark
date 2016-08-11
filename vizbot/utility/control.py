@@ -1,10 +1,12 @@
 class Every:
 
-    def __init__(self, every):
+    def __init__(self, every, offset=0):
         self._every = int(float(every))
+        self._offset = offset
         self._last = None
 
     def __call__(self, timestep):
+        timestep = max(0, timestep - self._offset)
         if self._last is None:
             self._last = timestep
         if timestep - self._last < self._every:

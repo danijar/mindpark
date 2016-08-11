@@ -53,7 +53,7 @@ class DQN(EpsilonGreedy):
         self._actor = Model(self._create_network)
         self._target = Model(self._create_network)
         self._target.weights = self._actor.weights
-        self._sync_target = Every(config.sync_target)
+        self._sync_target = Every(config.sync_target, config.start_learning)
         # print(str(self._actor))
         # Learning.
         self._memory = Experience(int(float(config.replay_capacity)))
