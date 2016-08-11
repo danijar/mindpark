@@ -1,46 +1,31 @@
-from threading import Lock
-import numpy as np
-
-
-class StopEpisode(Exception):
-
-    def __init__(self, env):
-        super().__init__(self)
-        self.env = env
-
-
 class Env:
 
-    def __init__(self):
-        self._lock = Lock()
-
     @property
-    def states(self):
+    def observations(self):
+        """
+        The space of observations.
+        """
         raise NotImplementedError
 
     @property
     def actions(self):
+        """
+        The space of actions.
+        """
         raise NotImplementedError
-
-    @property
-    def lock(self):
-        """
-        Must be aquired for to reset, step, and close the environment.
-        """
-        return self._lock
 
     def reset(self):
         """
-        Initialize the environment from new or used state. Return an initial
-        state.
+        Initialize or reinitialize the environment. Return an initial
+        observation.
         """
         raise NotImplementedError
 
     def step(self, action):
         """
         Apply the action and simulate one time step in the environment. Return
-        the new state and reward. Raise StopEpisode(self) when the episode
-        ends.
+        the next observation and reward. May return None as observation to stop
+        the episode.
         """
         raise NotImplementedError
 
