@@ -8,15 +8,15 @@ from concurrent.futures import ThreadPoolExecutor
 import yaml
 import gym
 import vizbot.env
-import vizbot.agent
-from vizbot.core import Trainer
+import vizbot.algorithm
+from vizbot.train import Trainer, GymEnv
 from vizbot.utility import use_attrdicts, ensure_directory
 
 
 class Benchmark:
 
     """
-    Train each agent on each environment for multiple repeats and store
+    Train each algorithm on each environment for multiple repeats and store
     statistics and recordings in the experiment directory.
     """
 
@@ -37,41 +37,38 @@ class Benchmark:
         name = os.path.basename(experiment)
         experiment and self._dump_yaml(definition, experiment, name + '.yaml')
         tasks = itertools.product(
-            range(definition.repeats), definition.envs, definition.agents)
+            range(definition.repeats), definition.envs, definition.algorithms)
         with ThreadPoolExecutor(max_workers=self._parallel) as executor:
-            for repeat, env, agent in tasks:
-                executor.submit(self._start_task,
-                    repeat, env, agent, experiment, definition)
+            for repeat, env, algorithm in tasks:
+                executor.submit(
+                    self._start_task, repeat, env, algorithm, experiment,
+                    definition)
         message = 'Congratulations, benchmark finished after {} hours'
         duration = round((time.time() - start) / 3600, 1)
         self._print_headline(message.format(duration), style='=')
         if experiment:
             print('Find results in', experiment)
 
-    def _start_task(self, repeat, env, agent, experiment, definition):
+    def _start_task(self, repeat, env, algorithm, experiment, definition):
         template = '{{}}-{{:0>{}}}'.format(len(str(definition.repeats - 1)))
         message = 'Train {} on {} (Repeat {})'
         if self._parallel == 1:
-            self._print_headline(message.format(agent.name, env, repeat))
-        name = '-'.join(re.findall(r'[a-z0-9]+', agent.name.lower()))
+            self._print_headline(message.format(algorithm.name, env, repeat))
+        name = '-'.join(re.findall(r'[a-z0-9]+', algorithm.name.lower()))
         agent_dir = template.format(name, repeat)
         directory = experiment and os.path.join(experiment, env, agent_dir)
-        self._run_task(directory, env, agent, repeat, definition)
+        self._run_task(directory, env, algorithm, repeat, definition)
 
-    def _run_task(self, directory, env, agent, repeat, definition):
-        prefix = '{} on {} ({}):'.format(agent.name, env, repeat)
-        config = agent.type.defaults()
-        if 'type' in config or 'name' in config:
-            print('Warning: Override reserved config keys.')
-        config.update(agent)
-        directory and self._dump_yaml(config, directory, 'agent.yaml')
+    def _run_task(self, directory, env, algorithm, repeat, definition):
+        prefix = '{} on {} ({}):'.format(algorithm.name, env, repeat)
+        config = self._algorithm_config(algorithm)
+        self._directory and self._dump_yaml(
+            config, self._directory, 'algorithm.yaml')
         try:
+            algorithm = self._create_algorithm(algorithm.type, config, env)
             trainer = Trainer(
-                directory, env, agent.type, config,
-                definition.epochs,
-                agent.train_steps,
-                definition.test_steps,
-                self._videos)
+                directory, env, algorithm, definition.epochs,
+                algorithm.train_steps, definition.test_steps, self._videos)
             for epoch, score in enumerate(trainer):
                 if not epoch:
                     message = 'Before training average score {:.2f}'
@@ -86,6 +83,21 @@ class Benchmark:
                 print(e)
             if self._stacktraces:
                 traceback.print_exc()
+
+    def _algorithm_config(self, algorithm_definition):
+        config = algorithm_definition.type.defaults()
+        if 'type' in config or 'name' in config:
+            print('Warning: Override reserved config keys.')
+        config.update(algorithm_definition)
+        config = use_attrdicts(config)
+        return config
+
+    def _create_algorithm(self, type_, config, env_name):
+        example_env = GymEnv(env_name)
+        algorithm = type_(
+            example_env.observations, example_env.actions, config)
+        example_env.close()
+        return algorithm
 
     def _start_experiment(self, name):
         self._print_headline('Start experiment', style='=')
@@ -107,7 +119,7 @@ class Benchmark:
         definition.test_steps = int(float(definition.test_steps))
         definition.repeats = int(float(definition.repeats))
         definition.envs = list(self._load_envs(definition.envs))
-        definition.agents = list(self._load_agents(definition.agents))
+        definition.algorithms = list(self._load_agents(definition.algorithms))
         self._validate_definition(definition)
         return definition
 
@@ -118,22 +130,23 @@ class Benchmark:
                 raise KeyError('unknown env name {}'.format(env))
             yield env
 
-    def _load_agents(self, agents):
-        for agent in agents:
-            if not hasattr(vizbot.agent, agent.type):
-                raise KeyError('unknown agent type {}'.format(agent.type))
-            agent.type = getattr(vizbot.agent, agent.type)
-            if not issubclass(agent.type, vizbot.core.Agent):
-                raise KeyError('{} is not an agent'.format(agent.type))
-            agent.name = str(agent.name)
-            agent.train_steps = int(float(agent.train_steps))
-            yield agent
+    def _load_agents(self, algorithms):
+        for algorithm in algorithms:
+            if not hasattr(vizbot.algorithm, algorithm.type):
+                raise KeyError('unknown algorithm type {}'.format(
+                    algorithm.type))
+            algorithm.type = getattr(vizbot.algorithm, algorithm.type)
+            if not issubclass(algorithm.type, vizbot.core.algorithm):
+                raise KeyError('{} is not an algorithm'.format(algorithm.type))
+            algorithm.name = str(algorithm.name)
+            algorithm.train_steps = int(float(algorithm.train_steps))
+            yield algorithm
 
     def _validate_definition(self, definition):
-        names = [x.name for x in definition.agents]
+        names = [x.name for x in definition.algorithms]
         if len(set(names)) < len(names):
             raise KeyError('each algorithm must have an unique name')
-        if not all(hasattr(x, 'train_steps') for x in definition.agents):
+        if not all(hasattr(x, 'train_steps') for x in definition.algorithms):
             raise KeyError('each algorithm must have a training duration')
 
     def _dump_yaml(self, data, *path):
