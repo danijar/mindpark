@@ -45,10 +45,14 @@ class Policy:
         self._training = None
 
     def observe(self, reward, observation):
-        self._timestep += 1
+        if self.training:
+            self._timestep += 1
 
     def perform(self, action):
         return action
 
     def experience(self, observation, action, reward, successor):
+        pass
+
+    def close(self):
         pass

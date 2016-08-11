@@ -33,12 +33,6 @@ class Algorithm:
             raise RuntimeError('no episode started')
         return self._epoch
 
-    def begin_epoch(self, epoch):
-        self._epoch = epoch
-
-    def end_epoch(self):
-        pass
-
     @property
     def train_policies(self):
         raise NotImplementedError
@@ -46,3 +40,16 @@ class Algorithm:
     @property
     def test_policy(self):
         raise NotImplementedError
+
+    def begin_epoch(self, epoch):
+        if self.epoch is None:
+            assert epoch == 0
+        else:
+            assert epoch == self.epoch + 1
+        self._epoch = epoch
+
+    def end_epoch(self):
+        pass
+
+    def close(self):
+        pass

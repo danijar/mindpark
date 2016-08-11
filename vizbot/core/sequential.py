@@ -1,5 +1,33 @@
-import numpy as np
 from vizbot.core.policy import Policy
+
+
+class Step:
+
+    def __init__(self, policy):
+        self.policy = policy
+        self._last_observation = None
+        self._last_action = None
+
+    def observe(self, reward, observation):
+        has_observation = self._last_observation is not None
+        has_action = self._last_action is not None
+        if self.policy.training and has_observation and has_action:
+            self.policy.experience(
+                self._last_observation, self._last_action, reward, observation)
+            self._last_observation = None
+            self._last_action = None
+        self._last_observation = observation
+        if observation is not None:
+            action = self.policy.observe(reward, observation)
+        else:
+            action = None
+        self._last_action = action
+        return action
+
+    def perform(self, action):
+        action = self.policy.perform(action)
+        self._last_action = action
+        return action
 
 
 class Sequential(Policy):
@@ -63,46 +91,21 @@ class Sequential(Policy):
                 output = step.observe(*input_)
             elif output is not None:
                 output = step.perform(output)
-            if output is None:
-                raise ValueError('action cannot be None')
             input_ = None
             level -= 1
         except tuple as e:
-            self._validate_raised_input(e)
+            self._validate_raised_input(step.policy.above_observations, e)
             input_ = e
             output = None
             level += 1
         return level, input_, output
 
     @staticmethod
-    def _validate_raised_input(e):
-        if len(e) != 2:
+    def _validate_raised_input(space, input_):
+        if len(input_) != 2:
             raise ValueError('should raise reward and observation')
-        if not isinstance(e[0], (float, int)):
+        reward, observation = input_
+        if not isinstance(reward, (float, int)):
             raise ValueError('reward must be a number')
-        if not isinstance(e[1], np.ndarray):
-            raise ValueError('observation must be a Numpy array')
-
-
-class Step:
-
-    def __init__(self, policy):
-        self.policy = policy
-        self._last_observation = None
-        self._last_action = None
-
-    def observe(self, reward, observation):
-        if not (self._last_observation is None or self._last_action is None):
-            self.policy.experience(
-                self._last_observation, self._last_action, reward, observation)
-            self._last_observation = None
-            self._last_action = None
-        self._last_observation = observation
-        action = self.policy.observe(reward, observation)
-        self._last_action = action
-        return action
-
-    def perform(self, action):
-        action = self.policy.perform(action)
-        self._last_action = action
-        return action
+        if not space.contains(observation):
+            raise ValueError('invalid observation')
