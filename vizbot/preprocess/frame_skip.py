@@ -31,7 +31,7 @@ class FrameSkip(Preprocess):
         return np.moveaxis(self._frames, 0, -1)
 
     def step(self, action):
-        rewards = 0
+        rewards = 0  # TODO: Should discount rewards?
         for index in range(self._amount):
             state, reward = self._env.step(action)
             self._frames[index] = state
