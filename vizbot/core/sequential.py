@@ -1,3 +1,4 @@
+import inspect
 from vizbot.core.policy import Policy
 
 
@@ -5,54 +6,53 @@ class Sequential(Policy):
 
     def __init__(self, observations, actions):
         super().__init__(observations, actions)
-        self.__policies = []
+        self._policies = []
 
     @property
-    def above_observations(self):
-        if not self.__policies:
-            return self.below
-        return self.__policies[-1].above_observations
-
-    @property
-    def above_actions(self):
-        if not self.__policies:
-            return self.below
-        return self.__policies[-1].above_actions
+    def interface(self):
+        if not self._policies:
+            return self.observations, self.actions
+        return self._policies[-1].interface
 
     def add(self, policy, *args, **kwargs):
-        if not isinstance(policy, Policy):
-            policy = policy(self.above, *args, **kwargs)
+        if not inspect.isclass(policy):
+            policy = policy(*self.interface, *args, **kwargs)
+            policy = ExperienceProxy(policy)
         elif args or kwargs:
             raise ValueError('cannot specify args for instantiated policy')
-        self.__policies.append(policy)
+        self._policies.append(policy)
 
-    def _begin_episode(self, training):
-        for policy in self.__policies:
+    def begin_episode(self, training):
+        super().begin_episode(training)
+        for policy in self._policies:
             policy.begin_episode(training)
 
-    def _end_episode(self):
-        for policy in self.__policies:
+    def end_episode(self):
+        super().end_episode()
+        for policy in self._policies:
             policy.end_episode()
 
-    def _observe(self, reward, observation):
+    def observe(self, reward, observation):
+        super().observe(reward, observation)
         return self._simulate(0, (reward, observation), None)
 
-    def _perform(self, action):
-        return self._simulate(len(self.__policies) - 1, None, action)
+    def perform(self, action):
+        super().perform(action)
+        return self._simulate(len(self._policies) - 1, None, action)
 
     def _simulate(self, level, input_, action):
         while True:
             if level < 0:
                 assert action is not None
                 return action
-            if level >= len(self.__policies):
+            if level >= len(self._policies):
                 assert input_ is not None
                 raise input_
             level, input_, action = self._step(level, input_, action)
 
     def _step(self, level, input_, action):
         assert (input_ is None) != (action is None)
-        policy = self.__policies[level]
+        policy = self._policies[level]
         try:
             if input_ is not None:
                 action = policy.observe(*input_)
@@ -75,3 +75,29 @@ class Sequential(Policy):
             raise ValueError('reward must be a number')
         if not space.contains(observation):
             raise ValueError('invalid observation')
+
+
+class ExperienceProxy:
+    """
+    Wrapper for the policy class that collects transition tuples and calls the
+    experience method automatically.
+    """
+
+    def __init__(self, policy):
+        if isinstance(policy, ExperienceProxy):
+            raise ValueError('policy is already wrapped')
+        self._policy = policy
+        self._last_observation = None
+        self._last_action = None
+
+    def __getattr__(self, name):
+        return getattr(self._policy, name)
+
+    def observe(self, reward, observation):
+        if reward is not None:
+            self._policy.experience(
+                self._last_observation, self._last_action, reward, observation)
+        self._last_observation = observation
+        action = self._policy.observe(reward, observation)
+        self._last_action = action
+        return action
