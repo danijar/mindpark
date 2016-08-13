@@ -1,5 +1,5 @@
 import inspect
-from vizbot.core.policy import Policy
+from vizbot.core.policy import Policy, Input
 
 
 class Sequential(Policy):
@@ -15,11 +15,11 @@ class Sequential(Policy):
         return self.steps[-1].interface
 
     def add(self, policy, *args, **kwargs):
-        if not inspect.isclass(policy):
+        if inspect.isclass(policy):
             policy = policy(*self.interface, *args, **kwargs)
-            policy = ExperienceProxy(policy)
         elif args or kwargs:
             raise ValueError('cannot specify args for instantiated policy')
+        policy = ExperienceProxy(policy)
         self.steps.append(policy)
 
     def begin_episode(self, training):
@@ -34,7 +34,7 @@ class Sequential(Policy):
 
     def observe(self, reward, observation):
         super().observe(reward, observation)
-        return self._simulate(0, (reward, observation), None)
+        return self._simulate(0, Input(reward, observation), None)
 
     def perform(self, action):
         super().perform(action)
@@ -55,25 +55,23 @@ class Sequential(Policy):
         policy = self.steps[level]
         try:
             if input_ is not None:
-                action = policy.observe(*input_)
+                assert isinstance(policy, ExperienceProxy)
+                action = policy.observe(input_.reward, input_.observation)
             elif action is not None:
                 action = policy.perform(action)
             input_ = None
             level -= 1
-        except tuple as input_:
-            self._validate_raised_input(policy.above_observations, input_)
+        except Input as input_:
+            self._validate_input(policy.above_observations, input_)
             action = None
             level += 1
         return level, input_, action
 
     @staticmethod
-    def _validate_raised_input(space, input_):
-        if len(input_) != 2:
-            raise ValueError('should raise reward and observation')
-        reward, observation = input_
-        if not isinstance(reward, (float, int)):
+    def _validate_input(space, input_):
+        if not isinstance(input_.reward, (float, int)):
             raise ValueError('reward must be a number')
-        if not space.contains(observation):
+        if not space.contains(input_.observation):
             raise ValueError('invalid observation')
 
 

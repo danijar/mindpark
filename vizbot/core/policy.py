@@ -1,3 +1,10 @@
+class Input(Exception):
+
+    def __init__(self, reward, observation):
+        self.reward = reward
+        self.observation = observation
+
+
 class Policy:
     """
     A possibly partial behavior to interact with an environment. This is the
@@ -38,9 +45,8 @@ class Policy:
     def observe(self, reward, observation):
         """
         Receive a reward and an observation from the previous behavior. Return
-        an action or raise a tuple of a reward and an observation to process by
-        the next behavior. The first reward and last observation of an episode
-        are None. Do not call this method directly.
+        an action or raise an Input object to forward to the next behavior. The
+        first reward and last observation of an episode are None.
         """
         if self.training:
             self.timestep += 1
