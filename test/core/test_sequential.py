@@ -17,8 +17,7 @@ def interface(env):
     return env.interface
 
 
-# @pytest.fixture(params=[0, 1, 2, 3, 4, 5])
-@pytest.fixture(params=[1, 2, 3, 4, 5])
+@pytest.fixture(params=range(9))
 def policy(request, interface):
     policy = Sequential(interface)
     if request.param == 0:
@@ -39,7 +38,7 @@ def policy(request, interface):
         policy.add(Skip, 3)
         policy.add(Identity)
     elif request.param == 4:
-        # Nested.
+        # Nested ones.
         policy.add(Skip, 2)
         inner = Sequential(policy.interface)
         inner.add(Skip, 2)
@@ -47,17 +46,34 @@ def policy(request, interface):
         policy.add(inner)
         policy.add(Skip, 3)
     elif request.param == 5:
-        # Deeply nested.
+        # Nested.
         outer = policy
         for _ in range(5):
             inner = Sequential(policy.interface)
-            inner.add(Identity)
+            inner.add(Skip, 2)
             outer.add(inner)
             outer = inner
+    elif request.param == 6:
+        # Nested empty.
+        outer = policy
+        for _ in range(5):
+            inner = Sequential(policy.interface)
+            outer.add(inner)
+            outer = inner
+    elif request.param == 7:
+        # Concatenated.
+        for _ in range(5):
+            inner = Sequential(policy.interface)
+            inner.add(Skip, 2)
+            policy.add(inner)
+    elif request.param == 8:
+        # Concatenated empty.
+        for _ in range(5):
+            inner = Sequential(policy.interface)
+            policy.add(inner)
     else:
         assert False
     policy.add(Random)
-    assert policy.final
     print('Steps:', ', '.join([type(x).__name__ for x in policy.steps]))
     return policy
 
@@ -115,21 +131,21 @@ class TestSequential:
         observation = env.reset()
         while observation is not None:
             action = policy.step(observation)
-            steps, local = policy.steps, timestep
+            reward, successor = env.step(action)
+            policy.experience(observation, action, reward, successor)
+            observation = successor
+            timesteps, computeds = [], []
+            steps, computed = policy.steps[:], timestep
             while steps:
                 step = steps.pop(0)
                 if step.timestep is None:
                     break
-                print(step.timestep, local)
-                assert step.timestep == local
+                timesteps.append(step.timestep)
+                computeds.append(computed)
                 if hasattr(step, '_amount'):
-                    print('skip', step._amount)
-                    local = (local or 1) // step._amount
+                    computed = computed // step._amount
                 if hasattr(step, 'steps'):
-                    steps += step.steps
-            print('')
-            reward, successor = env.step(action)
-            policy.experience(observation, action, reward, successor)
-            observation = successor
+                    steps = step.steps + steps
+            assert timesteps == computeds
             timestep += 1
         policy.end_episode()

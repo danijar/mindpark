@@ -1,13 +1,19 @@
 Vizbot
 ======
 
-Testbed for deep reinforcement learning agents.
+Testbed for deep reinforcement learning algorithms.
 
 ## Instructions
 
 ```shell
 python3 -O -m vizbot.bench definition/full.yaml -p <threads>
-python3 -m vizbot.plot "~/experiment/gym*"
+python3 -m vizbot.plot "~/experiment/gym/*"
+```
+
+## Development
+
+```shell
+python3 setup.py test --args -x
 ```
 
 ## Dependencies

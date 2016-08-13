@@ -1,7 +1,11 @@
-from vizbot.core import Step
+from vizbot.core import Policy
 
 
-class Identity(Step):
+class Identity(Policy):
+
+    @property
+    def interface(self):
+        return self.observations, self.actions
 
     def step(self, observation):
         super().step(observation)

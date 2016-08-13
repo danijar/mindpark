@@ -109,7 +109,7 @@ class SphinxCommand(Command):
 setuptools.setup(
     name=PACKAGES[0],
     version='0.2.0',
-    description='Testbed for deep reinforcement learning agents',
+    description='Testbed for deep reinforcement learning algorithms',
     url='http://github.com/danijar/vizbot',
     install_requires=INSTALL_REQUIRES,
     packages=PACKAGES,
