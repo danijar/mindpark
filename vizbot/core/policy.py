@@ -1,10 +1,3 @@
-class Input(Exception):
-
-    def __init__(self, reward, observation):
-        self.reward = reward
-        self.observation = observation
-
-
 class Policy:
     """
     A possibly partial behavior to interact with an environment. This is the
@@ -64,3 +57,41 @@ class Policy:
         episode ended after the reward. All other arguments are never None.
         """
         pass
+
+
+class Input(Exception):
+
+    def __init__(self, reward, observation):
+        if reward is None and observation is None:
+            raise ValueError('must specify reward or observation')
+        if reward is not None and not isinstance(reward, (float, int)):
+            raise ValueError('reward must be a number')
+        self.reward = reward
+        self.observation = observation
+
+
+class ExperienceProxy:
+    """
+    Wrapper for the policy class that collects transition tuples and calls the
+    experience method automatically.
+    """
+
+    def __init__(self, policy):
+        if isinstance(policy, ExperienceProxy):
+            raise ValueError('policy is already wrapped')
+        self._policy = policy
+        self._last_observation = None
+        self._last_action = None
+
+    def __getattr__(self, name):
+        return getattr(self._policy, name)
+
+    def observe(self, reward, observation):
+        if reward is not None:
+            self._policy.experience(
+                self._last_observation, self._last_action, reward, observation)
+        self._last_observation = observation
+        action = self._policy.observe(reward, observation)
+        assert action is not None
+        self._last_action = action
+        return action

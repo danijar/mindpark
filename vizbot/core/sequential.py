@@ -1,5 +1,5 @@
 import inspect
-from vizbot.core.policy import Policy, Input
+from vizbot.core.policy import Policy, Input, ExperienceProxy
 
 
 class Sequential(Policy):
@@ -59,43 +59,31 @@ class Sequential(Policy):
                 action = policy.observe(input_.reward, input_.observation)
             elif action is not None:
                 action = policy.perform(action)
+            else:
+                assert False
+            self._validate_action(level, action)
             input_ = None
             level -= 1
-        except Input as input_:
-            self._validate_input(policy.above_observations, input_)
+        except Input as raised:
+            self._validate_input(level, raised)
+            input_ = raised
             action = None
             level += 1
         return level, input_, action
 
-    @staticmethod
-    def _validate_input(space, input_):
-        if not isinstance(input_.reward, (float, int)):
-            raise ValueError('reward must be a number')
-        if not space.contains(input_.observation):
-            raise ValueError('invalid observation')
+    def _validate_input(self, level, input_):
+        if input_.observation is None:
+            return
+        observations = self.steps[level].interface[0]
+        if not observations.contains(input_.observation):
+            message = 'invalid observation from level {}: {}'
+            raise ValueError(message.format(level, input_.observation))
 
-
-class ExperienceProxy:
-    """
-    Wrapper for the policy class that collects transition tuples and calls the
-    experience method automatically.
-    """
-
-    def __init__(self, policy):
-        if isinstance(policy, ExperienceProxy):
-            raise ValueError('policy is already wrapped')
-        self._policy = policy
-        self._last_observation = None
-        self._last_action = None
-
-    def __getattr__(self, name):
-        return getattr(self._policy, name)
-
-    def observe(self, reward, observation):
-        if reward is not None:
-            self._policy.experience(
-                self._last_observation, self._last_action, reward, observation)
-        self._last_observation = observation
-        action = self._policy.observe(reward, observation)
-        self._last_action = action
-        return action
+    def _validate_action(self, level, action):
+        if level < 1:
+            actions = self.actions
+        else:
+            actions = self.steps[level - 1].interface[1]
+        if not actions.contains(action):
+            message = 'invalid action from level {}: {}'
+            raise ValueError(message.format(level, action))

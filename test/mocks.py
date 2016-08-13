@@ -1,5 +1,5 @@
 from gym.spaces import Box, Discrete
-from vizbot.core import Env, Policy
+from vizbot.core import Env, Policy, Input
 
 
 class DurationEnv(Env):
@@ -24,8 +24,8 @@ class DurationEnv(Env):
         assert self.actions.contains(action)
         self.timestep += 1
         if self.timestep >= self.duration:
-            return None
-        return self.observations.sample()
+            return 0, None
+        return 0, self.observations.sample()
 
 
 class Monitored(Policy):
@@ -34,6 +34,7 @@ class Monitored(Policy):
         super().__init__(observations, actions)
         self.reward = None
         self.observation = None
+        self.transition = None
 
     @property
     def interface(self):
@@ -51,7 +52,7 @@ class Identity(Monitored):
 
     def observe(self, reward, observation):
         super().observe(reward, observation)
-        raise (reward, observation)
+        raise Input(reward, observation)
 
 
 class Skip(Monitored):
@@ -67,9 +68,9 @@ class Skip(Monitored):
 
     def observe(self, reward, observation):
         super().observe(reward, observation)
-        if self.timestep % self.amount > 0:
+        if (self.timestep - 1) % self.amount > 0:
             return self.action
-        raise (reward, observation)
+        raise Input(reward, observation)
 
     def perform(self, action):
         self.action = action
@@ -84,4 +85,4 @@ class Random(Monitored):
 
     def observe(self, reward, observation):
         super().observe(reward, observation)
-        return self.observations.sample()
+        return self.actions.sample()
