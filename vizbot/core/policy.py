@@ -13,6 +13,7 @@ class Policy:
         self.observations = observations
         self.actions = actions
         self.training = None
+        self.timestep = -1
 
     @property
     def interface(self):

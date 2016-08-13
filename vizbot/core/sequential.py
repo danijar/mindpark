@@ -6,13 +6,13 @@ class Sequential(Policy):
 
     def __init__(self, observations, actions):
         super().__init__(observations, actions)
-        self._policies = []
+        self.steps = []
 
     @property
     def interface(self):
-        if not self._policies:
+        if not self.steps:
             return self.observations, self.actions
-        return self._policies[-1].interface
+        return self.steps[-1].interface
 
     def add(self, policy, *args, **kwargs):
         if not inspect.isclass(policy):
@@ -20,16 +20,16 @@ class Sequential(Policy):
             policy = ExperienceProxy(policy)
         elif args or kwargs:
             raise ValueError('cannot specify args for instantiated policy')
-        self._policies.append(policy)
+        self.steps.append(policy)
 
     def begin_episode(self, training):
         super().begin_episode(training)
-        for policy in self._policies:
+        for policy in self.steps:
             policy.begin_episode(training)
 
     def end_episode(self):
         super().end_episode()
-        for policy in self._policies:
+        for policy in self.steps:
             policy.end_episode()
 
     def observe(self, reward, observation):
@@ -38,21 +38,21 @@ class Sequential(Policy):
 
     def perform(self, action):
         super().perform(action)
-        return self._simulate(len(self._policies) - 1, None, action)
+        return self._simulate(len(self.steps) - 1, None, action)
 
     def _simulate(self, level, input_, action):
         while True:
             if level < 0:
                 assert action is not None
                 return action
-            if level >= len(self._policies):
+            if level >= len(self.steps):
                 assert input_ is not None
                 raise input_
             level, input_, action = self._step(level, input_, action)
 
     def _step(self, level, input_, action):
         assert (input_ is None) != (action is None)
-        policy = self._policies[level]
+        policy = self.steps[level]
         try:
             if input_ is not None:
                 action = policy.observe(*input_)
