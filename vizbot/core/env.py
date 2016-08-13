@@ -1,16 +1,9 @@
 class Env:
 
     @property
-    def observations(self):
+    def interface(self):
         """
-        The space of observations.
-        """
-        raise NotImplementedError
-
-    @property
-    def actions(self):
-        """
-        The space of actions.
+        A tuple of the observation space and the action space.
         """
         raise NotImplementedError
 

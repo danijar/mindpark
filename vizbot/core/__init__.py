@@ -1,4 +1,4 @@
-from .policy import Policy, Input, ExperienceProxy
-from .sequential import Sequential
+from .policy import Policy
+from .sequential import Sequential, Step
 from .algorithm import Algorithm
 from .env import Env

@@ -1,89 +1,123 @@
 import inspect
-from vizbot.core.policy import Policy, Input, ExperienceProxy
+from vizbot.core.policy import Policy
 
 
-class Sequential(Policy):
+class Step(Policy):
 
-    def __init__(self, observations, actions):
-        super().__init__(observations, actions)
+    """
+    A partial policy that may delegate decisions to the next policy using the
+    `above` property. Consider overriding `step()` and `experience()` to
+    forward calls to `above` when appropriate.
+    """
+
+    def __init__(self, interface):
+        super().__init__(interface)
+        self._above = None
+
+    @property
+    def interface(self):
+        """
+        The interface for higher policies to interact with this one. The
+        interface is a tuple of the observation and the action space.
+        """
+        return self.observations, self.actions
+
+    @property
+    def above(self):
+        return self._above
+
+    @above.setter
+    def above(self, above):
+        """
+        The above step or policy will be set through this setter. Its
+        observation and action spaces will match the this policy's interface.
+        """
+        assert self.interface[0] == above.observations
+        assert self.interface[1] == above.actions
+        self._above = above
+
+    def begin_episode(self, training):
+        self._assert_above()
+        super().begin_episode(training)
+
+    def step(self, observation):
+        return super().step(observation)
+
+    def _assert_above(self):
+        if not self._above:
+            raise RuntimeError('need to know above policy before simulation')
+
+
+class Sequential(Step):
+
+    def __init__(self, interface):
+        super().__init__(interface)
         self.steps = []
+
+    def add(self, step, *args, **kwargs):
+        """
+        Add a step or policy to the sequential behavior. If the step is just a
+        policy, thus provides no interface, no further behavior can be added.
+        """
+        if inspect.isclass(step):
+            step = step(self.interface, *args, **kwargs)
+        elif args or kwargs:
+            raise ValueError('unexpected args for an instantiated step')
+        if self.steps:
+            self.steps[-1].above = step
+        if self.above:
+            step.above = self.above
+        self.steps.append(step)
 
     @property
     def interface(self):
         if not self.steps:
             return self.observations, self.actions
+        self._assert_not_final()
         return self.steps[-1].interface
 
-    def add(self, policy, *args, **kwargs):
-        if inspect.isclass(policy):
-            policy = policy(*self.interface, *args, **kwargs)
-        elif args or kwargs:
-            raise ValueError('cannot specify args for instantiated policy')
-        policy = ExperienceProxy(policy)
-        self.steps.append(policy)
+    @Step.above.setter
+    def above(self, above):
+        self._assert_not_final()
+        # Workaround for super().above = above.
+        super(Sequential, self.__class__).above.fset(self, above)
+        if self.steps:
+            self.steps[-1].above = above
+
+    @property
+    def final(self):
+        return self.steps and not hasattr(self.steps[-1], 'interface')
 
     def begin_episode(self, training):
         super().begin_episode(training)
-        for policy in self.steps:
-            policy.begin_episode(training)
+        for step in self.steps:
+            step.begin_episode(training)
 
     def end_episode(self):
         super().end_episode()
-        for policy in self.steps:
-            policy.end_episode()
+        for step in self.steps:
+            step.end_episode()
 
-    def observe(self, reward, observation):
-        super().observe(reward, observation)
-        return self._simulate(0, Input(reward, observation), None)
+    def step(self, observation):
+        super().step(observation)
+        return self._first.step(observation)
 
-    def perform(self, action):
-        super().perform(action)
-        return self._simulate(len(self.steps) - 1, None, action)
+    def experience(self, *transition):
+        super().experience(*transition)
+        self._first.experience(*transition)
 
-    def _simulate(self, level, input_, action):
-        while True:
-            if level < 0:
-                assert action is not None
-                return action
-            if level >= len(self.steps):
-                assert input_ is not None
-                raise input_
-            level, input_, action = self._step(level, input_, action)
-
-    def _step(self, level, input_, action):
-        assert (input_ is None) != (action is None)
-        policy = self.steps[level]
-        try:
-            if input_ is not None:
-                assert isinstance(policy, ExperienceProxy)
-                action = policy.observe(input_.reward, input_.observation)
-            elif action is not None:
-                action = policy.perform(action)
-            else:
-                assert False
-            self._validate_action(level, action)
-            input_ = None
-            level -= 1
-        except Input as raised:
-            self._validate_input(level, raised)
-            input_ = raised
-            action = None
-            level += 1
-        return level, input_, action
-
-    def _validate_input(self, level, input_):
-        if input_.observation is None:
-            return
-        observations = self.steps[level].interface[0]
-        if not observations.contains(input_.observation):
-            message = 'invalid observation from level {}: {}'
-            raise ValueError(message.format(level, input_.observation))
-
-    def _validate_action(self, level, action):
-        if level < 1:
-            actions = self.actions
+    @property
+    def _first(self):
+        if self.steps:
+            return self.steps[0]
         else:
-            actions = self.steps[level - 1].interface[1]
-        if not actions.contains(action):
-            message = 'invalid action from level {}: {}'
-            raise ValueError(message.format(level, action))
+            self._assert_above()
+            return self.above
+
+    def _assert_above(self):
+        if not self.final:
+            super()._assert_above()
+
+    def _assert_not_final(self):
+        if self.final:
+            raise RuntimeError('last step has no interface to add any further')
