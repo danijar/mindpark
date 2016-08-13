@@ -1,5 +1,5 @@
 import pytest
-from vizbot.core import Sequential, ExperienceProxy
+from vizbot.core import Sequential
 from test.mocks import DurationEnv, Identity, Skip, Random
 
 
@@ -13,7 +13,7 @@ def env(duration):
     return DurationEnv(duration)
 
 
-@pytest.fixture(params=[0, 1, 2])
+@pytest.fixture(params=[0, 1, 2, 3])
 def policy(request, env):
     policy = Sequential(env.observations, env.actions)
     if request.param == 0:
@@ -45,18 +45,20 @@ class TestSequential:
         assert policy.steps[-1].amount == 13
 
     def test_experience_is_not_none(self, env, policy):
-        policy.begin_episode(False)
+        policy.begin_episode(True)
         reward, observation = None, env.reset()
-        while observation is not None:
+        while True:
             for step in policy.steps:
-                if step.timestep < 1:
+                if not step.timestep:
                     continue
-                print(step.timestep, step.transition)
                 assert all(x is not None for x in step.transition)
             action = policy.observe(reward, observation)
+            if observation is None:
+                break
             reward, observation = env.step(action)
-        for step in policy.steps:
-            if step.timestep < 1:
+        assert observation is None
+        for level, step in enumerate(policy.steps):
+            if step.timestep is None:
                 continue
             assert all(x is not None for x in step.transition[:-1])
             # Terminal successor must be None.
@@ -64,7 +66,7 @@ class TestSequential:
         policy.end_episode()
 
     def test_observe_first_observation(self, env, policy):
-        policy.begin_episode(False)
+        policy.begin_episode(True)
         reward, observation = None, env.reset()
         policy.observe(reward, observation)
         for level, step in enumerate(policy.steps):
@@ -75,35 +77,43 @@ class TestSequential:
         policy.end_episode()
 
     def test_observe_last_reward(self, env, policy):
-        policy.begin_episode(False)
+        policy.begin_episode(True)
         reward, observation = None, env.reset()
-        while observation is not None:
+        while True:
             for step in policy.steps:
-                step.reward = None
+                step._policy.reward = None
             action = policy.observe(reward, observation)
+            if observation is None:
+                break
             reward, observation = env.step(action)
-        for step in policy.steps:
-            if step.timestep < 1:
+        assert observation is None
+        assert reward is not None
+        for level, step in enumerate(policy.steps):
+            if step.timestep is None:
                 continue
             assert step.observation is None
             assert step.reward is not None
         policy.end_episode()
 
+    @pytest.skip()
     def test_time_steps(self, env, policy):
-        policy.begin_episode(False)
+        import math
+        policy.begin_episode(True)
         reward, observation = None, env.reset()
         timestep = 0
-        while observation is not None:
+        while True:
             for step in policy.steps:
-                step.reward = None
+                step._policy.reward = None
             action = policy.observe(reward, observation)
-            multiplier = 1
-            for step in policy.steps:
-                if step.timestep < 0:
+            local = timestep
+            for level, step in enumerate(policy.steps):
+                if step.timestep is None:
                     break
-                assert step.timestep == timestep // multiplier
-                if isinstance(step, Skip):
-                    multiplier *= step.amount
+                assert step.timestep == local
+                if hasattr(step, 'amount'):
+                    local = local // step.amount
+            if observation is None:
+                break
             reward, observation = env.step(action)
             timestep += 1
         policy.end_episode()

@@ -41,6 +41,7 @@ class Monitored(Policy):
         return self.observations, self.actions
 
     def observe(self, reward, observation):
+        super().observe(reward, observation)
         self.reward = reward
         self.observation = observation
 
@@ -62,26 +63,21 @@ class Skip(Monitored):
         self.amount = amount
         self.action = None
 
-    @property
-    def interface(self):
-        return self.observations, self.actions
-
     def observe(self, reward, observation):
         super().observe(reward, observation)
-        if (self.timestep - 1) % self.amount > 0:
-            return self.action
-        raise Input(reward, observation)
+        if observation is None:
+            raise Input(reward, observation)
+        if self.timestep % self.amount == 0:
+            raise Input(reward, observation)
+        return self.action
 
     def perform(self, action):
+        super().perform(action)
         self.action = action
         return action
 
 
 class Random(Monitored):
-
-    @property
-    def interface(self):
-        return self.observations, self.actions
 
     def observe(self, reward, observation):
         super().observe(reward, observation)

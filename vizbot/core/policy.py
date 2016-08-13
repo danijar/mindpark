@@ -13,7 +13,7 @@ class Policy:
         self.observations = observations
         self.actions = actions
         self.training = None
-        self.timestep = -1
+        self.timestep = None
 
     @property
     def interface(self):
@@ -41,7 +41,9 @@ class Policy:
         an action or raise an Input object to forward to the next behavior. The
         first reward and last observation of an episode are None.
         """
-        if self.training:
+        if self.timestep is None:
+            self.timestep = 0
+        elif self.training:
             self.timestep += 1
 
     def perform(self, action):
@@ -88,10 +90,20 @@ class ExperienceProxy:
 
     def observe(self, reward, observation):
         if reward is not None:
+            assert self._last_observation is not None
+            assert self._last_action is not None
             self._policy.experience(
                 self._last_observation, self._last_action, reward, observation)
         self._last_observation = observation
         action = self._policy.observe(reward, observation)
-        assert action is not None
+        if action is None:
+            raise ValueError('must return an action or raise an input')
+        self._last_action = action
+        return action
+
+    def perform(self, action):
+        action = self._policy.perform(action)
+        if action is None:
+            raise ValueError('must return an action or raise an input')
         self._last_action = action
         return action
