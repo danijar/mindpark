@@ -10,7 +10,7 @@ class DurationEnv(core.Env):
 
     @property
     def interface(self):
-        return Box(0, 1, (80, 60)), Discrete(3)
+        return Box(0, 9, (8, 6, 3)), Discrete(3)
 
     def reset(self):
         self.timestep = 0
@@ -25,9 +25,10 @@ class DurationEnv(core.Env):
         return 0, self.interface[0].sample()
 
 
-class Monitored:
+class Monitored(core.Policy):
 
     def step(self, observation):
+        assert self.observations.contains(observation)
         self.observation = observation
         return super().step(observation)
 

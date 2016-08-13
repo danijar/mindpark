@@ -3,7 +3,7 @@ from vizbot.core import Policy
 
 class Skip(Policy):
 
-    def __init__(self, interface, amount):
+    def __init__(self, interface, amount=4):
         super().__init__(interface)
         self._amount = amount
         self._action = None
