@@ -8,3 +8,4 @@ from .history import History
 from .normalize import Normalize
 from .normalize_reward import NormalizeReward
 from .random import Random
+from .epsilon_greedy import EpsilonGreedy

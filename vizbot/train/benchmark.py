@@ -34,8 +34,9 @@ class Benchmark:
         start = time.time()
         definition = self._load_definition(definition)
         experiment = self._start_experiment(definition.experiment)
-        name = os.path.basename(experiment)
-        experiment and self._dump_yaml(definition, experiment, name + '.yaml')
+        if experiment:
+            name = os.path.basename(experiment)
+            self._dump_yaml(definition, experiment, name + '.yaml')
         tasks = itertools.product(
             range(definition.repeats), definition.envs, definition.algorithms)
         with ThreadPoolExecutor(max_workers=self._parallel) as executor:
@@ -59,16 +60,15 @@ class Benchmark:
         directory = experiment and os.path.join(experiment, env, agent_dir)
         self._run_task(directory, env, algorithm, repeat, definition)
 
-    def _run_task(self, directory, env, algorithm, repeat, definition):
-        prefix = '{} on {} ({}):'.format(algorithm.name, env, repeat)
-        config = self._algorithm_config(algorithm)
+    def _run_task(self, directory, env, config, repeat, definition):
+        prefix = '{} on {} ({}):'.format(config.name, env, repeat)
         self._directory and self._dump_yaml(
             config, self._directory, 'algorithm.yaml')
         try:
-            algorithm = self._create_algorithm(algorithm.type, config, env)
+            algorithm = self._create_algorithm(config.type, config, env)
             trainer = Trainer(
                 directory, env, algorithm, definition.epochs,
-                algorithm.train_steps, definition.test_steps, self._videos)
+                config.train_steps, definition.test_steps, self._videos)
             for epoch, score in enumerate(trainer):
                 if not epoch:
                     message = 'Before training average score {:.2f}'
@@ -83,14 +83,6 @@ class Benchmark:
                 print(e)
             if self._stacktraces:
                 traceback.print_exc()
-
-    def _algorithm_config(self, algorithm_definition):
-        config = algorithm_definition.type.defaults()
-        if 'type' in config or 'name' in config:
-            raise KeyError('reserved keys `type` or `name` in config')
-        config.update(algorithm_definition)
-        config = use_attrdicts(config)
-        return config
 
     def _create_algorithm(self, type_, config, env_name):
         example_env = GymEnv(env_name)
@@ -118,7 +110,8 @@ class Benchmark:
         definition.test_steps = int(float(definition.test_steps))
         definition.repeats = int(float(definition.repeats))
         definition.envs = list(self._load_envs(definition.envs))
-        definition.algorithms = list(self._load_agents(definition.algorithms))
+        definition.algorithms = [
+            self._load_algorithm(x) for x in definition.algorithms]
         self._validate_definition(definition)
         return definition
 
@@ -129,17 +122,25 @@ class Benchmark:
                 raise KeyError('unknown env name {}'.format(env))
             yield env
 
-    def _load_agents(self, algorithms):
-        for algorithm in algorithms:
-            if not hasattr(vizbot.algorithm, algorithm.type):
-                raise KeyError('unknown algorithm type {}'.format(
-                    algorithm.type))
-            algorithm.type = getattr(vizbot.algorithm, algorithm.type)
-            if not issubclass(algorithm.type, vizbot.core.algorithm):
-                raise KeyError('{} is not an algorithm'.format(algorithm.type))
-            algorithm.name = str(algorithm.name)
-            algorithm.train_steps = int(float(algorithm.train_steps))
-            yield algorithm
+    def _load_algorithm(self, config):
+        if not hasattr(vizbot.algorithm, config.type):
+            message = 'unknown algorithm type {}'
+            raise KeyError(message.format(config.type))
+        config.type = getattr(vizbot.algorithm, config.type)
+        if not issubclass(config.type, vizbot.core.Algorithm):
+            raise KeyError('{} is not an algorithm'.format(config.type))
+        config.name = str(config.name)
+        config.train_steps = int(float(config.train_steps))
+        defaults = config.type.defaults()
+        reserved = ('type', 'name', 'train_steps')
+        for key in defaults:
+            if key in reserved:
+                raise KeyError("reserved key '{}' in defaults".format(key))
+        for key in config:
+            if key not in defaults and key not in reserved:
+                raise KeyError("unknown key '{}' in config".format(key))
+        config.update(defaults)
+        return use_attrdicts(config)
 
     def _validate_definition(self, definition):
         names = [x.name for x in definition.algorithms]

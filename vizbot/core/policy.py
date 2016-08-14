@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class Policy:
 
     """
@@ -21,6 +24,7 @@ class Policy:
         self.training = None
         self.timestep = None
         self.above = None
+        self.random = np.random.RandomState()
 
     @property
     def interface(self):

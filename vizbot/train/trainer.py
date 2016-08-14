@@ -14,8 +14,9 @@ class Trainer:
         self._epochs = epochs
         self._videos = directory and videos
         self._video = None
-        self._envs = [self._create_env(True)] + \
-            [self._create_env(False) for _ in algorithm.train_policies]
+        self._envs = [self._create_env(env_name, True)]
+        for _ in algorithm.train_policies:
+            self._envs.append(self._create_env(env_name, False))
         self._test = Simulator(
             self._envs[:1], [algorithm.test_policy], test_steps, False)
         self._train = Simulator(
@@ -31,6 +32,10 @@ class Trainer:
             self._algorithm.end_epoch()
             yield score
 
+    @property
+    def timestep(self):
+        return self._train.timestep
+
     def close(self):
         for policy in self._algorithm.train_policies:
             policy.close()
@@ -39,16 +44,16 @@ class Trainer:
         for env in self._envs:
             env.close()
 
-    def _create_env(self, monitoring):
+    def _create_env(self, env_name, monitoring):
         directory = monitoring and self._directory
-        env = GymEnv(self._env_name, directory, self._video_callback)
+        env = GymEnv(env_name, directory, self._video_callback)
         return env
 
     def _video_callback(self, ignore):
         if not self._videos:
             return False
-        every = self._test_steps / self._videos
-        if self._test_step < self._video * every:
+        every = self._test.timesteps / self._videos
+        if self._test.timestep < self._video * every:
             return False
         self._video += 1
         return True

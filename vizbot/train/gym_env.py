@@ -17,12 +17,14 @@ class GymEnv(Env):
         return self._env.observation_space, self._env.action_space
 
     def reset(self):
-        return self._env.reset()
+        observation = self._env.reset()
+        return observation
 
     def step(self, action):
         observation, reward, done, _ = self._env.step(action)
         if done:
-            assert observation is None
+            # May not be None if Gym aborted after too many time steps.
+            observation = None
         return reward, observation
 
     def close(self):

@@ -2,12 +2,12 @@ class AttrDict(dict):
 
     def __getattr__(self, key):
         if key not in self:
-            raise AttributeError
+            raise AttributeError("unknown key '{}'".format(key))
         return self[key]
 
     def __setattr__(self, key, value):
         if key not in self:
-            raise AttributeError
+            raise AttributeError("unknown key '{}'".format(key))
         self[key] = value
 
 

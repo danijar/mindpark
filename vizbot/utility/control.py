@@ -20,7 +20,7 @@ class Decay:
     def __init__(self, start, stop, steps):
         self._start = start
         self._stop = stop
-        self._steps = int(float(steps))
+        self._steps = int(float(steps)) or 1
         assert self._start >= self._stop
         assert self._steps
 

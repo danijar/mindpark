@@ -11,9 +11,19 @@ class Simulator:
         self._timestep = None
         self._scores = None
 
-    def __call__(self, timesteps):
+    @property
+    def timesteps(self):
+        return self._timesteps
+
+    @property
+    def timestep(self):
+        return self._timestep
+
+    def __call__(self):
         self._timestep = 0
         self._scores = []
+        if not self._timesteps:
+            return
         threads = []
         for env, policy in zip(self._envs, self._policies):
             threads.append(Thread(target=self._worker, args=(env, policy)))
@@ -30,16 +40,16 @@ class Simulator:
 
     def _episode(self, env, policy):
         score = 0
-        policy.start_episode(self._training)
+        policy.begin_episode(self._training)
         observation = env.reset()
         # while self._test_step < self._test_steps:
         while observation is not None:
             action = policy.step(observation)
-            successor, reward = env.step(action)
+            reward, successor = env.step(action)
             self._timestep += 1
             score += reward
             if self._training:
                 policy.experience(observation, action, reward, successor)
             observation = successor
-        policy.stop_episode()
+        policy.end_episode()
         return score

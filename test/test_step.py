@@ -1,16 +1,17 @@
 import pytest
 from vizbot.core import Sequential
-from vizbot.step import (
-    Identity, Maximum, Delta, Grayscale, Subsample, Skip, History, Normalize,
-    NormalizeReward)
+import vizbot.step
 from test.mocks import DurationEnv, Random
 
 
-@pytest.fixture(params=(
-    Identity, Maximum, Delta, Grayscale, Subsample, Skip,
-    History, Normalize, NormalizeReward))
+STEPS = [
+    'Identity', 'Maximum', 'Delta', 'Grayscale', 'Subsample', 'Skip',
+    'History', 'Normalize', 'NormalizeReward', 'EpsilonGreedy']
+
+
+@pytest.fixture(params=STEPS)
 def step(request):
-    return request.param
+    return getattr(vizbot.step, request.param)
 
 
 @pytest.fixture(params=(1, 2, 17))

@@ -3,15 +3,14 @@ from vizbot.utility import use_attrdicts
 
 class Algorithm:
 
-    @property
     @classmethod
     def defaults(self):
         discount = 0.95
         return locals()
 
-    def __init__(self, observations, actions, config):
-        self.observations = observations
-        self.actions = actions
+    def __init__(self, interface, config):
+        self.interface = interface
+        self.observations, self.actions = interface
         self.config = use_attrdicts(config)
         self.epoch = None
 
