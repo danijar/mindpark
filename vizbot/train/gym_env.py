@@ -1,5 +1,5 @@
 import gym
-from vizbot.core.env import Env
+from vizbot.core import Env
 
 
 class GymEnv(Env):
@@ -13,30 +13,19 @@ class GymEnv(Env):
             self._env.monitor.start(self._directory, videos, resume=True)
 
     @property
-    def observations(self):
-        return self._env.observation_space
-
-    @property
-    def actions(self):
-        return self._env.action_space
+    def interface(self):
+        return self._env.observation_space, self._env.action_space
 
     def reset(self):
-        observation = self._env.reset()
-        observation = self._process_observation(observation)
-        raise (0, observation)
+        return self._env.reset()
 
     def step(self, action):
         observation, reward, done, _ = self._env.step(action)
-        observation = self._process_observation(observation)
         if done:
-            return None
-        raise (reward, observation)
+            assert observation is None
+        return reward, observation
 
     def close(self):
         if self._directory:
             self._env.monitor.close()
         self._env.close()
-
-    @staticmethod
-    def _process_observation(observation):
-        return observation.astype(float)

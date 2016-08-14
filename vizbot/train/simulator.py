@@ -11,10 +11,6 @@ class Simulator:
         self._timestep = None
         self._scores = None
 
-    @property
-    def timestep(self):
-        return self._timestep
-
     def __call__(self, timesteps):
         self._timestep = 0
         self._scores = []
@@ -35,17 +31,15 @@ class Simulator:
     def _episode(self, env, policy):
         score = 0
         policy.start_episode(self._training)
-        reward, observation = 0, env.reset()
+        observation = env.reset()
         # while self._test_step < self._test_steps:
-        while True:
-            action = policy.observe(reward, observation)
+        while observation is not None:
+            action = policy.step(observation)
             successor, reward = env.step(action)
             self._timestep += 1
             score += reward
             if self._training:
                 policy.experience(observation, action, reward, successor)
-            if successor is None:
-                break
             observation = successor
         policy.stop_episode()
         return score

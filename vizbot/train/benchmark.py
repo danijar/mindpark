@@ -87,15 +87,14 @@ class Benchmark:
     def _algorithm_config(self, algorithm_definition):
         config = algorithm_definition.type.defaults()
         if 'type' in config or 'name' in config:
-            print('Warning: Override reserved config keys.')
+            raise KeyError('reserved keys `type` or `name` in config')
         config.update(algorithm_definition)
         config = use_attrdicts(config)
         return config
 
     def _create_algorithm(self, type_, config, env_name):
         example_env = GymEnv(env_name)
-        algorithm = type_(
-            example_env.observations, example_env.actions, config)
+        algorithm = type_(example_env.interface, config)
         example_env.close()
         return algorithm
 
