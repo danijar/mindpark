@@ -67,7 +67,7 @@ class Benchmark:
         try:
             algorithm = self._create_algorithm(config.type, config, env)
             trainer = Trainer(
-                directory, env, algorithm, definition.epochs,
+                task, env, algorithm, definition.epochs,
                 config.train_steps, definition.test_steps, self._videos)
             for epoch, score in enumerate(trainer):
                 if not epoch:

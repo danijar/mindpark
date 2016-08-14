@@ -1,26 +1,29 @@
+from vizbot.core import Simulator
 from vizbot.train.gym_env import GymEnv
-from vizbot.train.simulator import Simulator
 from vizbot.utility import ensure_directory
 
 
 class Trainer:
 
-    def __init__(self, directory, env_name, algorithm,
-                 epochs, train_steps, test_steps, videos=10):
-        if directory:
-            ensure_directory(directory)
-        self._directory = directory
-        self._algorithm = algorithm
-        self._epochs = epochs
-        self._videos = directory and videos
+    # TODO: Move remaining logic into Benchmark class.
+
+    def __init__(self, task, algo_cls, algo_config, videos=10):
+        self._task = task
+        if self._task.directory:
+            ensure_directory(self._task.directory)
+        self._algorithm = algo_cls(self._task, algo_config)
+        self._videos = self._task.directory and videos
         self._video = None
-        self._envs = [self._create_env(env_name, True)]
-        for _ in algorithm.train_policies:
-            self._envs.append(self._create_env(env_name, False))
+        self._envs = [self._create_env(self._task.env_name, True)]
+        for _ in self._algorithm.train_policies:
+            self._envs.append(self._create_env(self._task.env_name, False))
         self._test = Simulator(
-            self._envs[:1], [algorithm.test_policy], test_steps, False)
+            self._envs[:1], [self._algorithm.test_policy],
+            self._task.test_steps, False)
         self._train = Simulator(
-            self._envs[1:], algorithm.train_policies, train_steps, True)
+            self._envs[1:], self._algorithm.train_policies,
+            task.timesteps // self._epochs, True,
+            lambda x: self._task.set_timestep(x))
 
     def __iter__(self):
         for epoch in range(self._epochs + 1):
@@ -34,15 +37,7 @@ class Trainer:
 
     @property
     def timestep(self):
-        return self._train.timestep
-
-    def close(self):
-        for policy in self._algorithm.train_policies:
-            policy.close()
-        self._algorithm.test_policy.close()
-        self._algorithm.close()
-        for env in self._envs:
-            env.close()
+        return self._task.timestep
 
     def _create_env(self, env_name, monitoring):
         directory = monitoring and self._directory

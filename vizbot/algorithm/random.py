@@ -1,17 +1,15 @@
-from vizbot.core import Algorithm
-from vizbot.step import Random as Policy
+from vizbot.core import Algorithm, Policy
 
 
-class Random(Algorithm):
+class Random(Algorithm, Policy):
 
-    def __init__(self, interface, config):
-        super().__init__(interface, config)
-        self._policy = Policy(self.interface)
+    def __init__(self, task, config):
+        Algorithm.__init__(self, task, config)
+        Policy.__init__(self, task.interface)
 
-    @property
-    def train_policies(self):
-        return [self._policy]
+    def step(self, observation):
+        return self.actions.sample()
 
     @property
-    def test_policy(self):
-        return self._policy
+    def policy(self):
+        return self

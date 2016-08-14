@@ -47,9 +47,10 @@ class DQN(Algorithm, Policy):
         sync_target = 10000
         return merge_dicts(super().defaults(), locals())
 
-    def __init__(self, interface, config):
-        super().__init__(interface, config)
-        self._preprocessing = self._create_preprocesses()
+    def __init__(self, task, config):
+        Algorithm.__init__(self, task, config)
+        self._preprocess = self._create_preprocess()
+        Policy.__init__(self, self._preprocess.interface)
         self.config.start_learning = int(float(self.config.start_learning))
         # Network.
         self._model = Model(self._create_network)
@@ -60,17 +61,9 @@ class DQN(Algorithm, Policy):
         # Learning.
         self._memory = Experience(int(float(config.replay_capacity)))
         self._learning_rate = Decay(
-            float(config.initial_learning_rate), 0, self._trainer.timesteps)
+            float(config.initial_learning_rate), 0, self.task.timesteps)
         self._costs = None
         self._maxqs = None
-
-    @property
-    def train_policies(self):
-        return [self]
-
-    @property
-    def test_policy(self):
-        return self
 
     def start_epoch(self):
         super().start_epoch()
@@ -83,8 +76,8 @@ class DQN(Algorithm, Policy):
             print('Cost {:8.3f}'.format(sum(self._costs) / len(self._costs)))
         if self._maxqs:
             print('MaxQ {:8.3f}'.format(sum(self._maxqs) / len(self._maxqs)))
-        if self._trainer.directory:
-            self._model.save(self._trainer.directory, 'model')
+        if self.task.directory:
+            self._model.save(self.task.directory, 'model')
 
     def step(self, observation):
         action, value = self._model.compute(
@@ -110,28 +103,36 @@ class DQN(Algorithm, Policy):
             'cost', state=state, action=action, target=target)
         self._costs.append(cost)
 
-    def _create_preprocesses(self):
-        steps = Sequential(self.interface)
+    @property
+    def policy(self):
+        policy = Sequential(self.task.interface)
+        policy.add(self._preprocess)
+        policy.add(self)
+        return policy
+
+    def _create_preprocess(self):
+        policy = Sequential(self.task.interface)
         if self.config.history:
-            steps.add(Grayscale)
-        steps.add(Subsample, self.config.subsample)
-        steps.add(Maximum, 2)
+            policy.add(Grayscale)
+        subsample = self.config.subsample
+        policy.add(Subsample, (subsample, subsample, 1))
+        policy.add(Maximum, 2)
         if self.config.frame_skip:
-            steps.add(Skip, self.config.frame_skip)
+            policy.add(Skip, self.config.frame_skip)
         if self.config.history:
-            steps.add(History, self.config.history)
-        steps.add(NormalizeReward)
+            policy.add(History, self.config.history)
+        policy.add(NormalizeReward)
         if self.config.delta:
-            steps.add(Delta)
-        steps.add(Normalize)
-        steps.add(NormalizeReward)
-        steps.add(
+            policy.add(Delta)
+        policy.add(Normalize)
+        policy.add(NormalizeReward)
+        policy.add(
             EpsilonGreedy, self.config.epsilon_from, self.config.epsilon_to,
             self.config.epsilon_after, self.config.epsilon_to)
-        return steps
+        return policy
 
     def _create_network(self, model):
-        observations, actions = self._preprocessing.interface
+        observations, actions = self._preprocess.interface
         # Percetion.
         state = model.add_input('state', self.observations.shape)
         hidden = getattr(networks, self.config.network)(model, state)

@@ -21,9 +21,3 @@ class Env:
         the episode.
         """
         raise NotImplementedError
-
-    def close(self):
-        """
-        Optional hook for cleanup before the object gets destoyed.
-        """
-        pass
