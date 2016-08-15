@@ -21,6 +21,7 @@ class Definition:
         cls._validate_definition(definition)
         return definition
 
+    @classmethod
     def _load_envs(cls, envs):
         available_envs = [x.id for x in gym.envs.registry.all()]
         for env in envs:
@@ -28,6 +29,7 @@ class Definition:
                 raise KeyError('unknown env name {}'.format(env))
             yield env
 
+    @classmethod
     def _load_algorithm(cls, config):
         if not hasattr(vizbot.algorithm, config.type):
             message = 'unknown algorithm type {}'
@@ -48,6 +50,7 @@ class Definition:
         config.update(defaults)
         return use_attrdicts(config)
 
+    @classmethod
     def _validate_definition(cls, definition):
         names = [x.name for x in definition.algorithms]
         if len(set(names)) < len(names):

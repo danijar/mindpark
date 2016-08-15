@@ -84,7 +84,7 @@ def flatten(collection):
     return collection[:1] + flatten(collection[1:])
 
 
-def dump_yaml(self, data, *path):
+def dump_yaml(data, *path):
     def convert(obj):
         if isinstance(obj, dict):
             obj = {k: v for k, v in obj.items() if not k.startswith('_')}
@@ -100,7 +100,7 @@ def dump_yaml(self, data, *path):
         yaml.safe_dump(convert(data), file_, default_flow_style=False)
 
 
-def print_headline(self, *message, style='-', minwidth=40):
+def print_headline(*message, style='-', minwidth=40):
     message = ' '.join(message)
     width = max(minwidth, len(message))
     print('\n' + style * width)

@@ -1,8 +1,5 @@
-import os
-import re
 import traceback
-import gym
-from vizbot.core import Task, Simulator
+from vizbot.core import Simulator
 from vizbot.utility import dump_yaml, print_headline
 from vizbot.train.gym_env import GymEnv
 
@@ -12,31 +9,25 @@ class Job:
     MESSAGE_BEFORE = 'Before training average score {:.2f}'
     MESSAGE_EPOCH = 'Epoch {} timestep {} average score {:.2f}'
 
-    def __init__(self, experiment, env_name, algo_conf, repeat, definition,
-                 videos):
-        directory = self._task_directory(
-            experiment, env_name, algo_conf.name, repeat, definition.repeats)
-        interface = self._determine_interface(env_name)
-        train_steps = definition.epochs * algo_conf.train_steps
-        test_steps = definition.epochs * definition.test_steps
-        self._definition = definition
-        self._test = Task(interface, test_steps, directory)
-        self._train = Task(interface, train_steps, directory)
+    def __init__(self, train_task, test_task, env_name, algo_conf, definition,
+                 prefix, videos):
+        self._train = train_task
+        self._test = test_task
         self._env_name = env_name
-        self.algo_conf = algo_conf
+        self._algo_conf = algo_conf
+        self._definition = definition
         self._videos = videos
-        self._prefix = '{} on {} ({}):'.format(
-            self.algo_conf.name, self._env_name, repeat)
+        self._video = 0
         self._envs = []
 
     def __call__(self, lock):
         with lock:
             print_headline(self._prefix, 'Start job')
         self._train.directory and dump_yaml(
-            self.algo_conf, self._train.directory, 'algorithm.yaml')
+            self._algo_conf, self._train.directory, 'algorithm.yaml')
         try:
-            algorithm, test, train = self._start_job()
-            self._run_job(algorithm, test, train)
+            algorithm, test, train = self._start()
+            self._execute(algorithm, test, train)
         except Exception as e:
             with lock:
                 print(self._prefix, 'Failed due to exception:')
@@ -46,8 +37,8 @@ class Job:
         for env in self._envs:
             env.close()
 
-    def _start_job(self):
-        algorithm = self.algo_conf.type(self._train, self.algo_conf)
+    def _start(self):
+        algorithm = self._algo_conf.type(self._train, self._algo_conf)
         test = Simulator(
             self._test,
             self._create_env(self._test.directory),
@@ -61,7 +52,7 @@ class Job:
             True)
         return algorithm, test, train
 
-    def _run_job(self, algorithm, test, train):
+    def _execute(self, algorithm, test, train):
         algorithm.begin_epoch(0)
         score = test(1 / self._definition.epochs)
         algorithm.end_epoch()
@@ -88,19 +79,3 @@ class Job:
             return False
         self._video += 1
         return True
-
-    @staticmethod
-    def _determine_interface(env_name):
-        env = gym.make(env_name)
-        interface = env.observation_space, env.action_space
-        env.close()
-        return interface
-
-    @staticmethod
-    def _task_directory(experiment, env_name, algo_name, repeat, repeats):
-        if not experiment:
-            return
-        template = '{{}}-{{:0>{}}}'.format(len(str(repeats - 1)))
-        name = '-'.join(re.findall(r'[a-z0-9]+', algo_name.lower()))
-        directory = experiment, env_name, template.format(name, repeat)
-        return os.path.join(*directory)

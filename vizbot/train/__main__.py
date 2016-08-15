@@ -2,6 +2,7 @@ import sys
 import argparse
 import logging
 from vizbot.utility import color_stack_trace
+from vizbot.train.benchmark import Benchmark
 
 
 def parse_args():
@@ -39,7 +40,6 @@ def parse_args():
 def main():
     sys.excepthook = color_stack_trace
     args = parse_args()
-    from vizbot.train import Benchmark
     benchmark = Benchmark(
         args.directory if not args.dry_run else None,
         args.parallel, args.videos, not args.quiet)
