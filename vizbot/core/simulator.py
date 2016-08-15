@@ -3,55 +3,55 @@ from threading import Thread
 
 class Simulator:
 
-    def __init__(self, task, envs, policies):
+    """
+    Process a task by simulating one or more policies on one environment each.
+    If multiple policies are provided, they will be simluated in parallel.
+    """
+
+    def __init__(self, task, envs, policies, training):
         if len(envs) != len(policies):
             ValueError('must provide one policy for each env')
+        if not all(self.task.interface == x.interface for x in envs):
+            ValueError('envs must match the task interface')
         self.task = task
         self.envs = envs
         self.policies = policies
+        self.training = training
 
-    def __iter__(self):
-        yield self._simulate(training=False)
-        for epoch in range(self.task.epochs + 1):
-            self.task.epoch += 1
-            self._simulate(training=True)
-            yield self._simulate(training=False)
-
-    def _simulate(self, training):
+    def __call__(self, fraction=1):
+        """
+        Simulate the task. Optionally, simulate only the next approximate
+        fraction of the whole task.
+        """
+        if self.task.step >= self.task.steps:
+            raise RuntimeError('task is already done')
         scores = []
         threads = []
+        target = min(self.step + fraction * self.steps, self.steps)
         for env, policy in zip(self.envs, self.policies):
-            args = env, policy, training, scores
+            args = target, env, policy, scores
             threads.append(Thread(target=self._worker, args=args))
         for thread in threads:
             thread.start()
         for thread in threads:
             thread.join()
-        return sum(scores) / len(scores)
+        return sum(scores) / len(scores) if scores else None
 
-    def _worker(self, env, policy, training, scores):
-        if training:
-            timestep = self.task.train_step
-            timesteps = self.task.train_steps * self.task.epoch
-        else:
-            timestep = self.task.test_step
-            timesteps = self.task.test_steps * (self.task.epoch + 1)
-        while timestep < timesteps:
-            score = self._episode(env, policy, training)
+    def _worker(self, target, env, policy, scores):
+        while self.task.step < target:
+            score = self._episode(env, policy)
             scores.append(score)
 
-    def _episode(self, env, policy, training):
+    def _episode(self, env, policy):
         score = 0
-        policy.begin_episode(training)
+        policy.begin_episode(self._training)
         observation = env.reset()
         while observation is not None:
             action = policy.step(observation)
             reward, successor = env.step(action)
-            if training:
+            if self._training:
                 policy.experience(observation, action, reward, successor)
-                self.task.train_step += 1
-            else:
-                self.task.test_step += 1
+            self.task.step += 1
             score += reward
             observation = successor
         policy.end_episode()

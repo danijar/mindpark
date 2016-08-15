@@ -5,11 +5,11 @@ from vizbot.utility import Decay
 class EpsilonGreedy(Policy):
 
     def __init__(self, interface,
-                 start=1, stop=0.1, over=100, test=0.1, after=0):
+                 from_=1, to=0.1, test=0.05, over=100, offset=0):
         super().__init__(interface)
-        self._after = after
+        self._offset = offset
         self._test = test
-        self._probability = Decay(start, stop, over)
+        self._probability = Decay(from_, to, over)
 
     @property
     def interface(self):
@@ -18,7 +18,7 @@ class EpsilonGreedy(Policy):
     def step(self, observation):
         super().step(observation)
         if self.training:
-            timestep = max(0, self.timestep - self._after)
+            timestep = max(0, self.timestep - self._offset)
             epsilon = self._probability(timestep)
         else:
             epsilon = self._test

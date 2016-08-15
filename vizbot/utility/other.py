@@ -4,6 +4,7 @@ import errno
 import functools
 import os
 import sys
+import yaml
 
 
 def ensure_directory(directory):
@@ -81,3 +82,27 @@ def flatten(collection):
     if isinstance(collection[0], list):
         return flatten(collection[0]) + flatten(collection[1:])
     return collection[:1] + flatten(collection[1:])
+
+
+def dump_yaml(self, data, *path):
+    def convert(obj):
+        if isinstance(obj, dict):
+            obj = {k: v for k, v in obj.items() if not k.startswith('_')}
+            return {convert(k): convert(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [convert(x) for x in obj]
+        if isinstance(obj, type):
+            return obj.__name__
+        return obj
+    filename = os.path.join(*path)
+    ensure_directory(os.path.dirname(filename))
+    with open(filename, 'w') as file_:
+        yaml.safe_dump(convert(data), file_, default_flow_style=False)
+
+
+def print_headline(self, *message, style='-', minwidth=40):
+    message = ' '.join(message)
+    width = max(minwidth, len(message))
+    print('\n' + style * width)
+    print(message)
+    print(style * width + '\n')

@@ -24,34 +24,36 @@ class DQN(Algorithm, Policy):
 
     @classmethod
     def defaults(cls):
-        # Preprocesses.
+        # Preprocessing.
         subsample = 2
         frame_skip = 4
         history = 4
         delta = False
-        # Exploration.
-        epsilon_from = 1.0
-        epsilon_to = 0.1
-        epsilon_duration = 1e6
-        test_epsilon = 0.05
-        # Learning.
+        # Architecture.
         network = 'network_dqn_2015'
         replay_capacity = 2e5  # 1e6
-        epsilon_after = 5e4
         start_learning = 5e4
+        # Exploration.
+        epsilon = dict(
+            from_=1.0, to=0.1, test=0.05, over=1e6, offset=start_learning)
+        # Learning.
         batch_size = 32
+        sync_target = 10000
+        # Optimizer.
         initial_learning_rate = 2.5e-4
         optimizer = tf.train.RMSPropOptimizer
         rms_decay = 0.99
         rms_epsilon = 0.1
-        sync_target = 10000
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, task, config):
         Algorithm.__init__(self, task, config)
         self._preprocess = self._create_preprocess()
         Policy.__init__(self, self._preprocess.interface)
+        # Parse parameters (until YAML 1.2 support).
         self.config.start_learning = int(float(self.config.start_learning))
+        self.config.epsilon = {
+            k: float(v) for k, v in self.config.epsilon.items()}
         # Network.
         self._model = Model(self._create_network)
         self._target = Model(self._create_network)
