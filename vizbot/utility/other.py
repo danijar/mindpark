@@ -105,4 +105,4 @@ def print_headline(*message, style='-', minwidth=40):
     width = max(minwidth, len(message))
     print('\n' + style * width)
     print(message)
-    print(style * width + '\n')
+    print(style * width + '\n', flush=True)

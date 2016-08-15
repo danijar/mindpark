@@ -18,14 +18,12 @@ class Benchmark:
     statistics and recordings in the experiment directory.
     """
 
-    def __init__(self, directory=None, parallel=1, videos=False,
-                 stacktraces=True):
+    def __init__(self, directory=None, parallel=1, videos=False):
         if directory:
             directory = os.path.abspath(os.path.expanduser(directory))
         self._directory = directory
         self._parallel = parallel
         self._videos = videos
-        self._stacktraces = stacktraces
         self._lock = Lock()
 
     def __call__(self, definition):
@@ -36,7 +34,7 @@ class Benchmark:
         jobs = self._create_jobs(experiment, definition)
         with ThreadPoolExecutor(max_workers=self._parallel) as executor:
             for job in jobs:
-                executor.submit(job.__call__, args=(self._lock,))
+                executor.submit(job, self._lock)
         duration = round((time.time() - start) / 3600, 1)
         self._log_finish(experiment, duration)
 
@@ -62,13 +60,14 @@ class Benchmark:
         directory = self._task_directory(
             experiment, env_name, algo_conf.name, repeat, definition.repeats)
         interface = self._determine_interface(env_name)
-        test = Task(
-            interface, definition.epochs * definition.test_steps, directory)
+        epochs = definition.epochs
         train = Task(
-            interface, definition.epochs * algo_conf.train_steps, directory)
+            interface, epochs * algo_conf.train_steps, directory)
+        test = Task(
+            interface, (epochs + 1) * definition.test_steps, directory)
         prefix = '{} on {} ({}):'.format(algo_conf.name, env_name, repeat)
         return Job(
-            test, train, env_name, algo_conf, definition, prefix, self._videos)
+            train, test, env_name, algo_conf, definition, prefix, self._videos)
 
     def _start_experiment(self, definition):
         print_headline('Start experiment', style='=')

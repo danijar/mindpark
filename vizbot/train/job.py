@@ -7,7 +7,7 @@ from vizbot.train.gym_env import GymEnv
 class Job:
 
     MESSAGE_BEFORE = 'Before training average score {:.2f}'
-    MESSAGE_EPOCH = 'Epoch {} timestep {} average score {:.2f}'
+    MESSAGE_EPOCH = 'Epoch {} timestep {} average score {}'
 
     def __init__(self, train_task, test_task, env_name, algo_conf, definition,
                  prefix, videos):
@@ -16,6 +16,7 @@ class Job:
         self._env_name = env_name
         self._algo_conf = algo_conf
         self._definition = definition
+        self._prefix = prefix
         self._videos = videos
         self._video = 0
         self._envs = []
@@ -26,43 +27,45 @@ class Job:
         self._train.directory and dump_yaml(
             self._algo_conf, self._train.directory, 'algorithm.yaml')
         try:
-            algorithm, test, train = self._start()
-            self._execute(algorithm, test, train)
+            algorithm, train, test = self._start()
+            self._execute(algorithm, train, test)
         except Exception as e:
             with lock:
                 print(self._prefix, 'Failed due to exception:')
                 print(e)
-            if self._stacktraces:
                 traceback.print_exc()
         for env in self._envs:
             env.close()
 
     def _start(self):
         algorithm = self._algo_conf.type(self._train, self._algo_conf)
-        test = Simulator(
-            self._test,
-            self._create_env(self._test.directory),
-            algorithm.test_policy,
-            False)
         train_policies = algorithm.train_policies
         train = Simulator(
             self._train,
             [self._create_env() for _ in train_policies],
             train_policies,
             True)
-        return algorithm, test, train
+        test = Simulator(
+            self._test,
+            [self._create_env(self._test.directory)],
+            [algorithm.test_policy],
+            False)
+        return algorithm, train, test
 
-    def _execute(self, algorithm, test, train):
+    def _execute(self, algorithm, train, test):
+        epochs = self._definition.epochs
+        test_steps = self._test.steps / (epochs + 1)
+        train_steps = self._train.steps / epochs
         algorithm.begin_epoch(0)
-        score = test(1 / self._definition.epochs)
+        score = test(test_steps)
         algorithm.end_epoch()
         print(self._prefix, self.MESSAGE_BEFORE.format(score))
-        for epoch in range(1, self.task.epochs + 1):
+        for epoch in range(1, epochs + 1):
             algorithm.begin_epoch(epoch)
-            train(1 / self._definition.epochs)
-            score = test(1 / self._definition.epochs)
+            train(epoch * train_steps - self._train.step)
+            score = test((epoch + 1) * test_steps - self._test.step)
             algorithm.end_epoch()
-            args = epoch, self._train.step, score
+            args = epoch, self._train.step, score and round(score, 2)
             print(self._prefix, self.MESSAGE_EPOCH.format(*args))
 
     def _create_env(self, directory=None):

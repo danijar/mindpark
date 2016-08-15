@@ -1,6 +1,6 @@
 experiment: test
 epochs: 2
-test_steps: 100
+test_steps: 1000
 repeats: 1
 envs:
   - Pong-v0

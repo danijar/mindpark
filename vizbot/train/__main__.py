@@ -29,10 +29,6 @@ def parse_args():
         '-v', '--videos', type=nearest_int,
         help='if and how many videos to capture per testing phase',
         default=1)
-    parser.add_argument(
-        '-q', '--quiet', action='store_true',
-        help='do not print stack traces for exceptions raised in agents',
-        default=False)
     args = parser.parse_args()
     return args
 
@@ -42,7 +38,7 @@ def main():
     args = parse_args()
     benchmark = Benchmark(
         args.directory if not args.dry_run else None,
-        args.parallel, args.videos, not args.quiet)
+        args.parallel, args.videos)
     logging.getLogger('gym').setLevel(logging.WARNING)
     benchmark(args.definition)
 

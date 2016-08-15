@@ -11,24 +11,21 @@ class Simulator:
     def __init__(self, task, envs, policies, training):
         if len(envs) != len(policies):
             ValueError('must provide one policy for each env')
-        if not all(self.task.interface == x.interface for x in envs):
+        if not all(task.interface == x.interface for x in envs):
             ValueError('envs must match the task interface')
-        self.task = task
-        self.envs = envs
-        self.policies = policies
-        self.training = training
+        self._task = task
+        self._envs = envs
+        self._policies = policies
+        self._training = training
 
-    def __call__(self, fraction=1):
+    def __call__(self, amount):
         """
-        Simulate the task. Optionally, simulate only the next approximate
-        fraction of the whole task.
+        Simulate approximately the specified amount of time steps of the task.
+        Return the average score. If the task is already done, return None.
         """
-        if self.task.step >= self.task.steps:
-            raise RuntimeError('task is already done')
-        scores = []
-        threads = []
-        target = min(self.step + fraction * self.steps, self.steps)
-        for env, policy in zip(self.envs, self.policies):
+        threads, scores = [], []
+        target = min(self._task.step + amount, self._task.steps)
+        for env, policy in zip(self._envs, self._policies):
             args = target, env, policy, scores
             threads.append(Thread(target=self._worker, args=args))
         for thread in threads:
@@ -38,7 +35,7 @@ class Simulator:
         return sum(scores) / len(scores) if scores else None
 
     def _worker(self, target, env, policy, scores):
-        while self.task.step < target:
+        while self._task.step < target:
             score = self._episode(env, policy)
             scores.append(score)
 
@@ -51,7 +48,7 @@ class Simulator:
             reward, successor = env.step(action)
             if self._training:
                 policy.experience(observation, action, reward, successor)
-            self.task.step += 1
+            self._task.step += 1
             score += reward
             observation = successor
         policy.end_episode()
