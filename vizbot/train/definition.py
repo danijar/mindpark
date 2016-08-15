@@ -47,8 +47,8 @@ class Definition:
         for key in config:
             if key not in defaults and key not in reserved:
                 raise KeyError("unknown key '{}' in config".format(key))
-        config.update(defaults)
-        return use_attrdicts(config)
+        defaults.update(config)
+        return use_attrdicts(defaults)
 
     @classmethod
     def _validate_definition(cls, definition):

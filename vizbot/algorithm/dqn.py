@@ -31,7 +31,7 @@ class DQN(Algorithm, Policy):
         delta = False
         # Architecture.
         network = 'network_dqn_2015'
-        replay_capacity = 2e5  # 1e6
+        replay_capacity = 1e5  # 1e6
         start_learning = 5e4
         # Exploration.
         epsilon = dict(
@@ -63,17 +63,17 @@ class DQN(Algorithm, Policy):
         # Learning.
         self._memory = Experience(int(float(config.replay_capacity)))
         self._learning_rate = Decay(
-            float(config.initial_learning_rate), 0, self.task.timesteps)
+            float(config.initial_learning_rate), 0, self.task.steps)
         self._costs = None
         self._maxqs = None
 
-    def start_epoch(self):
-        super().start_epoch()
+    def begin_epoch(self, epoch):
+        super().begin_epoch(epoch)
         self._costs = []
         self._maxqs = []
 
-    def stop_epoch(self):
-        super().stop_epoch()
+    def end_epoch(self):
+        super().end_epoch()
         if self._costs:
             print('Cost {:8.3f}'.format(sum(self._costs) / len(self._costs)))
         if self._maxqs:
@@ -128,9 +128,7 @@ class DQN(Algorithm, Policy):
             policy.add(Delta)
         policy.add(Normalize)
         policy.add(NormalizeReward)
-        policy.add(
-            EpsilonGreedy, self.config.epsilon_from, self.config.epsilon_to,
-            self.config.epsilon_after, self.config.epsilon_to)
+        policy.add(EpsilonGreedy, **self.config.epsilon)
         return policy
 
     def _create_network(self, model):
