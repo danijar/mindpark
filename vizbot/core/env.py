@@ -1,12 +1,17 @@
-class Env:
+from abc import ABC, abstractmethod
+
+
+class Env(ABC):
 
     @property
+    @abstractmethod
     def interface(self):
         """
         A tuple of the observation space and the action space.
         """
         raise NotImplementedError
 
+    @abstractmethod
     def reset(self):
         """
         Initialize or reinitialize the environment. Return an initial
@@ -14,6 +19,7 @@ class Env:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def step(self, action):
         """
         Apply the action and simulate one time step in the environment. Return

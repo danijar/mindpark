@@ -1,7 +1,15 @@
-from vizbot.step.identity import Identity
+from vizbot.core import Policy
 
 
-class ClampReward(Identity):
+class ClampReward(Policy):
+
+    @property
+    def interface(self):
+        return self.observations, self.actions
+
+    def observe(self, observation):
+        super().observe(observation)
+        return self.above.observe(observation)
 
     def receive(self, reward, final):
         reward = max(0, min(reward, 1))

@@ -8,7 +8,11 @@ class Random(Algorithm, Policy):
         Policy.__init__(self, self.task.interface)
 
     def observe(self, observation):
+        super().observe(observation)
         return self.actions.sample()
+
+    def receive(self, reward, final):
+        super().receive(reward, final)
 
     @property
     def policy(self):

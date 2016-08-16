@@ -1,15 +1,15 @@
 import numpy as np
 import tensorflow as tf
-from vizbot.core import Algorithm, Sequential, Policy
+from vizbot.core import Algorithm, Sequential
 from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.step import (
     Grayscale, Subsample, Maximum, Skip, History, Normalize, ClampReward,
-    Delta, EpsilonGreedy, Identity)
-from vizbot.utility import Experience, Decay, Every, merge_dicts
+    Delta, EpsilonGreedy, Experience)
+from vizbot.utility import Experience as Memory, Decay, Every, merge_dicts
 
 
-class DQN(Algorithm, Policy):
+class DQN(Algorithm, Experience):
 
     """
     Algorithm: Deep Q-Network (DQN)
@@ -18,7 +18,7 @@ class DQN(Algorithm, Policy):
     PDF: https://goo.gl/Y3e373
 
     TODO:
-    - Idle for no_op_max=30 timesteps at the beginning of each episode.
+    - Noop up to no_op_max=30 env steps during evaluation.
     - Use RMSProp parameters from the paper.
     """
 
@@ -29,6 +29,7 @@ class DQN(Algorithm, Policy):
         frame_skip = 4
         history = 4
         delta = False
+        frame_max = 0
         # Architecture.
         network = 'network_dqn_2015'
         replay_capacity = 1e5  # 1e6
@@ -38,7 +39,7 @@ class DQN(Algorithm, Policy):
             from_=1.0, to=0.1, test=0.05, over=1e6, offset=start_learning)
         # Learning.
         batch_size = 32
-        sync_target = 10000
+        sync_target = 2500
         # Optimizer.
         initial_learning_rate = 2.5e-4
         optimizer = tf.train.RMSPropOptimizer
@@ -49,7 +50,7 @@ class DQN(Algorithm, Policy):
     def __init__(self, task, config):
         Algorithm.__init__(self, task, config)
         self._preprocess = self._create_preprocess()
-        Policy.__init__(self, self._preprocess.interface)
+        Experience.__init__(self, self._preprocess.interface)
         # Parse parameters (until YAML 1.2 support).
         self.config.start_learning = int(float(self.config.start_learning))
         self.config.epsilon = {
@@ -61,7 +62,7 @@ class DQN(Algorithm, Policy):
         self._sync_target = Every(config.sync_target, config.start_learning)
         # print(str(self._model))
         # Learning.
-        self._memory = Experience(int(float(config.replay_capacity)))
+        self._memory = Memory(int(float(config.replay_capacity)))
         self._learning_rate = Decay(
             float(config.initial_learning_rate), 0, self.task.steps)
         self._costs = None
@@ -81,7 +82,7 @@ class DQN(Algorithm, Policy):
         if self.task.directory:
             self._model.save(self.task.directory, 'model')
 
-    def step(self, observation):
+    def perform(self, observation):
         action, value = self._model.compute(
             ('action', 'value'), state=observation)
         if not self.training:
@@ -89,7 +90,6 @@ class DQN(Algorithm, Policy):
         return action
 
     def experience(self, observation, action, reward, successor):
-        assert self.observations.contains(observation)
         self._memory.append((observation, action, reward, successor))
         if len(self._memory) == 1:
             self._log_memory_size()
@@ -98,10 +98,10 @@ class DQN(Algorithm, Policy):
         observation, action, reward, successor = \
             self._memory.sample(self.config.batch_size)
         target = self._compute_target(reward, successor)
-        if self._sync_target(self.timestep):
+        if self._sync_target(self.step):
             self._target.weights = self._model.weights
         self._model.set_option(
-            'learning_rate', self._learning_rate(self.timestep))
+            'learning_rate', self._learning_rate(self.task.step))
         cost = self._model.train(
             'cost', state=observation, action=action, target=target)
         self._costs.append(cost)
@@ -115,13 +115,13 @@ class DQN(Algorithm, Policy):
 
     def _create_preprocess(self):
         policy = Sequential(self.task.interface)
-        policy.add(Identity)
         if self.config.history:
             policy.add(Grayscale)
         amount = (self.config.subsample, self.config.subsample)
         amount = amount if self.config.history else amount + (1,)
         policy.add(Subsample, amount)
-        policy.add(Maximum, 2)
+        if self.config.frame_max:
+            policy.add(Maximum, self.config.frame_max)
         if self.config.frame_skip:
             policy.add(Skip, self.config.frame_skip)
         if self.config.history:
@@ -159,9 +159,11 @@ class DQN(Algorithm, Policy):
     def _compute_target(self, reward, successor):
         terminal = np.isnan(successor.reshape((len(successor), -1))).any(1)
         successor = np.nan_to_num(successor)
+        assert np.isfinite(successor).all()
         future = self._target.compute('value', state=successor)
         future[terminal] = 0
         target = reward + self.config.discount * future
+        assert np.isfinite(target).all()
         return target
 
     def _log_memory_size(self):

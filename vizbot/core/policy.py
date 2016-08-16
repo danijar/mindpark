@@ -1,7 +1,8 @@
+from abc import ABC, abstractmethod
 import numpy as np
 
 
-class Policy:
+class Policy(ABC):
 
     """
     A behavior to interact with an environment. Call super when overriding
@@ -23,6 +24,7 @@ class Policy:
         self.training = None
         self.above = None
         self.step = None
+        self._observe_or_receive = True
 
     @property
     def interface(self):
@@ -58,6 +60,7 @@ class Policy:
         """
         self.training = None
 
+    @abstractmethod
     def observe(self, observation):
         """
         Process an observation. This includes to experience the last transition
@@ -65,7 +68,10 @@ class Policy:
         """
         assert self.observations.contains(observation)
         self.step = 0 if self.step is None else self.step + 1
+        assert self._observe_or_receive, 'must receive reward first'
+        self._observe_or_receive = False
 
+    @abstractmethod
     def receive(self, reward, final):
         """
         Receive a reward from the environment that will later by used to
@@ -73,3 +79,5 @@ class Policy:
         reward to the above policy where appropriate.
         """
         assert reward is not None
+        assert not self._observe_or_receive, 'must observe environment first'
+        self._observe_or_receive = True

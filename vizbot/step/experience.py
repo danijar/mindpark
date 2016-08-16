@@ -17,7 +17,8 @@ class Experience(Policy):
 
     def observe(self, observation):
         self._apply_experience(observation)
-        self._last_observation = observation
+        if self.training:
+            self._last_observation = observation
         super().observe(observation)
         action = self.perform(observation)
         self._last_action = action
@@ -46,8 +47,12 @@ class Experience(Policy):
         raise NotImplementedError
 
     def _apply_experience(self, successor):
-        if not self.training or self._last_observation is None:
+        if self._last_observation is None:
             return
+        assert self._last_observation is not None
+        assert self._last_action is not None
+        assert self._last_reward is not None
+        print(future)
         self.experience(
             self._last_observation, self._last_action,
             self._last_reward, successor)
