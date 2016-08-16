@@ -3,6 +3,6 @@ from vizbot.core import Policy
 
 class Random(Policy):
 
-    def step(self, observation):
-        super().step(observation)
+    def observe(self, observation):
+        super().observe(observation)
         return self.actions.sample()

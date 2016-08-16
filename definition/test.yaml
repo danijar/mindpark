@@ -7,23 +7,23 @@ envs:
   - Breakout-v0
 algorithms:
   -
-    name: DQN
-    type: DQN
-    train_steps: 200
-    epsilon:
-      from_: 1.0
-      to: 0.1
-      test: 0.05
-      over: 150
-      offset: 100
-    initial_learning_rate: 1e-3
-    start_learning: 80
-    sync_target: 50
-    replay_capacity: 90
-  -
     name: Random
     type: Random
     train_steps: 0
+#   -
+#     name: DQN
+#     type: DQN
+#     train_steps: 200
+#     epsilon:
+#       from_: 1.0
+#       to: 0.1
+#       test: 0.05
+#       over: 150
+#       offset: 100
+#     initial_learning_rate: 1e-3
+#     start_learning: 80
+#     sync_target: 50
+#     replay_capacity: 90
 #  -
 #    name: A3C
 #    type: A3C

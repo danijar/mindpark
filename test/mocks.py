@@ -10,7 +10,7 @@ class DurationEnv(core.Env):
 
     @property
     def interface(self):
-        return Box(0, 9, (8, 6, 3)), Discrete(3)
+        return Box(0, 4.2, (8, 6, 3)), Discrete(3)
 
     def reset(self):
         self.timestep = 0
@@ -27,14 +27,13 @@ class DurationEnv(core.Env):
 
 class Monitored(core.Policy):
 
-    def step(self, observation):
-        assert self.observations.contains(observation)
+    def observe(self, observation):
         self.observation = observation
-        return super().step(observation)
+        return super().observe(observation)
 
-    def experience(self, *transition):
-        self.transition = transition
-        super().experience(*transition)
+    def receive(self, reward, final):
+        self.reward = reward
+        super().receive(reward, final)
 
 
 class Sequential(Monitored, core.Sequential): pass

@@ -17,15 +17,15 @@ class Skip(Policy):
         super().begin_episode(training)
         self._reward = 0
 
-    def step(self, observation):
-        super().step(observation)
-        if not self.timestep % self._amount:
-            self._action = self.above.step(observation)
+    def observe(self, observation):
+        super().observe(observation)
+        if not self.step % self._amount:
+            self._action = self.above.observe(observation)
         return self._action
 
-    def experience(self, observation, action, reward, successor):
-        super().experience(observation, action, reward, successor)
+    def receive(self, reward, final):
+        super().receive(reward, final)
         self._reward += reward
-        if not self.timestep % self._amount or successor is None:
-            self.above.experience(observation, action, self._reward, successor)
+        if not self.step % self._amount or final:
+            self.above.receive(self._reward, final)
             self._reward = 0

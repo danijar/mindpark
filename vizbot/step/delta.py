@@ -1,9 +1,9 @@
 import numpy as np
 from gym.spaces import Box
-from vizbot.core import Policy
+from vizbot.step.identity import Identity
 
 
-class Delta(Policy):
+class Delta(Identity):
 
     def __init__(self, interface):
         super().__init__(interface)
@@ -20,15 +20,11 @@ class Delta(Policy):
         super().begin_episode(training)
         self._last = None
 
-    def step(self, observation):
-        super().step(observation)
+    def perform(self, observation):
+        super().perform(observation)
         if self._last is None:
             delta = self._empty
         else:
             delta = observation - self._last
         self._last = observation
-        return self.above.step(delta)
-
-    def experience(self, *transition):
-        super().experience(*transition)
-        self.above.experience(*transition)
+        return self.above.observe(delta)

@@ -21,7 +21,9 @@ class GymEnv(Env):
         return observation
 
     def step(self, action):
+        assert self.interface[1].contains(action)
         observation, reward, done, _ = self._env.step(action)
+        assert self.interface[0].contains(observation)
         if done:
             # May not be None if Gym aborted after too many time steps.
             observation = None

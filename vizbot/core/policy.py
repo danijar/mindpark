@@ -9,8 +9,8 @@ class Policy:
 
     The behavior can be partial and delegate decisions to the next policy. In
     this case, override `interface` and use `above` to access the next policy.
-    Consider forwarding calls to `step()` and `experience()` to the next
-    policy.
+    Consider forwarding observations from `perform()` to `above.observe()` and
+    rewards from `receive()` to `above.receive()`.
     """
 
     def __init__(self, interface):
@@ -18,13 +18,11 @@ class Policy:
         Construct a policy that interacts with an environment using the
         specified interface.
         """
-        observations, actions = interface
-        self.observations = observations
-        self.actions = actions
-        self.training = None
-        self.timestep = None
-        self.above = None
+        self.observations, self.actions = interface
         self.random = np.random.RandomState()
+        self.training = None
+        self.above = None
+        self.step = None
 
     @property
     def interface(self):
@@ -60,22 +58,18 @@ class Policy:
         """
         self.training = None
 
-    def step(self, observation):
+    def observe(self, observation):
         """
-        Receive an observation from the environment an choose an action to
-        perform next.
+        Process an observation. This includes to experience the last transition
+        and form an action.
         """
         assert self.observations.contains(observation)
-        if self.timestep is None:
-            self.timestep = 0
-        elif self.training:
-            self.timestep += 1
+        self.step = 0 if self.step is None else self.step + 1
 
-    def experience(self, observation, action, reward, successor):
+    def receive(self, reward, final):
         """
-        Optional hook to process the current transition. Successor is None when
-        the episode ended after the reward. All other arguments are never None.
-        When overriding, do not forget to forward the experience of terminal
-        states, where `successor` is None.
+        Receive a reward from the environment that will later by used to
+        experience the current transition. Preprocesses should forward the
+        reward to the above policy where appropriate.
         """
-        assert all(x is not None for x in (observation, action, reward))
+        assert reward is not None

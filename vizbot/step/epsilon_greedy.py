@@ -15,17 +15,18 @@ class EpsilonGreedy(Policy):
     def interface(self):
         return self.observations, self.actions
 
-    def step(self, observation):
-        super().step(observation)
+    def observe(self, observation):
+        super().observe(observation)
         if self.training:
-            timestep = max(0, self.timestep - self._offset)
-            epsilon = self._probability(timestep)
+            step = max(0, self.step - self._offset)
+            epsilon = self._probability(step)
         else:
             epsilon = self._test
         if self.random.rand() < epsilon:
             return self.actions.sample()
-        return self.above.step(observation)
+        return self.above.observe(observation)
+        print(observation.shape)
 
-    def experience(self, *transition):
-        super().experience(*transition)
-        self.above.experience(*transition)
+    def receive(self, reward, final):
+        super().receive(reward, final)
+        self.above.receive(reward, final)

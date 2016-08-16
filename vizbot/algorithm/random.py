@@ -7,7 +7,7 @@ class Random(Algorithm, Policy):
         Algorithm.__init__(self, task, config)
         Policy.__init__(self, self.task.interface)
 
-    def step(self, observation):
+    def observe(self, observation):
         return self.actions.sample()
 
     @property

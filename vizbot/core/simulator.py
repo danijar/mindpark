@@ -44,12 +44,10 @@ class Simulator:
         policy.begin_episode(self._training)
         observation = env.reset()
         while observation is not None:
-            action = policy.step(observation)
-            reward, successor = env.step(action)
-            if self._training:
-                policy.experience(observation, action, reward, successor)
+            action = policy.observe(observation)
+            reward, observation = env.step(action)
+            policy.receive(reward, observation is None)
             self._task.step += 1
             score += reward
-            observation = successor
         policy.end_episode()
         return score

@@ -21,14 +21,16 @@ class History(Policy):
         high = self._repeat(self.observations.high)
         return Box(low, high), self.actions
 
-    def step(self, observation):
-        super().step(observation)
+    def observe(self, observation):
+        super().observe(observation)
         self._push(observation)
-        return self.above.step(self._history())
+        observation = self._history()
+        assert self.interface[0].contains(observation)
+        return self.above.observe(observation)
 
-    def experience(self, *transition):
-        super().experience(*transition)
-        self.above.experience(*transition)
+    def receive(self, reward, final):
+        super().receive(reward, final)
+        self.above.receive(reward, final)
 
     def _push(self, observation):
         self._buffer[self._offset % self._amount] = observation
@@ -37,8 +39,7 @@ class History(Policy):
     def _history(self):
         last = self._offset - self._amount
         order = [max(0, last + x) % self._amount for x in range(self._amount)]
-        assert len(order) == self._amount
         return np.moveaxis(self._buffer[order], 0, -1)
 
-    def _repeat(self, limit):
-        return np.ones(limit.shape + (self._amount,)) * limit[..., np.newaxis]
+    def _repeat(self, array):
+        return np.ones(array.shape + (self._amount,)) * array[..., np.newaxis]

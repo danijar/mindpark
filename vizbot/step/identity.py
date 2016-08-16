@@ -7,10 +7,12 @@ class Identity(Policy):
     def interface(self):
         return self.observations, self.actions
 
-    def step(self, observation):
-        super().step(observation)
-        return self.above.step(observation)
+    def observe(self, observation):
+        super().observe(observation)
+        action = self.above.observe(observation)
+        assert self.actions.contains(action)
+        return action
 
-    def experience(self, *transition):
-        super().experience(*transition)
-        self.above.experience(*transition)
+    def receive(self, reward, final):
+        super().receive(reward, final)
+        self.above.receive(reward, final)

@@ -74,7 +74,13 @@ def policy(request, interface):
     else:
         assert False
     policy.add(Random)
-    print('Steps:', ', '.join([type(x).__name__ for x in policy.steps]))
+    flat, steps = [], policy.steps[:]
+    while steps:
+        current = steps.pop(0)
+        flat.append(current)
+        if isinstance(current, Sequential):
+            steps = current.steps + steps
+    print('Steps:', ', '.join([type(x).__name__ for x in flat]))
     return policy
 
 
@@ -94,58 +100,57 @@ class TestSequential:
         with pytest.raises(RuntimeError):
             policy.add(Identity)
 
-    def test_experience_is_not_none(self, env, policy):
+    def test_reward_not_none(self, env, policy):
         policy.begin_episode(True)
         observation = env.reset()
         while observation is not None:
             for step in policy.steps:
-                if not step.timestep:
+                if not step.step:
                     continue
-                assert all(x is not None for x in step.transition)
-            action = policy.step(observation)
-            reward, successor = env.step(action)
-            policy.experience(observation, action, reward, successor)
-            observation = successor
+                assert step.reward is not None
+            action = policy.observe(observation)
+            reward, observation = env.step(action)
+            policy.receive(reward, observation is None)
         policy.end_episode()
 
-    def test_experience_last_transition(self, env, policy):
+    def test_receive_last_reward(self, env, policy):
         policy.begin_episode(True)
         observation = env.reset()
         while observation is not None:
-            action = policy.step(observation)
-            reward, successor = env.step(action)
+            action = policy.observe(observation)
+            reward, observation = env.step(action)
             for step in policy.steps:
-                step.transition = None
-            policy.experience(observation, action, reward, successor)
-            observation = successor
-        for step in policy.steps:
-            if step.timestep is None:
-                break
-            assert all(x is not None for x in step.transition[:-1])
-            assert step.transition[-1] is None
+                step.reward = None
+            policy.receive(reward, observation is None)
         policy.end_episode()
+        for step in policy.steps:
+            if step.step is None:
+                break
+            assert step.reward is not None
 
     def test_time_steps(self, env, policy):
         policy.begin_episode(True)
         timestep = 0
         observation = env.reset()
         while observation is not None:
-            action = policy.step(observation)
-            reward, successor = env.step(action)
-            policy.experience(observation, action, reward, successor)
-            observation = successor
-            timesteps, computeds = [], []
-            steps, computed = policy.steps[:], timestep
+            action = policy.observe(observation)
+            reward, observation = env.step(action)
+            policy.receive(reward, observation is None)
+            actual, references = [], []
+            reference = timestep
+            steps = policy.steps[:]
             while steps:
                 step = steps.pop(0)
-                if step.timestep is None:
+                if step.step is None:
                     break
-                timesteps.append(step.timestep)
-                computeds.append(computed)
-                if hasattr(step, '_amount'):
-                    computed = computed // step._amount
+                actual.append(step.step)
+                references.append(reference)
+                if isinstance(step, Skip):
+                    reference //= step._amount
                 if hasattr(step, 'steps'):
                     steps = step.steps + steps
-            assert timesteps == computeds
+            print('Actual:   ', actual)
+            print('Reference:', references)
+            assert actual == references
             timestep += 1
         policy.end_episode()

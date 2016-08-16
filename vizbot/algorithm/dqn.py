@@ -4,8 +4,8 @@ from vizbot.core import Algorithm, Sequential, Policy
 from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.step import (
-    Grayscale, Subsample, Maximum, Skip, History, Normalize, NormalizeReward,
-    Delta, EpsilonGreedy)
+    Grayscale, Subsample, Maximum, Skip, History, Normalize, ClampReward,
+    Delta, EpsilonGreedy, Identity)
 from vizbot.utility import Experience, Decay, Every, merge_dicts
 
 
@@ -88,13 +88,14 @@ class DQN(Algorithm, Policy):
             self._maxqs.append(value)
         return action
 
-    def experience(self, state, action, reward, successor):
-        self._memory.append((state, action, reward, successor))
+    def experience(self, observation, action, reward, successor):
+        assert self.observations.contains(observation)
+        self._memory.append((observation, action, reward, successor))
         if len(self._memory) == 1:
             self._log_memory_size()
         if len(self._memory) < self.config.start_learning:
             return
-        state, action, reward, successor = \
+        observation, action, reward, successor = \
             self._memory.sample(self.config.batch_size)
         target = self._compute_target(reward, successor)
         if self._sync_target(self.timestep):
@@ -102,7 +103,7 @@ class DQN(Algorithm, Policy):
         self._model.set_option(
             'learning_rate', self._learning_rate(self.timestep))
         cost = self._model.train(
-            'cost', state=state, action=action, target=target)
+            'cost', state=observation, action=action, target=target)
         self._costs.append(cost)
 
     @property
@@ -114,20 +115,21 @@ class DQN(Algorithm, Policy):
 
     def _create_preprocess(self):
         policy = Sequential(self.task.interface)
+        policy.add(Identity)
         if self.config.history:
             policy.add(Grayscale)
-        subsample = self.config.subsample
-        policy.add(Subsample, (subsample, subsample, 1))
+        amount = (self.config.subsample, self.config.subsample)
+        amount = amount if self.config.history else amount + (1,)
+        policy.add(Subsample, amount)
         policy.add(Maximum, 2)
         if self.config.frame_skip:
             policy.add(Skip, self.config.frame_skip)
         if self.config.history:
             policy.add(History, self.config.history)
-        policy.add(NormalizeReward)
         if self.config.delta:
             policy.add(Delta)
         policy.add(Normalize)
-        policy.add(NormalizeReward)
+        policy.add(ClampReward)
         policy.add(EpsilonGreedy, **self.config.epsilon)
         return policy
 

@@ -1,4 +1,5 @@
 from .identity import Identity
+from .filter import Filter
 from .maximum import Maximum
 from .delta import Delta
 from .grayscale import Grayscale
@@ -6,6 +7,7 @@ from .subsample import Subsample
 from .skip import Skip
 from .history import History
 from .normalize import Normalize
-from .normalize_reward import NormalizeReward
-from .random import Random
+from .clamp_reward import ClampReward
 from .epsilon_greedy import EpsilonGreedy
+from .random import Random
+from .experience import Experience

@@ -46,13 +46,13 @@ class Sequential(Policy):
         for policy in self.steps:
             policy.end_episode()
 
-    def step(self, observation):
-        super().step(observation)
-        return self._first.step(observation)
+    def observe(self, observation):
+        super().observe(observation)
+        return self._first.observe(observation)
 
-    def experience(self, *transition):
-        super().experience(*transition)
-        self._first.experience(*transition)
+    def receive(self, reward, final):
+        super().receive(reward, final)
+        self._first.receive(reward, final)
 
     @property
     def _first(self):
