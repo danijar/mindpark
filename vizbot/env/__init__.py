@@ -1,5 +1,5 @@
-from .simple_doom import SimpleDoom
 from gym.envs.registration import register
+from .simple_doom import SimpleDoom
 
 
 register(

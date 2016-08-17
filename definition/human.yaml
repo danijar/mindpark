@@ -4,7 +4,7 @@ test_steps: 1e6
 repeats: 1
 envs:
   - SimpleDeathmatch-v0
-agents:
+algorithms:
   -
     name: Human
     type: KeyboardDoom

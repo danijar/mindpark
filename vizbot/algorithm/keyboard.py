@@ -2,32 +2,27 @@ import time
 import collections
 import numpy as np
 import pyglet
-from vizbot.core import Agent
-from vizbot.preprocess import (
-    Grayscale, Downsample, FrameSkip, Delta, NormalizeImage, NormalizeReward)
-from vizbot.utility import AttrDict, clamp
+from vizbot.core import Algorithm, Policy, Sequential
+from vizbot.step import (
+    Grayscale, Subsample, Maximum, Skip, History, Normalize, ClampReward,
+    Delta, EpsilonGreedy)
+from vizbot.utility import AttrDict, merge_dicts
 
 
-class Keyboard(Agent):
+class Keyboard(Algorithm, Policy):
 
-    @staticmethod
-    def defaults():
-        fps = 30
+    @classmethod
+    def defaults(cls):
+        frameskip = 3
+        fps = 30 / frameskip
         sensitivity = 0.3
-        return locals()
+        return merge_dicts(super().defaults(), locals())
 
-    def __init__(self, trainer, config):
-        super().__init__(trainer, config)
-        trainer.add_preprocess(NormalizeReward)
-
-        # Network preprocessing.
-        # trainer.add_preprocess(NormalizeReward)
-        # trainer.add_preprocess(Grayscale)
-        # trainer.add_preprocess(Downsample, 2)
-        # trainer.add_preprocess(Delta)
-        # trainer.add_preprocess(FrameSkip, 3)
-
-        trainer.add_preprocess(NormalizeImage)
+    def __init__(self, task, config):
+        Algorithm.__init__(self, task, config)
+        self._preprocess = self._create_preprocess()
+        Policy.__init__(self, self._preprocess.interface)
+        print(self.observations.shape)
         self._viewer = Viewer(fps=self.config.fps)
         self._time = None
 
@@ -37,13 +32,14 @@ class Keyboard(Agent):
         except AttributeError:
             pass
 
-    def start_episode(self, training):
-        super().start_episode(training)
+    def begin_episode(self, training):
+        super().begin_episode(training)
         self._time = time.time()
 
-    def step(self, state):
-        self._viewer(state)
-        action = np.zeros(self.actions.n)
+    def observe(self, observation):
+        super().observe(observation)
+        self._viewer(observation)
+        action = np.zeros(self._preprocess.actions.n)
         action = self._apply_keyboard(action, self._viewer.pressed_keys())
         delta = self._viewer.delta()
         sensitivity = self.config.sensitivity
@@ -51,6 +47,32 @@ class Keyboard(Agent):
         action = self._apply_mouse(action, delta)
         action = action.argmax()
         return action
+
+    def receive(self, reward, final):
+        super().receive(reward, final)
+        if reward:
+            print('Receive reward', reward)
+
+    @property
+    def policy(self):
+        policy = Sequential(self.task.interface)
+        policy.add(self._preprocess)
+        policy.add(self)
+        return policy
+
+    def _create_preprocess(self):
+        policy = Sequential(self.task.interface)
+        # Network preprocessing.
+        # policy.add(Skip, self.config.frameskip)
+        # policy.add(Maximum, 2)
+        # policy.add(Grayscale)
+        # # policy.add(Subsample, (2, 2))
+        # # policy.add(Delta)
+        # policy.add(History, 3)
+        # policy.add(ClampReward)
+        # policy.add(EpsilonGreedy, from_=0.5, to=0.5, test=0.5)
+        policy.add(Normalize)
+        return policy
 
     def _apply_keyboard(self, action, pressed):
         return action
@@ -70,9 +92,6 @@ class KeyboardDoom(Keyboard):
 
     COMMANDS = ((
         'fire right left backward forward turn_left turn_right').split())
-
-    def __init__(self, trainer, config):
-        super().__init__(trainer, config)
 
     def _apply_keyboard(self, action, pressed):
         for key in pressed:

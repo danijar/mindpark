@@ -1,7 +1,7 @@
 import itertools
 import os
-import time
 import re
+import time
 from threading import Lock
 import gym
 from concurrent.futures import ThreadPoolExecutor

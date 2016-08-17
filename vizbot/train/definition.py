@@ -1,5 +1,7 @@
 import os
+import sys
 import yaml
+import vizbot.env  # Register custom envs.
 import gym
 import vizbot.algorithm
 from vizbot.utility import use_attrdicts
@@ -57,3 +59,5 @@ class Definition:
             raise KeyError('each algorithm must have an unique name')
         if not all(hasattr(x, 'train_steps') for x in definition.algorithms):
             raise KeyError('each algorithm must have a training duration')
+        if definition.epochs > 4 and not sys.flags.optimize:
+            raise KeyError('use optimize flag when running many epochs')

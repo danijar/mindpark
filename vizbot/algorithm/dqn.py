@@ -115,22 +115,23 @@ class DQN(Algorithm, Experience):
 
     def _create_preprocess(self):
         policy = Sequential(self.task.interface)
-        if self.config.history:
-            policy.add(Grayscale)
-        amount = (self.config.subsample, self.config.subsample)
-        amount = amount if self.config.history else amount + (1,)
-        policy.add(Subsample, amount)
-        if self.config.frame_max:
-            policy.add(Maximum, self.config.frame_max)
         if self.config.frame_skip:
             policy.add(Skip, self.config.frame_skip)
+        if self.config.frame_max:
+            policy.add(Maximum, self.config.frame_max)
         if self.config.history:
-            policy.add(History, self.config.history)
+            policy.add(Grayscale)
+        if self.config.subsample > 1:
+            sub = self.config.subsample
+            amount = (sub, sub) if self.config.history else (sub, sub, 1)
+            policy.add(Subsample, amount)
         if self.config.delta:
             policy.add(Delta)
-        policy.add(Normalize)
+        if self.config.history:
+            policy.add(History, self.config.history)
         policy.add(ClampReward)
         policy.add(EpsilonGreedy, **self.config.epsilon)
+        policy.add(Normalize)
         return policy
 
     def _create_network(self, model):
