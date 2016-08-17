@@ -1,11 +1,12 @@
-experiment: breakout-a3c
+experiment: pong-a3c
 epochs: 100
 test_steps: 4e4
 repeats: 3
 envs:
-  - Breakout-v0
+  - Pong-v0
 algorithms:
   -
     name: A3C
     type: A3C
     train_steps: 8e5
+    frame_skip: 2

@@ -1,11 +1,11 @@
 experiment: full
 epochs: 100
-test_steps: 1e4
+test_steps: 4e4
 repeats: 5
 envs:
   - Pong-v0
   - SimpleDeathmatch-v0
-agents:
+algorithms:
   -
     name: A3C
     type: A3C
@@ -13,7 +13,7 @@ agents:
   -
     name: DQN
     type: DQN
-    train_steps: 5e4
+    train_steps: 2e5
   -
     name: Random
     type: Random

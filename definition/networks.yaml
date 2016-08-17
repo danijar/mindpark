@@ -1,43 +1,43 @@
 experiment: networks
 epochs: 100
-test_steps: 1e5
+test_steps: 4e4
 repeats: 2
 envs:
   - Pong-v0
   - SimpleDeathmatch-v0
-agents:
+algorithms:
   -
     name: A3C (DRQN)
     type: A3C
-    network: 'network_drqn'
     train_steps: 8e5
+    network: 'network_drqn'
   -
     name: A3C (A3C-LSTM)
     type: A3C
-    network: 'network_a3c_lstm'
     train_steps: 8e5
+    network: 'network_a3c_lstm'
   -
     name: A3C (Doom L)
     type: A3C
-    network: 'network_doom_large'
     train_steps: 8e5
+    network: 'network_doom_large'
   -
     name: A3C (Minecraft S)
     type: A3C
-    network: 'network_minecraft_small'
     train_steps: 8e5
+    network: 'network_minecraft_small'
   -
     name: A3C (My FF 1)
     type: A3C
-    network: 'network_1'
     train_steps: 8e5
+    network: 'network_1'
   -
     name: A3C (My RNN 2)
     type: A3C
-    network: 'network_2'
     train_steps: 8e5
+    network: 'network_2'
   -
     name: A3C (My RNN 3)
     type: A3C
-    network: 'network_3'
     train_steps: 8e5
+    network: 'network_3'
