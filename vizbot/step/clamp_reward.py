@@ -12,5 +12,6 @@ class ClampReward(Policy):
         return self.above.observe(observation)
 
     def receive(self, reward, final):
+        super().receive(reward, final)
         reward = max(0, min(reward, 1))
         self.above.receive(reward, final)

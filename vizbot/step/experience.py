@@ -52,7 +52,6 @@ class Experience(Policy):
         assert self._last_observation is not None
         assert self._last_action is not None
         assert self._last_reward is not None
-        print(future)
         self.experience(
             self._last_observation, self._last_action,
             self._last_reward, successor)
