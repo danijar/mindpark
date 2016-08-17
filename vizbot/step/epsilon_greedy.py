@@ -14,6 +14,10 @@ class EpsilonGreedy(Experience):
     # TODO: Create a Schedule class to hold the parameters `from_`, `to`,
     # `over` and `offset`. There can also be a constant schedule.
 
+    # TODO: Forwarding experiences will not work if the above policy is a
+    # sequential policy wrapping an experience policy. A solution would be to
+    # make Sequential a factory returning the outermost policy.
+
     def __init__(self, interface,
                  from_=1, to=0.1, test=0.05, over=100, offset=0):
         super().__init__(interface)

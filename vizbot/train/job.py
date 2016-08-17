@@ -7,7 +7,7 @@ from vizbot.train.gym_env import GymEnv
 class Job:
 
     MESSAGE_BEFORE = 'Before training average score {:.2f}'
-    MESSAGE_EPOCH = 'Epoch {} timestep {} average score {}'
+    MESSAGE_EPOCH = 'Epoch {} step {} average score {}'
 
     def __init__(self, train_task, test_task, env_name, algo_conf, definition,
                  prefix, videos):
@@ -77,8 +77,8 @@ class Job:
     def _video_callback(self, ignore):
         if not self._videos:
             return False
-        every = self._test.timesteps / self._videos
-        if self._test.timestep < self._video * every:
+        every = self._test.steps / (self._definition.epochs + 1) / self._videos
+        if self._test.step < self._video * every:
             return False
         self._video += 1
         return True

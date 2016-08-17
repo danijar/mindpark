@@ -87,7 +87,7 @@ class Model:
     def add_cost(self, name, node):
         if not self._optimizer:
             raise RuntimeError('must set an optimizer before adding a cost')
-        node = tf.reduce_mean(node)
+        node = tf.reduce_sum(node)
         self._graph['cost/' + name] = node
         clip = self._clip_delta
         for gradient, variable in self._optimizer.compute_gradients(node):

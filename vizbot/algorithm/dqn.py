@@ -16,11 +16,10 @@ class DQN(Algorithm, Experience):
     Paper: Human-level control through deep reinforcement learning
     Authors: Mnih et al. 2015
     PDF: https://goo.gl/Y3e373
-
-    TODO:
-    - Noop up to no_op_max=30 env steps during evaluation.
-    - Use RMSProp parameters from the paper.
     """
+
+    # TODO: Skip up to 30 env steps. Not sure if only during evalution or also
+    # during training. Both seems like a good idea.
 
     @classmethod
     def defaults(cls):
@@ -29,7 +28,7 @@ class DQN(Algorithm, Experience):
         frame_skip = 4
         history = 4
         delta = False
-        frame_max = 0
+        frame_max = 2
         # Architecture.
         network = 'network_dqn_2015'
         replay_capacity = 1e5  # 1e6
@@ -43,7 +42,7 @@ class DQN(Algorithm, Experience):
         # Optimizer.
         initial_learning_rate = 2.5e-4
         optimizer = tf.train.RMSPropOptimizer
-        rms_decay = 0.99
+        rms_decay = 0.95
         rms_epsilon = 0.1
         return merge_dicts(super().defaults(), locals())
 

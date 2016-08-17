@@ -9,8 +9,7 @@ class GymEnv(Env):
         self._env = gym.make(env_name)
         self._directory = directory
         if self._directory:
-            # TODO: Try without resume.
-            self._env.monitor.start(self._directory, videos, resume=True)
+            self._env.monitor.start(self._directory, videos)
 
     @property
     def interface(self):
