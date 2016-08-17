@@ -2,7 +2,7 @@ import pytest
 from test.mocks import DurationEnv, Sequential, Identity, Skip, Random
 
 
-@pytest.fixture(params=[1, 2, 5, 21])
+@pytest.fixture(params=[1, 2, 17])
 def duration(request):
     return request.param
 

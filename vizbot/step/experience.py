@@ -1,4 +1,5 @@
 from vizbot.core import Policy
+from vizbot.core.policy import State
 
 
 class Experience(Policy):
@@ -52,6 +53,7 @@ class Experience(Policy):
         assert self._last_observation is not None
         assert self._last_action is not None
         assert self._last_reward is not None
+        assert self._state == State.received
         self.experience(
             self._last_observation, self._last_action,
             self._last_reward, successor)

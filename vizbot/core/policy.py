@@ -1,5 +1,17 @@
+from enum import Enum
 from abc import ABC, abstractmethod
 import numpy as np
+
+
+class State(Enum):
+    """
+    State of the policy. Only used for validation.
+    """
+    initial = 1
+    begin = 2
+    end = 3
+    observed = 4
+    received = 5
 
 
 class Policy(ABC):
@@ -24,7 +36,7 @@ class Policy(ABC):
         self.training = None
         self.above = None
         self.step = None
-        self._observe_or_receive = True
+        self._state = State.initial
 
     @property
     def interface(self):
@@ -52,12 +64,16 @@ class Policy(ABC):
         specifies whether the algorithm should learn during the episode or the
         algortihm is just evaluated.
         """
+        self._assert_state(State.initial, State.end)
+        self._state = State.begin
         self.training = training
 
     def end_episode(self):
         """
         Optional hook at the end of an episode.
         """
+        self._assert_state(State.begin, State.received)
+        self._state = State.end
         self.training = None
 
     @abstractmethod
@@ -66,10 +82,10 @@ class Policy(ABC):
         Process an observation. This includes to experience the last transition
         and form an action.
         """
+        self._assert_state(State.begin, State.received)
+        self._state = State.observed
         assert self.observations.contains(observation)
         self.step = 0 if self.step is None else self.step + 1
-        assert self._observe_or_receive, 'must receive reward first'
-        self._observe_or_receive = False
 
     @abstractmethod
     def receive(self, reward, final):
@@ -78,6 +94,14 @@ class Policy(ABC):
         experience the current transition. Preprocesses should forward the
         reward to the above policy where appropriate.
         """
+        self._assert_state(State.observed)
+        self._state = State.received
         assert reward is not None
-        assert not self._observe_or_receive, 'must observe environment first'
-        self._observe_or_receive = True
+
+    def _assert_state(self, *states):
+        if self._state in states:
+            return
+        message = "{} should be in {} but is in '{}'"
+        states = ' or '.join("'{}'".format(x.name) for x in states)
+        message = message.format(type(self).__name__, states, self._state.name)
+        raise RuntimeError(message)

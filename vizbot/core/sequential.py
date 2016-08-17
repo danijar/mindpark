@@ -42,9 +42,9 @@ class Sequential(Policy):
             policy.begin_episode(training)
 
     def end_episode(self):
-        super().end_episode()
-        for policy in self.steps:
+        for policy in reversed(self.steps):
             policy.end_episode()
+        super().end_episode()
 
     def observe(self, observation):
         super().observe(observation)

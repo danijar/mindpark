@@ -25,7 +25,6 @@ class History(Policy):
         super().observe(observation)
         self._push(observation)
         observation = self._history()
-        assert self.interface[0].contains(observation)
         return self.above.observe(observation)
 
     def receive(self, reward, final):

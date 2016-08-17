@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from vizbot.core import Task
 from vizbot.train.definition import Definition
 from vizbot.train.job import Job
-from vizbot.utility import print_headline
+from vizbot.utility import print_headline, dump_yaml
 
 
 class Benchmark:
@@ -41,7 +41,7 @@ class Benchmark:
     def _dump_definition(self, experiment, definition):
         if experiment:
             name = os.path.basename(experiment)
-            self._dump_yaml(definition, experiment, name + '.yaml')
+            dump_yaml(definition, experiment, name + '.yaml')
 
     def _log_finish(self, experiment, duration):
         message = 'Congratulations, benchmark finished after {} hours'
