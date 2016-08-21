@@ -1,15 +1,19 @@
-from vizbot.core import Policy
+from vizbot.core import Partial
 
 
-class ClampReward(Policy):
+class ClampReward(Partial):
 
     @property
-    def interface(self):
-        return self.observations, self.actions
+    def above_observs(self):
+        return self.task.observs
 
-    def observe(self, observation):
-        super().observe(observation)
-        return self.above.observe(observation)
+    @property
+    def above_actions(self):
+        return self.task.actions
+
+    def observe(self, observ):
+        super().observe(observ)
+        return self.above.observe(observ)
 
     def receive(self, reward, final):
         super().receive(reward, final)

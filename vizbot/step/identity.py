@@ -1,7 +1,7 @@
-from vizbot.core import Policy
+from vizbot.core import Partial
 
 
-class Identity(Policy):
+class Identity(Partial):
 
     """
     Do not inherit from this class when modifying the observations. You would
@@ -10,13 +10,17 @@ class Identity(Policy):
     """
 
     @property
-    def interface(self):
-        return self.observations, self.actions
+    def above_observs(self):
+        return self.task.observs
 
-    def observe(self, observation):
-        super().observe(observation)
-        action = self.above.observe(observation)
-        assert self.actions.contains(action)
+    @property
+    def above_actions(self):
+        return self.task.actions
+
+    def observe(self, observ):
+        super().observe(observ)
+        action = self.above.observe(observ)
+        assert self.task.actions.contains(action)
         return action
 
     def receive(self, reward, final):

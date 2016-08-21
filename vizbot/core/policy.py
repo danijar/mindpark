@@ -4,9 +4,11 @@ import numpy as np
 
 
 class State(Enum):
+
     """
     State of the policy. Only used for validation.
     """
+
     initial = 1
     begin = 2
     end = 3
@@ -17,52 +19,26 @@ class State(Enum):
 class Policy(ABC):
 
     """
-    A behavior to interact with an environment. Call super when overriding
-    methods.
-
-    The behavior can be partial and delegate decisions to the next policy. In
-    this case, override `interface` and use `above` to access the next policy.
-    Consider forwarding observations from `perform()` to `above.observe()` and
-    rewards from `receive()` to `above.receive()`.
+    A way to interact with an environment.
     """
 
-    def __init__(self, interface):
+    def __init__(self, task):
         """
-        Construct a policy that interacts with an environment using the
-        specified interface.
+        The task specifies the interface of the environment, a counter of the
+        underlying environment step, a directory to store logs and checkpoints,
+        and more.
         """
-        self.observations, self.actions = interface
+        self.task = task
         self.random = np.random.RandomState()
         self.training = None
-        self.above = None
         self.step = None
         self._state = State.initial
 
-    @property
-    def interface(self):
-        """
-        The interface for higher policies to interact with this one. The
-        interface is a tuple of the observation and the action space. For final
-        steps, the interface is None.
-        """
-        return None
-
-    def set_above(self, above):
-        """
-        The above policy will be set through this setter. Its observation and
-        action spaces will match the this policy's interface.
-        """
-        if self.interface is None:
-            raise RuntimeError('cannot set above of final policy')
-        assert self.interface[0] == above.observations
-        assert self.interface[1] == above.actions
-        self.above = above
-
-    def begin_episode(self, training):
+    def begin_episode(self, episode, training):
         """
         Optional hook at the beginning of an episode. The `training` parameter
-        specifies whether the algorithm should learn during the episode or the
-        algortihm is just evaluated.
+        specifies whether the policy should learn during the episode or is just
+        evaluated.
         """
         self._assert_state(State.initial, State.end)
         self._state = State.begin
@@ -77,22 +53,19 @@ class Policy(ABC):
         self.training = None
 
     @abstractmethod
-    def observe(self, observation):
+    def observe(self, observ):
         """
-        Process an observation. This includes to experience the last transition
-        and form an action.
+        Process an observation and return an action.
         """
         self._assert_state(State.begin, State.received)
         self._state = State.observed
-        assert self.observations.contains(observation)
+        assert self.task.observs.contains(observ)
         self.step = 0 if self.step is None else self.step + 1
 
     @abstractmethod
     def receive(self, reward, final):
         """
-        Receive a reward from the environment that will later by used to
-        experience the current transition. Preprocesses should forward the
-        reward to the above policy where appropriate.
+        Receive a reward from the environment.
         """
         self._assert_state(State.observed)
         self._state = State.received

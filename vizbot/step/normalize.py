@@ -3,7 +3,7 @@ from vizbot.step.filter import Filter
 
 class Normalize(Filter):
 
-    def filter(self, observation):
-        low, high = self.observations.low, self.observations.high
-        observation = (observation.astype(float) - low) / (high - low)
-        return observation
+    def filter(self, observ):
+        low, high = self.task.observs.low, self.task.observs.high
+        observ = (observ.astype(float) - low) / (high - low)
+        return observ

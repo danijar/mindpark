@@ -1,3 +1,6 @@
+from vizbot.utility import Counter
+
+
 class Task:
 
     """
@@ -6,8 +9,11 @@ class Task:
     maximum time steps, and a directory to store results like checkpoints in.
     """
 
-    def __init__(self, interface, steps, directory):
-        self.interface = interface
+    def __init__(
+            self, observs, actions, directory, steps, step=None, episode=None):
+        self.observs = observs
+        self.actions = actions
         self.steps = steps
         self.directory = directory
-        self.step = 0
+        self.step = step or Counter()
+        self.episode = episode or Counter()

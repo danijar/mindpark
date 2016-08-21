@@ -5,11 +5,19 @@ class Env(ABC):
 
     @property
     @abstractmethod
-    def interface(self):
+    def observs(self):
         """
-        A tuple of the observation space and the action space.
+        The observation space.
         """
-        raise NotImplementedError
+        pass
+
+    @property
+    @abstractmethod
+    def actions(self):
+        """
+        The observation space.
+        """
+        pass
 
     @abstractmethod
     def reset(self):
@@ -17,13 +25,13 @@ class Env(ABC):
         Initialize or reinitialize the environment. Return an initial
         observation.
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def step(self, action):
         """
         Apply the action and simulate one time step in the environment. Return
-        the next observation and reward. May return None as observation to stop
+        the reward and next observation. May return None as observation to stop
         the episode.
         """
-        raise NotImplementedError
+        pass

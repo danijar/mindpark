@@ -1,13 +1,13 @@
-from vizbot.core import Policy
+from vizbot.core import Partial
 
 
-class Skip(Policy):
+class Skip(Partial):
 
     # TODO: Have base class track both the global step and the step of the
     # current episode. How to name the properties?
 
-    def __init__(self, interface, amount=4):
-        super().__init__(interface)
+    def __init__(self, task, amount=4):
+        super().__init__(task)
         self._amount = amount
         self._action = None
         self._reward = None
@@ -16,20 +16,24 @@ class Skip(Policy):
         self._step = None
 
     @property
-    def interface(self):
-        return self.observations, self.actions
+    def above_observs(self):
+        return self.task.observs
 
-    def begin_episode(self, training):
-        super().begin_episode(training)
+    @property
+    def above_actions(self):
+        return self.task.actions
+
+    def begin_episode(self, episode, training):
+        super().begin_episode(episode, training)
         self._reward = 0
         self._step = None
 
-    def observe(self, observation):
+    def observe(self, observ):
         self._step = 0 if self._step is None else self._step + 1
-        super().observe(observation)
+        super().observe(observ)
         # Show observations of frames 0, n, 2n, etc.
         if not self._step % self._amount:
-            self._action = self.above.observe(observation)
+            self._action = self.above.observe(observ)
         return self._action
 
     def receive(self, reward, final):

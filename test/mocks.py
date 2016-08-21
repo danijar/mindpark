@@ -9,27 +9,31 @@ class DurationEnv(core.Env):
         self.timestep = None
 
     @property
-    def interface(self):
-        return Box(0, 4.2, (8, 6, 3)), Discrete(3)
+    def observs(self):
+        return Box(0, 4.2, (8, 6, 3))
+
+    @property
+    def actions(self):
+        return Discrete(3)
 
     def reset(self):
         self.timestep = 0
-        return self.interface[0].sample()
+        return self.observs.sample()
 
     def step(self, action):
         assert action is not None
-        assert self.interface[1].contains(action)
+        assert self.actions.contains(action)
         self.timestep += 1
         if self.timestep >= self.duration:
             return 0, None
-        return 0, self.interface[0].sample()
+        return 0, self.observs.sample()
 
 
 class Monitored(core.Policy):
 
-    def observe(self, observation):
-        self.observation = observation
-        return super().observe(observation)
+    def observe(self, observ):
+        self.observ = observ
+        return super().observe(observ)
 
     def receive(self, reward, final):
         self.reward = reward

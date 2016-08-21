@@ -12,8 +12,12 @@ class GymEnv(Env):
             self._env.monitor.start(self._directory, videos)
 
     @property
-    def interface(self):
-        return self._env.observation_space, self._env.action_space
+    def observs(self):
+        return self._env.observation_space
+
+    @property
+    def actions(self):
+        return self._env.action_space
 
     def reset(self):
         observation = self._env.reset()

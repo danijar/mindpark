@@ -1,25 +1,11 @@
 import pytest
-from test.mocks import DurationEnv, Sequential, Identity, Skip, Random
-
-
-@pytest.fixture(params=[1, 2, 17])
-def duration(request):
-    return request.param
-
-
-@pytest.fixture
-def env(duration):
-    return DurationEnv(duration)
-
-
-@pytest.fixture
-def interface(env):
-    return env.interface
+from test.mocks import Sequential, Identity, Skip, Random
+from test.fixtures import *
 
 
 @pytest.fixture(params=range(9))
-def policy(request, interface):
-    policy = Sequential(interface)
+def policy(request, task):
+    policy = Sequential(task)
     if request.param == 0:
         # Empty.
         pass
@@ -40,7 +26,7 @@ def policy(request, interface):
     elif request.param == 4:
         # Nested ones.
         policy.add(Skip, 2)
-        inner = Sequential(policy.interface)
+        inner = Sequential(policy.above_task)
         inner.add(Skip, 2)
         inner.add(Identity)
         policy.add(inner)
@@ -49,7 +35,7 @@ def policy(request, interface):
         # Nested.
         outer = policy
         for _ in range(5):
-            inner = Sequential(policy.interface)
+            inner = Sequential(policy.above_task)
             inner.add(Skip, 2)
             outer.add(inner)
             outer = inner
@@ -57,19 +43,19 @@ def policy(request, interface):
         # Nested empty.
         outer = policy
         for _ in range(5):
-            inner = Sequential(policy.interface)
+            inner = Sequential(policy.above_task)
             outer.add(inner)
             outer = inner
     elif request.param == 7:
         # Concatenated.
         for _ in range(5):
-            inner = Sequential(policy.interface)
+            inner = Sequential(policy.above_task)
             inner.add(Skip, 2)
             policy.add(inner)
     elif request.param == 8:
         # Concatenated empty.
         for _ in range(5):
-            inner = Sequential(policy.interface)
+            inner = Sequential(policy.above_task)
             policy.add(inner)
     else:
         assert False
@@ -86,42 +72,42 @@ def policy(request, interface):
 
 class TestSequential:
 
-    def test_add_type_args(self, interface):
-        policy = Sequential(interface)
+    def test_add_type_args(self, task):
+        policy = Sequential(task)
         policy.add(Skip, 42)
         assert policy.steps[-1]._amount == 42
         policy.add(Skip, amount=13)
         assert policy.steps[-1]._amount == 13
 
-    def test_need_interface_to_add(self, interface):
-        policy = Sequential(interface)
+    def test_need_interface_to_add(self, task):
+        policy = Sequential(task)
         policy.add(Skip, 42)
         policy.add(Random)
-        with pytest.raises(RuntimeError):
+        with pytest.raises(Exception):
             policy.add(Identity)
 
     def test_reward_not_none(self, env, policy):
-        policy.begin_episode(True)
-        observation = env.reset()
-        while observation is not None:
+        policy.begin_episode(0, True)
+        observ = env.reset()
+        while observ is not None:
             for step in policy.steps:
                 if not step.step:
                     continue
                 assert step.reward is not None
-            action = policy.observe(observation)
-            reward, observation = env.step(action)
-            policy.receive(reward, observation is None)
+            action = policy.observe(observ)
+            reward, observ = env.step(action)
+            policy.receive(reward, observ is None)
         policy.end_episode()
 
     def test_receive_last_reward(self, env, policy):
-        policy.begin_episode(True)
-        observation = env.reset()
-        while observation is not None:
-            action = policy.observe(observation)
-            reward, observation = env.step(action)
+        policy.begin_episode(0, True)
+        observ = env.reset()
+        while observ is not None:
+            action = policy.observe(observ)
+            reward, observ = env.step(action)
             for step in policy.steps:
                 step.reward = None
-            policy.receive(reward, observation is None)
+            policy.receive(reward, observ is None)
         policy.end_episode()
         for step in policy.steps:
             if step.step is None:
@@ -129,13 +115,13 @@ class TestSequential:
             assert step.reward is not None
 
     def test_time_steps(self, env, policy):
-        policy.begin_episode(True)
+        policy.begin_episode(0, True)
         timestep = 0
-        observation = env.reset()
-        while observation is not None:
-            action = policy.observe(observation)
-            reward, observation = env.step(action)
-            policy.receive(reward, observation is None)
+        observ = env.reset()
+        while observ is not None:
+            action = policy.observe(observ)
+            reward, observ = env.step(action)
+            policy.receive(reward, observ is None)
             actual, references = [], []
             reference = timestep
             steps = policy.steps[:]

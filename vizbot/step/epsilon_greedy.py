@@ -15,22 +15,25 @@ class EpsilonGreedy(Experience):
     # `over` and `offset`. There can also be a constant schedule.
 
     # TODO: Forwarding experiences will not work if the above policy is a
-    # sequential policy wrapping an experience policy. A solution would be to
-    # make Sequential a factory returning the outermost policy.
+    # sequential policy wrapping an experience policy.
 
-    def __init__(self, interface,
+    def __init__(self, task,
                  from_=1, to=0.1, test=0.05, over=100, offset=0):
-        super().__init__(interface)
+        super().__init__(task)
         self._offset = offset
         self._test = test
         self._probability = Decay(from_, to, over)
         self._was_greedy = None
 
     @property
-    def interface(self):
-        return self.observations, self.actions
+    def above_observs(self):
+        return self.task.observs
 
-    def perform(self, observation):
+    @property
+    def above_actions(self):
+        return self.task.actions
+
+    def perform(self, observ):
         if self.training:
             step = max(0, self.step - self._offset)
             epsilon = self._probability(step)
@@ -38,9 +41,9 @@ class EpsilonGreedy(Experience):
             epsilon = self._test
         if self.random.rand() <= epsilon:
             self._was_greedy = False
-            return self.actions.sample()
+            return self.task.actions.sample()
         self._was_greedy = True
-        return self.above.observe(observation)
+        return self.above.observe(observ)
 
     def receive(self, reward, final):
         super().receive(reward, final)

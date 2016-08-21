@@ -1,7 +1,8 @@
 import pytest
-from vizbot.core import Sequential
 import vizbot.step
-from test.mocks import DurationEnv, Random
+from vizbot.core import Sequential
+from test.mocks import Random
+from test.fixtures import *
 
 
 STEPS = [
@@ -14,23 +15,13 @@ def step(request):
     return getattr(vizbot.step, request.param)
 
 
-@pytest.fixture(params=(1, 2, 17))
-def env(request):
-    return DurationEnv(request.param)
-
-
 @pytest.fixture
-def interface(env):
-    return env.interface
-
-
-@pytest.fixture
-def policy(interface, step):
-    policy = Sequential(interface)
+def policy(task, step):
+    policy = Sequential(task)
     print('Step:  ', step.__name__)
-    print('Input: ', policy.interface[0])
+    print('Input: ', policy.task.observs)
     policy.add(step)
-    print('Output:', policy.interface[0])
+    print('Output:', policy.task.actions)
     policy.add(Random)
     return policy
 
@@ -38,12 +29,12 @@ def policy(interface, step):
 class TestStep:
 
     def test_spaces(self, env, policy):
-        # This tests the action and observation spaces since the mock env and
+        # This tests the action and observ spaces since the mock env and
         # the mock monitored random policy check them.
-        observation = env.reset()
-        policy.begin_episode(True)
-        while observation is not None:
-            action = policy.observe(observation)
-            reward, observation = env.step(action)
-            policy.receive(reward, observation is None)
+        observ = env.reset()
+        policy.begin_episode(0, True)
+        while observ is not None:
+            action = policy.observe(observ)
+            reward, observ = env.step(action)
+            policy.receive(reward, observ is None)
         policy.end_episode()

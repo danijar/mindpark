@@ -1,32 +1,36 @@
 import numpy as np
 from gym.spaces import Box
-from vizbot.core import Policy
+from vizbot.core import Partial
 
 
-class Delta(Policy):
+class Delta(Partial):
 
-    def __init__(self, interface):
-        super().__init__(interface)
+    def __init__(self, task):
+        super().__init__(task)
         self._last = None
-        self._empty = np.zeros(self.observations.shape)
+        self._empty = np.zeros(self.task.observs.shape)
 
     @property
-    def interface(self):
-        low = self.observations.low - self.observations.high
-        high = self.observations.high - self.observations.low
-        return Box(low, high), self.actions
+    def above_observs(self):
+        low = self.task.observs.low - self.task.observs.high
+        high = self.task.observs.high - self.task.observs.low
+        return Box(low, high)
 
-    def begin_episode(self, training):
-        super().begin_episode(training)
+    @property
+    def above_actions(self):
+        return self.task.actions
+
+    def begin_episode(self, episode, training):
+        super().begin_episode(episode, training)
         self._last = None
 
-    def observe(self, observation):
-        super().observe(observation)
+    def observe(self, observ):
+        super().observe(observ)
         if self._last is None:
             delta = self._empty
         else:
-            delta = observation - self._last
-        self._last = observation
+            delta = observ - self._last
+        self._last = observ
         return self.above.observe(delta)
 
     def receive(self, reward, final):

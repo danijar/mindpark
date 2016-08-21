@@ -11,8 +11,10 @@ class Simulator:
     def __init__(self, task, envs, policies, training):
         if len(envs) != len(policies):
             ValueError('must provide one policy for each env')
-        if not all(task.interface == x.interface for x in envs):
-            ValueError('envs must match the task interface')
+        if not all(task.observs == x.observs for x in envs):
+            ValueError('envs must match the task observation space')
+        if not all(task.actions == x.actions for x in envs):
+            ValueError('envs must match the task action space')
         self._task = task
         self._envs = envs
         self._policies = policies
@@ -41,13 +43,14 @@ class Simulator:
 
     def _episode(self, env, policy):
         score = 0
-        policy.begin_episode(self._training)
-        observation = env.reset()
-        while observation is not None:
-            action = policy.observe(observation)
-            reward, observation = env.step(action)
-            policy.receive(reward, observation is None)
-            self._task.step += 1
+        episode = self._task.episode.increment()
+        policy.begin_episode(episode, self._training)
+        observ = env.reset()
+        while observ is not None:
+            action = policy.observe(observ)
+            reward, observ = env.step(action)
+            policy.receive(reward, observ is None)
+            self._task.step.increment()
             score += reward
         policy.end_episode()
         return score
