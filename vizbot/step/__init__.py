@@ -8,6 +8,7 @@ from .skip import Skip
 from .history import History
 from .normalize import Normalize
 from .clamp_reward import ClampReward
+from .random_start import RandomStart
 from .epsilon_greedy import EpsilonGreedy
 from .random import Random
 from .experience import Experience

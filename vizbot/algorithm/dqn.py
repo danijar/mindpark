@@ -4,8 +4,8 @@ from vizbot.core import Algorithm, Sequential
 from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.step import (
-    Grayscale, Subsample, Maximum, Skip, History, Normalize, ClampReward,
-    Delta, EpsilonGreedy, Experience)
+    RandomStart, Grayscale, Subsample, Maximum, Skip, History, Normalize,
+    ClampReward, Delta, EpsilonGreedy, Experience)
 from vizbot.utility import Experience as Memory, Decay, Every, merge_dicts
 
 
@@ -18,9 +18,6 @@ class DQN(Algorithm, Experience):
     PDF: https://goo.gl/Y3e373
     """
 
-    # TODO: Skip up to 30 env steps. Not sure if only during evalution or also
-    # during training. Both seems like a good idea.
-
     @classmethod
     def defaults(cls):
         # Preprocessing.
@@ -29,6 +26,7 @@ class DQN(Algorithm, Experience):
         history = 4
         delta = False
         frame_max = 2
+        noop_max = 30
         # Architecture.
         network = 'network_dqn_2015'
         replay_capacity = 1e5  # 1e6
@@ -114,6 +112,8 @@ class DQN(Algorithm, Experience):
 
     def _create_preprocess(self):
         policy = Sequential(self.task)
+        if self.config.noop_max:
+            policy.add(RandomStart, self.config.noop_max)
         if self.config.frame_skip:
             policy.add(Skip, self.config.frame_skip)
         if self.config.frame_max:

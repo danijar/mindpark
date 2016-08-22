@@ -4,8 +4,8 @@ from vizbot.core import Algorithm, Policy, Sequential
 from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.step import (
-    Grayscale, Subsample, Maximum, Skip, History, Normalize, ClampReward,
-    Delta, Experience)
+    RandomStart, Grayscale, Subsample, Maximum, Skip, History, Normalize,
+    ClampReward, Delta, Experience)
 from vizbot.utility import AttrDict, Experience as Memory, Decay, merge_dicts
 
 
@@ -26,6 +26,7 @@ class A3C(Algorithm):
         history = 4
         delta = False
         frame_max = 2
+        noop_max = 30
         # Architecture.
         learners = 16
         apply_gradient = 5
@@ -120,6 +121,8 @@ class A3C(Algorithm):
 
     def _create_preprocess(self):
         policy = Sequential(self.task)
+        if self.config.noop_max:
+            policy.add(RandomStart, self.config.noop_max)
         if self.config.frame_skip:
             policy.add(Skip, self.config.frame_skip)
         if self.config.frame_max:
