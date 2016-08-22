@@ -1,19 +1,20 @@
-experiment: full
+experiment: breakout
 epochs: 100
 test_steps: 4e4
-repeats: 5
+repeats: 3
 envs:
   - Breakout-v0
-  - SimpleDeathmatch-v0
 algorithms:
   -
     name: A3C
     type: A3C
     train_steps: 8e5
+    frame_skip: 2
   -
     name: DQN
     type: DQN
     train_steps: 2e5
+    frame_skip: 2
   -
     name: Random
     type: Random

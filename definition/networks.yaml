@@ -3,7 +3,7 @@ epochs: 100
 test_steps: 4e4
 repeats: 2
 envs:
-  - Pong-v0
+  - Breakout-v0
   - SimpleDeathmatch-v0
 algorithms:
   -

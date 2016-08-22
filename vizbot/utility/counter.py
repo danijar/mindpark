@@ -22,6 +22,9 @@ class Counter:
                 self._value += 1
             return self.value
 
+    def __repr__(self):
+        return str(self.value)
+
     def __eq__(self, other):
         return self.value == other
 

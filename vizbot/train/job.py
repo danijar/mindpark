@@ -64,7 +64,7 @@ class Job:
     def _run_test(self):
         score = self._test()
         score = score and round(score, 2)
-        if self._task.test.epoch:
+        if self._task.test.epoch == 0:
             message = self.MESSAGE_BEFORE.format(score)
         else:
             args = self._task.epoch, self._task.train.step, score
