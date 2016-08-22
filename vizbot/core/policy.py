@@ -59,7 +59,9 @@ class Policy(ABC):
         """
         self._assert_state(State.begin, State.received)
         self._state = State.observed
-        assert self.task.observs.contains(observ)
+        if not self.task.observs.contains(observ):
+            message = '{} received an invalid observation'
+            raise ValueError(message.format(self))
         self.step = 0 if self.step is None else self.step + 1
 
     @abstractmethod
@@ -70,6 +72,9 @@ class Policy(ABC):
         self._assert_state(State.observed)
         self._state = State.received
         assert reward is not None
+
+    def __repr__(self):
+        return '<{}>'.format(type(self).__name__)
 
     def _assert_state(self, *states):
         if self._state in states:

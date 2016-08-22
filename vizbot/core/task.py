@@ -10,10 +10,16 @@ class Task:
     """
 
     def __init__(
-            self, observs, actions, directory, steps, step=None, episode=None):
+            self, observs, actions, directory, steps, epochs, training,
+            step=None, epoch=None, episode=None):
+        required = (observs, actions, steps, epochs, training)
+        assert all(x is not None for x in required)
         self.observs = observs
         self.actions = actions
-        self.steps = steps
         self.directory = directory
+        self.steps = steps
+        self.epochs = epochs
+        self.training = training
         self.step = step or Counter()
+        self.epoch = epoch or Counter()
         self.episode = episode or Counter()

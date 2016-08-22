@@ -9,6 +9,14 @@ class Experience(Partial):
         self._last_action = None
         self._last_reward = None
 
+    @property
+    def above_observs(self):
+        return None
+
+    @property
+    def above_actions(self):
+        return None
+
     def begin_episode(self, episode, training):
         super().begin_episode(episode, training)
         self._last_observ = None

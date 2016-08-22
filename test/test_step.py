@@ -28,9 +28,7 @@ def policy(task, step):
 
 class TestStep:
 
-    def test_spaces(self, env, policy):
-        # This tests the action and observ spaces since the mock env and
-        # the mock monitored random policy check them.
+    def test_no_error(self, env, policy):
         observ = env.reset()
         policy.begin_episode(0, True)
         while observ is not None:

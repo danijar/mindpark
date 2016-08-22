@@ -8,24 +8,29 @@ class Simulator:
     If multiple policies are provided, they will be simluated in parallel.
     """
 
-    def __init__(self, task, envs, policies, training):
-        if len(envs) != len(policies):
-            ValueError('must provide one policy for each env')
-        if not all(task.observs == x.observs for x in envs):
-            ValueError('envs must match the task observation space')
-        if not all(task.actions == x.actions for x in envs):
-            ValueError('envs must match the task action space')
+    def __init__(self, task, policies, envs):
         self._task = task
-        self._envs = envs
+        self._validate_input(policies, envs)
         self._policies = policies
-        self._training = training
+        self._envs = envs
 
-    def __call__(self, amount):
+    def __iter__(self):
+        while True:
+            score = self.__call__()
+            if score is None:
+                return
+            yield score
+
+    def __call__(self, epochs=None):
         """
-        Simulate approximately the specified amount of time steps of the task.
-        Return the average score. If the task is already done, return None.
+        Simulate on epoch of the task and return the average score. If the task
+        is already done, return None.
         """
+        if self._task.epoch >= self._task.epochs:
+            return None
+        self._task.epoch.increment()
         threads, scores = [], []
+        amount = self._task.steps / self._task.epochs
         target = min(self._task.step + amount, self._task.steps)
         for env, policy in zip(self._envs, self._policies):
             args = target, env, policy, scores
@@ -44,7 +49,7 @@ class Simulator:
     def _episode(self, env, policy):
         score = 0
         episode = self._task.episode.increment()
-        policy.begin_episode(episode, self._training)
+        policy.begin_episode(episode, self._task.training)
         observ = env.reset()
         while observ is not None:
             action = policy.observe(observ)
@@ -54,3 +59,11 @@ class Simulator:
             score += reward
         policy.end_episode()
         return score
+
+    def _validate_input(self, policies, envs):
+        if len(envs) != len(policies):
+            ValueError('must provide one policy for each env')
+        if not all(self._task.observs == x.observs for x in envs):
+            ValueError('envs must match the task observation space')
+        if not all(self._task.actions == x.actions for x in envs):
+            ValueError('envs must match the task action space')

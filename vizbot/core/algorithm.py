@@ -11,7 +11,6 @@ class Algorithm:
     def __init__(self, task, config):
         self.task = task
         self.config = use_attrdicts(config)
-        self.epoch = None
 
     @property
     def policy(self):
@@ -25,8 +24,8 @@ class Algorithm:
     def test_policy(self):
         return self.policy
 
-    def begin_epoch(self, epoch):
-        self.epoch = epoch
+    def begin_epoch(self):
+        pass
 
     def end_epoch(self):
         pass

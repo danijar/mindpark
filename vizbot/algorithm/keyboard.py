@@ -16,14 +16,14 @@ class Keyboard(Algorithm, Policy):
         frameskip = 3
         fps = 30 / frameskip
         sensitivity = 0.3
+        viewer = Viewer
         return merge_dicts(super().defaults(), locals())
 
     def __init__(self, task, config):
         Algorithm.__init__(self, task, config)
         self._preprocess = self._create_preprocess()
-        Policy.__init__(self, self._preprocess.interface)
-        print(self.observations.shape)
-        self._viewer = Viewer(fps=self.config.fps)
+        Policy.__init__(self, self._preprocess.above_task)
+        self._viewer = self.config.viewer(fps=self.config.fps)
         self._time = None
 
     def __del__(self):
@@ -32,14 +32,15 @@ class Keyboard(Algorithm, Policy):
         except AttributeError:
             pass
 
-    def begin_episode(self, training):
-        super().begin_episode(training)
+    def begin_episode(self, episode, training):
+        super().begin_episode(episode, training)
         self._time = time.time()
 
-    def observe(self, observation):
-        super().observe(observation)
-        self._viewer(observation)
-        action = np.zeros(self._preprocess.actions.n)
+    def observe(self, observ):
+        super().observe(observ)
+        actions = self._preprocess.above_task.actions
+        self._viewer(observ)
+        action = np.zeros(actions.n)
         action = self._apply_keyboard(action, self._viewer.pressed_keys())
         delta = self._viewer.delta()
         sensitivity = self.config.sensitivity
@@ -55,13 +56,13 @@ class Keyboard(Algorithm, Policy):
 
     @property
     def policy(self):
-        policy = Sequential(self.task.interface)
+        policy = Sequential(self.task)
         policy.add(self._preprocess)
         policy.add(self)
         return policy
 
     def _create_preprocess(self):
-        policy = Sequential(self.task.interface)
+        policy = Sequential(self.task)
         # Network preprocessing.
         # policy.add(Skip, self.config.frameskip)
         # policy.add(Maximum, 2)

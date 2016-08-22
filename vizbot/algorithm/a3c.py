@@ -57,7 +57,7 @@ class A3C(Algorithm):
             config = AttrDict(self.config.copy())
             model = Model(self._create_network, threads=1)
             model.weights = self.model.weights
-            policy = Sequential(self.task.interface)
+            policy = Sequential(self.task)
             policy.add(self._create_preprocess())
             policy.add(Train, config, self, model)
             trainers.append(policy)
@@ -65,13 +65,13 @@ class A3C(Algorithm):
 
     @property
     def test_policy(self):
-        policy = Sequential(self.task.interface)
+        policy = Sequential(self.task)
         policy.add(self._preprocess)
         policy.add(Test, self.model)
         return policy
 
-    def begin_epoch(self, epoch):
-        super().begin_epoch(epoch)
+    def begin_epoch(self):
+        super().begin_epoch()
         self.costs = []
         self.values = []
         self.choices = []
@@ -92,13 +92,14 @@ class A3C(Algorithm):
             self.model.save(self.task.directory, 'model')
 
     def _create_network(self, model):
-        observations, actions = self._preprocess.interface
+        observs = self._preprocess.above_task.observs
+        actions = self._preprocess.above_task.actions
         # Perception.
-        state = model.add_input('state', observations.shape)
+        state = model.add_input('state', observs.shape)
         hidden = getattr(networks, self.config.network)(model, state)
         value = model.add_output(
             'value', tf.squeeze(dense(hidden, 1, tf.identity), [1]))
-        policy = dense(value, self._preprocess.interface[1].n, tf.nn.softmax)
+        policy = dense(value, actions.n, tf.nn.softmax)
         model.add_output(
             'choice', tf.squeeze(tf.multinomial(tf.log(policy), 1), [1]))
         # Objectives.
@@ -118,7 +119,7 @@ class A3C(Algorithm):
         model.add_cost('cost', critic - actor)
 
     def _create_preprocess(self):
-        policy = Sequential(self.task.interface)
+        policy = Sequential(self.task)
         if self.config.frame_skip:
             policy.add(Skip, self.config.frame_skip)
         if self.config.frame_max:
@@ -140,41 +141,41 @@ class A3C(Algorithm):
 
 class Train(Experience):
 
-    def __init__(self, interface, config, master, model):
-        super().__init__(interface)
+    def __init__(self, task, config, master, model):
+        super().__init__(task)
         self._config = config
         self._master = master
         self._model = model
         self._batch = Memory(self._config.apply_gradient)
         self._context_last_batch = None
 
-    def begin_episode(self, training):
-        super().begin_episode(training)
+    def begin_episode(self, episode, training):
+        super().begin_episode(episode, training)
         self._context_last_batch = None
         if self._model.has_option('context'):
             self._model.reset_option('context')
 
-    def perform(self, observation):
+    def perform(self, observ):
         assert self.training
         choice, value = self._model.compute(
-            ('choice', 'value'), state=observation)
+            ('choice', 'value'), state=observ)
         self._master.choices.append(choice)
         self._master.values.append(value)
         return choice
 
-    def experience(self, observation, action, reward, successor):
-        self._batch.append((observation, action, reward, successor))
+    def experience(self, observ, action, reward, successor):
+        self._batch.append((observ, action, reward, successor))
         done = (successor is None)
         if not done and len(self._batch) < self._config.apply_gradient:
             return
         return_ = (
-            0 if done else self._model.compute('value', state=observation))
+            0 if done else self._model.compute('value', state=observ))
         self._train(self._batch.access(), return_)
         self._batch.clear()
         self._model.weights = self._master.model.weights
 
     def _train(self, transitions, return_):
-        observations, actions, rewards, _ = transitions
+        observs, actions, rewards, _ = transitions
         returns = self._compute_eligibilities(rewards, return_)
         self._decay_learning_rate()
         if self._model.has_option('context'):
@@ -184,7 +185,7 @@ class Train(Experience):
             else:
                 self._model.reset_option('context')
         delta, cost = self._model.delta(
-            'cost', action=actions, state=observations, return_=returns)
+            'cost', action=actions, state=observs, return_=returns)
         # self._log_gradient(delta)
         self._master.model.apply(delta)
         self._master.costs.append(cost)
@@ -213,19 +214,19 @@ class Train(Experience):
 
 class Test(Policy):
 
-    def __init__(self, interface, model):
-        super().__init__(interface)
+    def __init__(self, task, model):
+        super().__init__(task)
         self._model = model
 
-    def begin_episode(self, training):
-        super().begin_episode(training)
+    def begin_episode(self, episode, training):
+        super().begin_episode(episode, training)
         if self._model.has_option('context'):
             self._model.reset_option('context')
 
-    def observe(self, observation):
-        super().observe(observation)
+    def observe(self, observ):
+        super().observe(observ)
         assert not self.training
-        return self._model.compute('choice', state=observation)
+        return self._model.compute('choice', state=observ)
 
     def receive(self, reward, final):
         super().receive(reward, final)

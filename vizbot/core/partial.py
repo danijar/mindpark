@@ -21,7 +21,7 @@ class Partial(Policy):
         assert above is not None
         if not self.above_task:
             raise ValueError('cannot add to final policy')
-        self._validate_task(above.task)
+        self._validate_above(above)
         self.above = above
 
     @property
@@ -30,9 +30,19 @@ class Partial(Policy):
         The task for the above policy. Usually, you do not want to override
         this directly. Return None to indicate a full policy.
         """
+        assert (self.above_observs is None) == (self.above_actions is None)
+        if self.above_observs is None:
+            return None
         task = Task(
-            self.above_observs, self.above_actions, self.task.directory,
-            self.task.steps, self.task.step, self.task.episode)
+            self.above_observs,
+            self.above_actions,
+            self.task.directory,
+            self.task.steps,
+            self.task.epochs,
+            self.task.training,
+            self.task.step,
+            self.task.epoch,
+            self.task.episode)
         return task
 
     @property
@@ -56,10 +66,10 @@ class Partial(Policy):
             raise RuntimeError('must set above policy before simulation')
         super().begin_episode(episode, training)
 
-    def _validate_task(self, task):
-        if self.above_task.step is not task.step:
+    def _validate_above(self, above):
+        if self.above_task.step is not above.task.step:
             raise ValueError('above policy uses different step counter')
-        if self.above_task.observs != task.observs:
+        if self.above_task.observs != above.task.observs:
             raise ValueError('above policy expects different observations')
-        if self.above_task.actions != task.actions:
+        if self.above_task.actions != above.task.actions:
             raise ValueError('above policy expects different actions')

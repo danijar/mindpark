@@ -10,7 +10,8 @@ class DurationEnv(core.Env):
 
     @property
     def observs(self):
-        return Box(0, 4.2, (8, 6, 3))
+        # return Box(0, 4.2, (8, 6, 3))
+        return Box(0, 4.2, (80, 60, 3))
 
     @property
     def actions(self):
@@ -44,3 +45,21 @@ class Sequential(Monitored, core.Sequential): pass
 class Identity(Monitored, step.Identity): pass
 class Skip(Monitored, step.Skip): pass
 class Random(Monitored, step.Random): pass
+
+
+class MockViewer:
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+    def close(self):
+        pass
+
+    def pressed_keys(self):
+        return []
+
+    def delta(self):
+        return (0, 0)

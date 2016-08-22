@@ -6,9 +6,10 @@ from threading import Lock
 import gym
 from concurrent.futures import ThreadPoolExecutor
 from vizbot.core import Task
-from vizbot.train.definition import Definition
-from vizbot.train.job import Job
 from vizbot.utility import print_headline, dump_yaml
+from vizbot.train.definition import Definition
+from vizbot.train.bench_task import BenchTask
+from vizbot.train.job import Job
 
 
 class Benchmark:
@@ -59,15 +60,18 @@ class Benchmark:
     def _create_job(self, experiment, env_name, algo_conf, repeat, definition):
         directory = self._task_directory(
             experiment, env_name, algo_conf.name, repeat, definition.repeats)
-        interface = self._determine_interface(env_name)
-        epochs = definition.epochs
+        observs, actions = self._determine_interface(env_name)
         train = Task(
-            interface, epochs * algo_conf.train_steps, directory)
+            observs, actions, directory,
+            definition.epochs * algo_conf.train_steps,
+            definition.epochs, True)
         test = Task(
-            interface, (epochs + 1) * definition.test_steps, directory)
+            observs, actions, directory,
+            (definition.epochs + 1) * definition.test_steps,
+            definition.epochs + 1, False)
+        task = BenchTask(train, test)
         prefix = '{} on {} ({}):'.format(algo_conf.name, env_name, repeat)
-        return Job(
-            train, test, env_name, algo_conf, definition, prefix, self._videos)
+        return Job(task, env_name, algo_conf, prefix, self._videos)
 
     def _start_experiment(self, definition):
         print_headline('Start experiment', style='=')

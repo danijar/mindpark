@@ -62,6 +62,10 @@ class Sequential(Partial):
         super().receive(reward, final)
         self._first.receive(reward, final)
 
+    def __repr__(self):
+        steps = ', '.join([type(x).__name__ for x in self.steps])
+        return "<Sequential steps=[{}]>".format(steps)
+
     @property
     def _first(self):
         if self.steps:

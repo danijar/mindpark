@@ -49,7 +49,7 @@ class DQN(Algorithm, Experience):
     def __init__(self, task, config):
         Algorithm.__init__(self, task, config)
         self._preprocess = self._create_preprocess()
-        Experience.__init__(self, self._preprocess.interface)
+        Experience.__init__(self, self._preprocess.above_task)
         # Parse parameters (until YAML 1.2 support).
         self.config.start_learning = int(float(self.config.start_learning))
         self.config.epsilon = {
@@ -67,8 +67,8 @@ class DQN(Algorithm, Experience):
         self._costs = None
         self._maxqs = None
 
-    def begin_epoch(self, epoch):
-        super().begin_epoch(epoch)
+    def begin_epoch(self):
+        super().begin_epoch()
         self._costs = []
         self._maxqs = []
 
@@ -81,20 +81,20 @@ class DQN(Algorithm, Experience):
         if self.task.directory:
             self._model.save(self.task.directory, 'model')
 
-    def perform(self, observation):
+    def perform(self, observ):
         action, value = self._model.compute(
-            ('action', 'value'), state=observation)
+            ('action', 'value'), state=observ)
         if not self.training:
             self._maxqs.append(value)
         return action
 
-    def experience(self, observation, action, reward, successor):
-        self._memory.append((observation, action, reward, successor))
+    def experience(self, observ, action, reward, successor):
+        self._memory.append((observ, action, reward, successor))
         if len(self._memory) == 1:
             self._log_memory_size()
         if len(self._memory) < self.config.start_learning:
             return
-        observation, action, reward, successor = \
+        observ, action, reward, successor = \
             self._memory.sample(self.config.batch_size)
         target = self._compute_target(reward, successor)
         if self._sync_target(self.step):
@@ -102,18 +102,18 @@ class DQN(Algorithm, Experience):
         self._model.set_option(
             'learning_rate', self._learning_rate(self.task.step))
         cost = self._model.train(
-            'cost', state=observation, action=action, target=target)
+            'cost', state=observ, action=action, target=target)
         self._costs.append(cost)
 
     @property
     def policy(self):
-        policy = Sequential(self.task.interface)
+        policy = Sequential(self._preprocess.task)
         policy.add(self._preprocess)
         policy.add(self)
         return policy
 
     def _create_preprocess(self):
-        policy = Sequential(self.task.interface)
+        policy = Sequential(self.task)
         if self.config.frame_skip:
             policy.add(Skip, self.config.frame_skip)
         if self.config.frame_max:
@@ -134,15 +134,16 @@ class DQN(Algorithm, Experience):
         return policy
 
     def _create_network(self, model):
-        observations, actions = self._preprocess.interface
+        observs = self._preprocess.above_task.observs
+        actions = self._preprocess.above_task.actions
         # Percetion.
-        state = model.add_input('state', self.observations.shape)
+        state = model.add_input('state', observs.shape)
         hidden = getattr(networks, self.config.network)(model, state)
         values = dense(hidden, actions.n, tf.identity)
         values = model.add_output('values', values)
         # Outputs.
         action = model.add_input('action', type_=tf.int32)
-        action = tf.one_hot(action, self.actions.n)
+        action = tf.one_hot(action, actions.n)
         target = model.add_input('target')
         model.add_output('value', tf.reduce_max(values, 1))
         model.add_output('action', tf.argmax(values, 1))

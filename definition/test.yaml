@@ -7,13 +7,6 @@ envs:
   - Breakout-v0
 algorithms:
   -
-    name: A3C
-    type: A3C
-    learners: 4
-    initial_learning_rate: 1e-3
-    frame_skip: 2
-    train_steps: 400
-  -
     name: DQN
     type: DQN
     train_steps: 200
@@ -27,6 +20,13 @@ algorithms:
     start_learning: 80
     sync_target: 50
     replay_capacity: 90
+  -
+    name: A3C
+    type: A3C
+    learners: 2
+    initial_learning_rate: 1e-3
+    frame_skip: 2
+    train_steps: 400
   -
     name: Random
     type: Random
