@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from vizbot.core.policy import Policy
 from vizbot.core.task import Task
+from vizbot.utility import Proxy
 
 
 class Partial(Policy):
@@ -33,16 +34,9 @@ class Partial(Policy):
         assert (self.above_observs is None) == (self.above_actions is None)
         if self.above_observs is None:
             return None
-        task = Task(
-            self.above_observs,
-            self.above_actions,
-            self.task.directory,
-            self.task.steps,
-            self.task.epochs,
-            self.task.training,
-            self.task.step,
-            self.task.epoch,
-            self.task.episode)
+        task = Proxy(self.task)
+        task.observs = self.above_observs
+        task.actions = self.above_actions
         return task
 
     @property

@@ -1,6 +1,7 @@
 from enum import Enum
 from abc import ABC, abstractmethod
 import numpy as np
+from vizbot.utility import Proxy
 
 
 class State(Enum):
@@ -28,7 +29,7 @@ class Policy(ABC):
         underlying environment step, a directory to store logs and checkpoints,
         and more.
         """
-        self.task = task
+        self.task = Proxy(task)
         self.random = np.random.RandomState()
         self.training = None
         self.step = None

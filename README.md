@@ -75,6 +75,15 @@ algorithm will be stored along with its results.
 - PyYaml
 - Matplotlib
 
+## Development
+
+Run unit tests and integration test after changes.
+
+```shell
+python setup.py test
+python -m vizbot.train definition/test.py -x
+```
+
 ## Contact
 
 Feel free to reach out if you have any questions.

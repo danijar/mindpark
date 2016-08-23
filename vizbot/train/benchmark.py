@@ -8,7 +8,6 @@ from concurrent.futures import ThreadPoolExecutor
 from vizbot.core import Task
 from vizbot.utility import print_headline, dump_yaml
 from vizbot.train.definition import Definition
-from vizbot.train.bench_task import BenchTask
 from vizbot.train.job import Job
 
 
@@ -19,7 +18,7 @@ class Benchmark:
     statistics and recordings in the experiment directory.
     """
 
-    def __init__(self, directory=None, parallel=1, videos=False):
+    def __init__(self, directory=None, parallel=1, videos=0):
         if directory:
             directory = os.path.abspath(os.path.expanduser(directory))
         self._directory = directory
@@ -69,9 +68,8 @@ class Benchmark:
             observs, actions, directory,
             (definition.epochs + 1) * definition.test_steps,
             definition.epochs + 1, False)
-        task = BenchTask(train, test)
         prefix = '{} on {} ({}):'.format(algo_conf.name, env_name, repeat)
-        return Job(task, env_name, algo_conf, prefix, self._videos)
+        return Job(train, test, env_name, algo_conf, prefix, self._videos)
 
     def _start_experiment(self, definition):
         print_headline('Start experiment', style='=')

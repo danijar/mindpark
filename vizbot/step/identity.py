@@ -4,7 +4,7 @@ from vizbot.core import Partial
 class Identity(Partial):
 
     """
-    Do not inherit from this class when modifying the observations. You would
+    Do not inherit from this class. When modifying observations, you would
     either end up calling the above policy twice per time step, or not call the
     base policy class.
     """

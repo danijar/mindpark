@@ -50,6 +50,10 @@ class Simulator:
         score = 0
         episode = self._task.episode.increment()
         policy.begin_episode(episode, self._task.training)
+        # Other policies might run in parallel and update the episode counter
+        # in the background. For the policy to see its own episode in the task,
+        # we override the episode of this policy's task proxy.
+        policy.task.episode = episode
         observ = env.reset()
         while observ is not None:
             action = policy.observe(observ)
@@ -58,6 +62,8 @@ class Simulator:
             self._task.step.increment()
             score += reward
         policy.end_episode()
+        # We undo the episode override after the task finishes..
+        del policy.task.episode
         return score
 
     def _validate_input(self, policies, envs):
