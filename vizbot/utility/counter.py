@@ -39,3 +39,6 @@ class Counter:
 
     def __rtruediv__(self, other):
         return other / self.value
+
+    def __int__(self):
+        return self._value

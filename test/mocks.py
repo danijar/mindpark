@@ -32,7 +32,17 @@ class DurationEnv(core.Env):
 
 class Monitored(core.Policy):
 
+    def begin_episode(self, episode, training):
+        super().begin_episode(episode, training)
+        # Store primitive types so that we capture the actual value, not a
+        # reference to the possibly wrapping objects.
+        self.episode = int(self.task.episode)
+        self.training = bool(self.task.training)
+
     def observe(self, observ):
+        # Task show episode of this policies, even during parallel training.
+        assert self.task.episode == self.episode
+        assert self.task.training == self.training
         self.observ = observ
         return super().observe(observ)
 

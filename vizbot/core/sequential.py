@@ -24,6 +24,16 @@ class Sequential(Partial):
             policy.set_above(self.above)
 
     @property
+    def recursive_steps(self):
+        flat, steps = [], self.steps[:]
+        while steps:
+            current = steps.pop(0)
+            flat.append(current)
+            if isinstance(current, Sequential):
+                steps = current.steps + steps
+        return flat
+
+    @property
     def above_task(self):
         if not self.steps:
             return self.task
