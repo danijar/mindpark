@@ -51,10 +51,20 @@ class Monitored(core.Policy):
         super().receive(reward, final)
 
 
-class Sequential(Monitored, core.Sequential): pass
-class Identity(Monitored, step.Identity): pass
-class Skip(Monitored, step.Skip): pass
-class Random(Monitored, step.Random): pass
+class Sequential(Monitored, core.Sequential):
+    pass
+
+
+class Identity(Monitored, step.Identity):
+    pass
+
+
+class Skip(Monitored, step.Skip):
+    pass
+
+
+class Random(Monitored, step.Random):
+    pass
 
 
 class MockViewer:

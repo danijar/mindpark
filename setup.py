@@ -6,7 +6,7 @@ import setuptools
 
 PACKAGES = ['vizbot']
 SETUP_REQUIRES = ['Sphinx']
-INSTALL_REQUIRES = ['numpy', 'matplotlib', 'gym']
+INSTALL_REQUIRES = ['numpy', 'matplotlib', 'gym', 'sqlalchemy']
 
 
 class Command(setuptools.Command):
@@ -47,15 +47,18 @@ class TestCommand(Command):
 
     requires = ['pytest', 'pytest-cov'] + INSTALL_REQUIRES
     description = 'run tests and create a coverage report'
-    user_options = [('args=', None, 'args to forward to pytest')]
+    user_options = [
+        ('target=', None, 'test package or file'),
+        ('args=', None, 'args to forward to pytest')]
 
     def initialize_options(self):
+        self.target = 'test'
         self.args = ''
 
     def __call__(self):
-        command = 'python3 -m pytest --cov={} test {}'
+        command = 'python3 -m pytest --cov={} {} {}'
         packages = ','.join(PACKAGES)
-        self.call(command.format(packages, self.args))
+        self.call(command.format(packages, self.target, self.args))
 
 
 class LintCommand(Command):

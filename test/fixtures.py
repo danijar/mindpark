@@ -15,9 +15,9 @@ def env(duration):
 
 
 @pytest.fixture(params=[True, False])
-def task(env, request):
+def task(request, env, tmpdir):
     return Task(
-        env.observs, env.actions, '/dev/null', env.duration, 3, request.param)
+        env.observs, env.actions, str(tmpdir), env.duration, 3, request.param)
 
 
 @pytest.fixture(params=range(9))
