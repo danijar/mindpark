@@ -1,4 +1,3 @@
-experiment: test
 epochs: 2
 test_steps: 1000
 repeats: 1

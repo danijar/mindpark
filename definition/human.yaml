@@ -1,4 +1,3 @@
-experiment: human
 epochs: 1
 test_steps: 1e6
 repeats: 1

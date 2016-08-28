@@ -1,6 +1,5 @@
-experiment: demo
 epochs: 5
-test_steps: 2000
+test_steps: 5000
 repeats: 2
 envs:
   - Breakout-v0

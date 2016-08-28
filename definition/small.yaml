@@ -1,4 +1,3 @@
-experiment: small
 epochs: 10
 test_steps: 1e4
 repeats: 3

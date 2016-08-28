@@ -1,4 +1,3 @@
-experiment: networks
 epochs: 100
 test_steps: 4e4
 repeats: 2

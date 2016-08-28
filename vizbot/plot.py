@@ -71,10 +71,10 @@ def plot_experiment(definition, filename, resolution):
     from vizbot.utility import EpochFigure
     experiment = os.path.dirname(definition)
     name = os.path.basename(experiment)
+    name = os.path.splitext(os.path.basename(definition))[0]
     definition = read_yaml(definition)
     scores, durations = read_result(experiment)
-    plot = EpochFigure(
-        len(scores), definition.experiment, definition.epochs, resolution)
+    plot = EpochFigure(len(scores), name, definition.epochs, resolution)
     if not sum(len(x) for x in scores.values()):
         print('Skip empty recording', name)
     for env in sorted(scores.keys()):

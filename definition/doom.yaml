@@ -1,4 +1,3 @@
-experiment: doom
 epochs: 200
 test_steps: 4e4
 repeats: 2

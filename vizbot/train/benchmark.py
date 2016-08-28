@@ -28,8 +28,9 @@ class Benchmark:
 
     def __call__(self, definition):
         start = time.time()
+        name = os.path.splitext(os.path.basename(definition))[0]
         definition = Definition(definition)
-        experiment = self._start_experiment(definition)
+        experiment = self._start_experiment(name)
         self._dump_definition(experiment, definition)
         jobs = self._create_jobs(experiment, definition)
         with ThreadPoolExecutor(max_workers=self._parallel) as executor:
@@ -71,13 +72,13 @@ class Benchmark:
         prefix = '{} on {} ({}):'.format(algo_def.name, env_name, repeat)
         return Job(train, test, env_name, algo_def, prefix, self._videos)
 
-    def _start_experiment(self, definition):
+    def _start_experiment(self, name):
         print_headline('Start experiment', style='=')
         if not self._directory:
             print('Dry run; no results will be stored!')
             return None
         timestamp = time.strftime('%Y-%m-%dT%H-%M-%S', time.gmtime())
-        name = '{}-{}'.format(timestamp, definition.experiment)
+        name = '{}-{}'.format(timestamp, name)
         experiment = os.path.join(self._directory, name)
         print('Result will be stored in', experiment)
         return experiment

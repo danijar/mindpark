@@ -13,7 +13,6 @@ class Definition:
         with open(os.path.expanduser(filepath)) as file_:
             definition = yaml.load(file_)
         definition = use_attrdicts(definition)
-        definition.experiment = str(definition.experiment)
         definition.epochs = int(float(definition.epochs))
         definition.test_steps = int(float(definition.test_steps))
         definition.repeats = int(float(definition.repeats))
