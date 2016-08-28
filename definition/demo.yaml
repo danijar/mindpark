@@ -1,0 +1,23 @@
+experiment: demo
+epochs: 5
+test_steps: 2000
+repeats: 2
+envs:
+  - Breakout-v0
+algorithms:
+  -
+    name: DQN
+    type: DQN
+    train_steps: 5000
+    config:
+      initial_learning_rate: 1e-3
+      replay_capacity: 5e4
+      start_learning: 1000
+      sync_target: 1000
+      epsilon:
+        from_: 1.0
+        to: 0.1
+        test: 0.05
+        over: 5e5
+        offset: 5e4
+      frame_skip: 2
