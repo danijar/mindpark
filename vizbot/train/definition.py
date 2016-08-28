@@ -32,25 +32,23 @@ class Definition:
             yield env
 
     @classmethod
-    def _load_algorithm(cls, config):
-        if not hasattr(vizbot.algorithm, config.type):
+    def _load_algorithm(cls, algorithm):
+        if not hasattr(vizbot.algorithm, algorithm.type):
             message = 'unknown algorithm type {}'
-            raise KeyError(message.format(config.type))
-        config.type = getattr(vizbot.algorithm, config.type)
-        if not issubclass(config.type, vizbot.core.Algorithm):
-            raise KeyError('{} is not an algorithm'.format(config.type))
-        config.name = str(config.name)
-        config.train_steps = int(float(config.train_steps))
-        defaults = config.type.defaults()
-        reserved = ('type', 'name', 'train_steps')
-        for key in defaults:
-            if key in reserved:
-                raise KeyError("reserved key '{}' in defaults".format(key))
-        for key in config:
-            if key not in defaults and key not in reserved:
-                raise KeyError("unknown key '{}' in config".format(key))
-        defaults.update(config)
-        return use_attrdicts(defaults)
+            raise KeyError(message.format(algorithm.type))
+        algorithm.type = getattr(vizbot.algorithm, algorithm.type)
+        algorithm.name = str(algorithm.name)
+        algorithm.train_steps = int(float(algorithm.train_steps))
+        if 'config' not in algorithm:
+            algorithm['config'] = {}
+        if not issubclass(algorithm.type, vizbot.core.Algorithm):
+            raise KeyError('{} is not an algorithm'.format(algorithm.type))
+        defaults = algorithm.type.defaults()
+        for key in algorithm.config:
+            if key not in defaults:
+                message = "unknown config key '{}' for algorithm {}"
+                raise KeyError(message.format(key, algorithm.type.__name__))
+        return algorithm
 
     @classmethod
     def _validate_definition(cls, definition):
@@ -59,5 +57,6 @@ class Definition:
             raise KeyError('each algorithm must have an unique name')
         if not all(hasattr(x, 'train_steps') for x in definition.algorithms):
             raise KeyError('each algorithm must have a training duration')
-        if definition.epochs > 4 and not sys.flags.optimize:
+        testing = hasattr(sys, '_called_from_test')
+        if definition.epochs > 4 and not sys.flags.optimize and not testing:
             raise KeyError('use optimize flag when running many epochs')

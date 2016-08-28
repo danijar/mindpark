@@ -52,24 +52,24 @@ class Benchmark:
     def _create_jobs(self, experiment, definition):
         combinations = itertools.product(
             range(definition.repeats), definition.envs, definition.algorithms)
-        for repeat, env_name, algo_conf in combinations:
-            args = experiment, env_name, algo_conf, repeat, definition
+        for repeat, env_name, algo_def in combinations:
+            args = experiment, env_name, algo_def, repeat, definition
             yield self._create_job(*args)
 
-    def _create_job(self, experiment, env_name, algo_conf, repeat, definition):
+    def _create_job(self, experiment, env_name, algo_def, repeat, definition):
         directory = self._task_directory(
-            experiment, env_name, algo_conf.name, repeat, definition.repeats)
+            experiment, env_name, algo_def.name, repeat, definition.repeats)
         observs, actions = self._determine_interface(env_name)
         train = Task(
             observs, actions, directory,
-            definition.epochs * algo_conf.train_steps,
+            definition.epochs * algo_def.train_steps,
             definition.epochs, True)
         test = Task(
             observs, actions, directory,
             (definition.epochs + 1) * definition.test_steps,
             definition.epochs + 1, False)
-        prefix = '{} on {} ({}):'.format(algo_conf.name, env_name, repeat)
-        return Job(train, test, env_name, algo_conf, prefix, self._videos)
+        prefix = '{} on {} ({}):'.format(algo_def.name, env_name, repeat)
+        return Job(train, test, env_name, algo_def, prefix, self._videos)
 
     def _start_experiment(self, definition):
         print_headline('Start experiment', style='=')

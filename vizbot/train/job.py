@@ -7,13 +7,13 @@ from vizbot.train.gym_env import GymEnv
 class Job:
 
     def __init__(
-            self, train_task, test_task, env_name, algo_conf, prefix, videos):
+            self, train_task, test_task, env_name, algo_def, prefix, videos):
         self._train_task = train_task
         self._test_task = test_task
         self._task = Proxy(train_task)
         self._epochs = max(train_task.epochs, test_task.epochs)
         self._env_name = env_name
-        self._algo_conf = algo_conf
+        self._algo_def = algo_def
         self._prefix = prefix
         self._videos = videos
         self._video = 0
@@ -23,7 +23,7 @@ class Job:
         with lock:
             print_headline(self._prefix, 'Start job')
         self._task.directory and dump_yaml(
-            self._algo_conf, self._task.directory, 'algorithm.yaml')
+            self._algo_def, self._task.directory, 'algorithm.yaml')
         try:
             algorithm = self._create_algorithm()
             training = self._create_training(algorithm)
@@ -48,7 +48,7 @@ class Job:
         algorithm.end_epoch()
 
     def _create_algorithm(self):
-        return self._algo_conf.type(self._task, self._algo_conf)
+        return self._algo_def.type(self._task, self._algo_def.config)
 
     def _create_training(self, algorithm):
         policies = algorithm.train_policies

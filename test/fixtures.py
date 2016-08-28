@@ -1,7 +1,9 @@
 import pytest
+import vizbot.algorithm
 from vizbot.core import Task
+from vizbot.utility import use_attrdicts
 from test.mocks import Sequential, Identity, Skip, Random
-from test.mocks import DurationEnv
+from test.mocks import DurationEnv, MockViewer
 
 
 @pytest.fixture(params=[1, 2, 17])
@@ -80,3 +82,32 @@ def policy(request, task):
     steps = policy.recursive_steps
     print('Steps:', ', '.join([type(x).__name__ for x in steps]))
     return policy
+
+
+ALGOS = ['Random', 'DQN', 'A3C', 'KeyboardDoom']
+
+
+@pytest.fixture(params=ALGOS)
+def algo_cls(request):
+    return getattr(vizbot.algorithm, request.param)
+
+
+@pytest.fixture
+def algo_config(algo_cls):
+    config = use_attrdicts(algo_cls.defaults())
+    if algo_cls.__name__ == 'DQN':
+        config.replay_capacity = 100
+        config.batch_size = 5
+        config.start_learning = 10
+        config.network = 'network_test'
+    if algo_cls.__name__ == 'A3C':
+        config.learners = 2
+        config.network = 'network_test'
+    if algo_cls.__name__ == 'KeyboardDoom':
+        config.viewer = MockViewer
+    return config
+
+
+@pytest.fixture
+def algo(algo_cls, task, algo_config):
+    return algo_cls(task, algo_config)
