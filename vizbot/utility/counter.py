@@ -34,6 +34,15 @@ class Counter:
     def __add__(self, other):
         return self.value + other
 
+    def __radd__(self, other):
+        return self.value + other
+
+    def __sub__(self, other):
+        return self.value - other
+
+    def __rsub__(self, other):
+        return other - self.value
+
     def __truediv__(self, other):
         return self.value / other
 
@@ -42,3 +51,6 @@ class Counter:
 
     def __int__(self):
         return self._value
+
+    def __bool__(self):
+        return bool(self.value)

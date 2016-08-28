@@ -69,11 +69,16 @@ algorithm will be stored along with its results.
 
 ## Dependencies
 
+TensorFlow is only a dependency because I chose it to implement the existing
+algorithms. When implementing your own algorithm, you are free to use your
+libraries of choice.
+
 - Python 3
 - TensorFlow
 - Gym
 - PyYaml
 - Matplotlib
+- SQLAlchemy
 
 ## Development
 

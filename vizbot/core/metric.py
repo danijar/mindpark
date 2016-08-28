@@ -14,7 +14,7 @@ class Metric:
         self._flush_interval = flush_interval
         self._last_flush = time.time()
         self._buffer = []
-        self._engine = sql.create_engine(self._filepath)
+        self._engine = self._get_engine()
         self._table = self._create_table(self.columns)
         self._insert = self._table.insert()
 
@@ -77,6 +77,11 @@ class Metric:
         metadata.create_all(self._engine)
         return table
 
-    @property
-    def _filepath(self):
-        return 'sqlite:///{}/stats.db'.format(self._task.directory.rstrip('/'))
+    def _get_engine(self):
+        if not self._task.directory:
+            kwargs = dict(
+                connect_args={'check_same_thread': False},
+                poolclass=sql.pool.StaticPool)
+            return sql.create_engine('sqlite://', **kwargs)
+        filepath = self._task.directory.rstrip('/')
+        return sql.create_engine('sqlite:///{}/stats.db'.format(filepath))

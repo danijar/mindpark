@@ -11,18 +11,22 @@ ALGOS = ['Random', 'DQN', 'A3C', 'KeyboardDoom']
 
 
 @pytest.fixture(params=ALGOS)
-def algo(request, task):
-    algo_cls = getattr(vizbot.algorithm, request.param)
+def algo_cls(request):
+    return getattr(vizbot.algorithm, request.param)
+
+
+@pytest.fixture
+def algo(algo_cls, task):
     config = use_attrdicts(algo_cls.defaults())
-    if request.param == 'DQN':
+    if algo_cls.__name__ == 'DQN':
         config.replay_capacity = 100
         config.batch_size = 5
         config.start_learning = 10
         config.network = 'network_test'
-    if request.param == 'A3C':
+    if algo_cls.__name__ == 'A3C':
         config.learners = 2
         config.network = 'network_test'
-    if request.param == 'KeyboardDoom':
+    if algo_cls.__name__ == 'KeyboardDoom':
         config.viewer = MockViewer
     return algo_cls(task, config)
 

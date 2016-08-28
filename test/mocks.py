@@ -32,6 +32,10 @@ class DurationEnv(core.Env):
 
 class Monitored(core.Policy):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.step = None
+
     def begin_episode(self, episode, training):
         super().begin_episode(episode, training)
         # Store primitive types so that we capture the actual value, not a
@@ -44,6 +48,7 @@ class Monitored(core.Policy):
         assert self.task.episode == self.episode
         assert self.task.training == self.training
         self.observ = observ
+        self.step = 0 if self.step is None else self.step + 1
         return super().observe(observ)
 
     def receive(self, reward, final):

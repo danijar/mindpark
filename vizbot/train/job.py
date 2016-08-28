@@ -40,11 +40,11 @@ class Job:
 
     def _epoch(self, algorithm, training, testing):
         algorithm.begin_epoch()
-        self._task.change(self._train_task)
-        training()
         self._task.change(self._test_task)
         score = testing()
         self._print_score(score)
+        self._task.change(self._train_task)
+        training()
         algorithm.end_epoch()
 
     def _create_algorithm(self):
@@ -67,12 +67,12 @@ class Job:
 
     def _print_score(self, score):
         score = score and round(score, 2)
-        if not self._train_task.epoch:
+        if not self._task.epoch:
             message = 'Before training average score {}'
             print(self._prefix, message.format(score))
         else:
-            message = 'Epoch {} step {} average score {}'
-            args = self._train_task.epoch, self._train_task.step, score
+            message = 'Epoch {} train step {} average score {}'
+            args = self._task.epoch, self._train_task.step, score
             print(self._prefix, message.format(*args))
 
     def _video_callback(self, ignore):

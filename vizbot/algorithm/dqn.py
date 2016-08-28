@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
-from vizbot.core import Algorithm, Sequential
+from vizbot.core import Algorithm, Sequential, Metric
 from vizbot import model as networks
 from vizbot.model import Model, dense
 from vizbot.step import (
     RandomStart, Grayscale, Subsample, Maximum, Skip, History, Normalize,
-    ClampReward, Delta, EpsilonGreedy, Experience)
+    ClampReward, Delta, EpsilonRandom, ActionMax, Experience)
 from vizbot.utility import Experience as Memory, Decay, Every, merge_dicts
 
 
@@ -30,13 +30,13 @@ class DQN(Algorithm, Experience):
         # Architecture.
         network = 'network_dqn_2015'
         replay_capacity = 1e5  # 1e6
-        start_learning = 5e4
+        start_learning = 1e5
         # Exploration.
         epsilon = dict(
             from_=1.0, to=0.1, test=0.05, over=1e6, offset=start_learning)
         # Learning.
         batch_size = 32
-        sync_target = 2500
+        sync_target = 10000
         # Optimizer.
         initial_learning_rate = 2.5e-4
         optimizer = tf.train.RMSPropOptimizer
@@ -62,31 +62,19 @@ class DQN(Algorithm, Experience):
         self._memory = Memory(int(float(config.replay_capacity)))
         self._learning_rate = Decay(
             float(config.initial_learning_rate), 0, self.task.steps)
-        self._costs = None
-        self._maxqs = None
-
-    def begin_epoch(self):
-        super().begin_epoch()
-        self._costs = []
-        self._maxqs = []
+        self._cost_metric = Metric(self.task, 'dqn/cost', 1)
+        self._learning_rate_metric = Metric(self.task, 'dqn/learning_rate', 1)
 
     def end_epoch(self):
         super().end_epoch()
-        if self._costs:
-            print('Cost {:8.3f}'.format(sum(self._costs) / len(self._costs)))
-        if self._maxqs:
-            print('MaxQ {:8.3f}'.format(sum(self._maxqs) / len(self._maxqs)))
         if self.task.directory:
             self._model.save(self.task.directory, 'model')
 
     def perform(self, observ):
-        action, value = self._model.compute(
-            ('action', 'value'), state=observ)
-        if not self.training:
-            self._maxqs.append(value)
-        return action
+        return self._model.compute('values', state=observ)
 
     def experience(self, observ, action, reward, successor):
+        action = action.argmax()
         self._memory.append((observ, action, reward, successor))
         if len(self._memory) == 1:
             self._log_memory_size()
@@ -95,13 +83,14 @@ class DQN(Algorithm, Experience):
         observ, action, reward, successor = \
             self._memory.sample(self.config.batch_size)
         target = self._compute_target(reward, successor)
-        if self._sync_target(self.step):
+        if self._sync_target(self.task.step):
             self._target.weights = self._model.weights
         self._model.set_option(
             'learning_rate', self._learning_rate(self.task.step))
         cost = self._model.train(
             'cost', state=observ, action=action, target=target)
-        self._costs.append(cost)
+        self._learning_rate_metric(self._model.get_option('learning_rate'))
+        self._cost_metric(cost)
 
     @property
     def policy(self):
@@ -128,26 +117,26 @@ class DQN(Algorithm, Experience):
             policy.add(Delta)
         if self.config.history:
             policy.add(History, self.config.history)
-        policy.add(ClampReward)
-        policy.add(EpsilonGreedy, **self.config.epsilon)
         policy.add(Normalize)
+        policy.add(ClampReward)
+        policy.add(EpsilonRandom, **self.config.epsilon)
+        policy.add(ActionMax)
         return policy
 
     def _create_network(self, model):
-        observs = self._preprocess.above_task.observs
-        actions = self._preprocess.above_task.actions
+        observs = self._preprocess.above_task.observs.shape
+        actions = self._preprocess.above_task.actions.shape[0]
         # Percetion.
-        state = model.add_input('state', observs.shape)
+        state = model.add_input('state', observs)
         hidden = getattr(networks, self.config.network)(model, state)
-        values = dense(hidden, actions.n, tf.identity)
+        values = dense(hidden, actions, tf.identity)
         values = model.add_output('values', values)
-        # Outputs.
+        # Training.
         action = model.add_input('action', type_=tf.int32)
-        action = tf.one_hot(action, actions.n)
+        action = tf.one_hot(action, actions)
         target = model.add_input('target')
         model.add_output('value', tf.reduce_max(values, 1))
-        model.add_output('action', tf.argmax(values, 1))
-        # Training.
+        # Opimization.
         learning_rate = model.add_option(
             'learning_rate', float(self.config.initial_learning_rate))
         model.set_optimizer(self.config.optimizer(

@@ -32,7 +32,6 @@ class Policy(ABC):
         self.task = Proxy(task)
         self.random = np.random.RandomState()
         self.training = None
-        self.step = None
         self._state = State.initial
 
     def begin_episode(self, episode, training):
@@ -63,7 +62,6 @@ class Policy(ABC):
         if not self.task.observs.contains(observ):
             message = '{} received an invalid observation'
             raise ValueError(message.format(self))
-        self.step = 0 if self.step is None else self.step + 1
 
     @abstractmethod
     def receive(self, reward, final):

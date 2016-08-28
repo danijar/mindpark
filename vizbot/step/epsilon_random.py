@@ -1,8 +1,9 @@
+from vizbot.core import Metric
 from vizbot.step.experience import Experience
 from vizbot.utility import Decay
 
 
-class EpsilonGreedy(Experience):
+class EpsilonRandom(Experience):
 
     """
     Act randomly with a probability of epsilon, and use the action of the above
@@ -22,8 +23,12 @@ class EpsilonGreedy(Experience):
         super().__init__(task)
         self._offset = offset
         self._test = test
-        self._probability = Decay(from_, to, over)
-        self._was_greedy = None
+        self._epsilon = Decay(from_, to, over)
+        self._epsilon_metric = Metric(
+            self.task, 'epsilon_random/epsilon', 1)
+        self._was_random = None
+        self._was_random_metric = Metric(
+            self.task, 'epsilon_random/was_random', 1)
 
     @property
     def above_observs(self):
@@ -35,24 +40,28 @@ class EpsilonGreedy(Experience):
 
     def perform(self, observ):
         if self.training:
-            step = max(0, self.step - self._offset)
-            epsilon = self._probability(step)
+            step = max(0, self.task.step - self._offset)
+            epsilon = self._epsilon(step)
         else:
             epsilon = self._test
         if self.random.rand() <= epsilon:
-            self._was_greedy = False
-            return self.task.actions.sample()
-        self._was_greedy = True
-        return self.above.observe(observ)
+            self._was_random = True
+            action = self.task.actions.sample()
+        else:
+            self._was_random = False
+            action = self.above.observe(observ)
+        self._epsilon_metric(epsilon)
+        self._was_random_metric(self._was_random)
+        return action
 
     def receive(self, reward, final):
         super().receive(reward, final)
-        if self._was_greedy:
+        if not self._was_random:
             self.above.receive(reward, final)
 
     def experience(self, *transition):
         # The above policy already receives transitions for which it decided
         # the action, but we want it to experience transitions with random
         # actions as well.
-        if isinstance(self.above, Experience) and not self._was_greedy:
+        if isinstance(self.above, Experience) and self._was_random:
             self.above.experience(*transition)

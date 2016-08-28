@@ -5,7 +5,7 @@ import pyglet
 from vizbot.core import Algorithm, Policy, Sequential
 from vizbot.step import (
     Grayscale, Subsample, Maximum, Skip, History, Normalize, ClampReward,
-    Delta, EpsilonGreedy)
+    Delta, EpsilonRandom)
 from vizbot.utility import AttrDict, merge_dicts
 
 
@@ -71,7 +71,7 @@ class Keyboard(Algorithm, Policy):
         # # policy.add(Delta)
         # policy.add(History, 3)
         # policy.add(ClampReward)
-        # policy.add(EpsilonGreedy, from_=0.5, to=0.5, test=0.5)
+        # policy.add(EpsilonRandom, from_=0.5, to=0.5, test=0.5)
         policy.add(Normalize)
         return policy
 
