@@ -1,7 +1,7 @@
 experiment: doom
-epochs: 100
-test_steps: 1e4
-repeats: 3
+epochs: 200
+test_steps: 4e4
+repeats: 2
 envs:
   - SimpleDeathmatch-v0
   - SimpleGather-v0
@@ -11,11 +11,17 @@ algorithms:
     type: A3C
     train_steps: 8e5
     initial_learning_rate: 2e-5
-    frame_skip: 4
+    frame_skip: 3
+    discount: 0.998
   -
     name: DQN
     type: DQN
     train_steps: 2e5
     initial_learning_rate: 2e-5
     batch_size: 32
-    frame_skip: 4
+    frame_skip: 3
+    discount: 0.998
+  -
+    name: Random
+    type: Random
+    train_steps: 0
