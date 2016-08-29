@@ -21,13 +21,13 @@ def parse_args(args):
         help='how many algorithms to train in parallel',
         default=1)
     parser.add_argument(
-        '-x', '--dry-run', action='store_true',
-        help='do not store any results',
-        default=False)
-    parser.add_argument(
         '-v', '--videos', type=int,
         help='how many videos to capture per epoch',
         default=1)
+    parser.add_argument(
+        '-x', '--dry-run', action='store_true',
+        help='do not store any results',
+        default=False)
     args = parser.parse_args(args)
     return args
 
