@@ -16,7 +16,7 @@ def parse_args(args):
     parser.add_argument(
         '-o', '--directory',
         help='root folder for all experiments',
-        default='~/experiment/gym')
+        default='~/experiment/mindpark')
     parser.add_argument(
         '-p', '--parallel', type=int,
         help='how many algorithms to train in parallel',
