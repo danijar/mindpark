@@ -1,7 +1,7 @@
 import traceback
 from vizbot.core import Simulator
 from vizbot.utility import Proxy, dump_yaml, print_headline
-from vizbot.train.gym_env import GymEnv
+from vizbot.run.gym_env import GymEnv
 
 
 class Job:

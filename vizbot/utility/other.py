@@ -56,18 +56,20 @@ def get_subdirs(directory):
     return sorted(subdirs)
 
 
-def color_stack_trace(type_, value, trace):
-    text = ''.join(traceback.format_exception(type_, value, trace))
-    try:
-        from pygments import highlight
-        from pygments.lexers import get_lexer_by_name
-        from pygments.formatters import TerminalFormatter
-        lexer = get_lexer_by_name('pytb', stripall=True)
-        formatter = TerminalFormatter()
-        sys.stderr.write(highlight(text, lexer, formatter))
-    except Exception:
-        sys.stderr.write(text)
-        sys.stderr.write('Failed to colorize the traceback.')
+def color_stack_trace():
+    def excepthook(type_, value, trace):
+        text = ''.join(traceback.format_exception(type_, value, trace))
+        try:
+            from pygments import highlight
+            from pygments.lexers import get_lexer_by_name
+            from pygments.formatters import TerminalFormatter
+            lexer = get_lexer_by_name('pytb', stripall=True)
+            formatter = TerminalFormatter()
+            sys.stderr.write(highlight(text, lexer, formatter))
+        except Exception:
+            sys.stderr.write(text)
+            sys.stderr.write('Failed to colorize the traceback.')
+    sys.excepthook = excepthook
 
 
 def natural_sorted(collection):

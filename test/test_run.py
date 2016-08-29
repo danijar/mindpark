@@ -1,6 +1,6 @@
 import glob
 import os
-from vizbot.train import Definition
+from vizbot.run import Definition
 from test.fixtures import *
 
 

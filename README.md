@@ -6,7 +6,7 @@ Testbed for deep reinforcement learning algorithms.
 ## Instructions
 
 ```shell
-python3 -O -m vizbot.train definition/full.yaml
+python3 -O -m vizbot.run definition/full.yaml
 python3 -m vizbot.plot
 ```
 
@@ -86,7 +86,7 @@ Run unit tests and integration test after changes.
 
 ```shell
 python setup.py test
-python -m vizbot.train definition/test.py -x
+python -m vizbot.run definition/test.py -x
 ```
 
 ## Contact

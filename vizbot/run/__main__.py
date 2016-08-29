@@ -1,13 +1,12 @@
 import sys
 import argparse
 import logging
-from vizbot.utility import color_stack_trace
-from vizbot.train.benchmark import Benchmark
+from vizbot.run.benchmark import Benchmark
 
 
-def parse_args():
+def parse_args(args):
     parser = argparse.ArgumentParser(
-        'vizbot',
+        'vizbot run',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     nearest_int = lambda x: int(float(x))
     parser.add_argument(
@@ -30,13 +29,12 @@ def parse_args():
         '-v', '--videos', type=nearest_int,
         help='how many videos to capture per epoch',
         default=1)
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     return args
 
 
-def main():
-    sys.excepthook = color_stack_trace
-    args = parse_args()
+def main(args):
+    args = parse_args(args)
     benchmark = Benchmark(
         args.directory if not args.dry_run else None,
         args.parallel, args.videos)
@@ -45,4 +43,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)

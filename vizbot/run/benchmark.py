@@ -7,8 +7,8 @@ import gym
 from concurrent.futures import ThreadPoolExecutor
 from vizbot.core import Task
 from vizbot.utility import print_headline, dump_yaml
-from vizbot.train.definition import Definition
-from vizbot.train.job import Job
+from vizbot.run.definition import Definition
+from vizbot.run.job import Job
 
 
 class Benchmark:
