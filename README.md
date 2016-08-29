@@ -1,13 +1,14 @@
-Vizbot
-======
+Mindpark
+========
 
 Testbed for deep reinforcement learning algorithms.
 
 ## Instructions
 
 ```shell
-python3 -O -m mindpark.run definition/full.yaml
-python3 -m mindpark.plot
+python3 -O -m mindpark run definition/full.yaml
+python3 -m mindpark stats
+python3 -m mindpark score
 ```
 
 The default result directory is `~/experiment/gym/<timestamp>-<experiment>/`.
@@ -86,7 +87,7 @@ Run unit tests and integration test after changes.
 
 ```shell
 python setup.py test
-python -m mindpark.run definition/test.py -x
+python -m mindpark run definition/test.py -x
 ```
 
 ## Contact
