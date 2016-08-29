@@ -1,6 +1,6 @@
 import pytest
-import vizbot.step
-from vizbot.core import Sequential
+import mindpark.step
+from mindpark.core import Sequential
 from test.mocks import Random
 from test.fixtures import *
 
@@ -13,7 +13,7 @@ STEPS = [
 
 @pytest.fixture(params=STEPS)
 def step(request):
-    return getattr(vizbot.step, request.param)
+    return getattr(mindpark.step, request.param)
 
 
 @pytest.fixture

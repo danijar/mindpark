@@ -1,5 +1,5 @@
 from gym.spaces import Box, Discrete
-from vizbot import core, step
+from mindpark import core, step
 
 
 class DurationEnv(core.Env):

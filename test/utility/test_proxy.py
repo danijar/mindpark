@@ -1,5 +1,5 @@
 import pytest
-from vizbot.utility import Proxy
+from mindpark.utility import Proxy
 
 
 class Foo:

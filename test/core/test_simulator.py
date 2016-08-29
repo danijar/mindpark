@@ -1,5 +1,5 @@
 import copy
-from vizbot.core import Simulator
+from mindpark.core import Simulator
 from test.fixtures import *
 
 

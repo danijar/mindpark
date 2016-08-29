@@ -1,7 +1,7 @@
 import pytest
-import vizbot.algorithm
-from vizbot.core import Task
-from vizbot.utility import use_attrdicts
+import mindpark.algorithm
+from mindpark.core import Task
+from mindpark.utility import use_attrdicts
 from test.mocks import Sequential, Identity, Skip, Random
 from test.mocks import DurationEnv, MockViewer
 
@@ -89,7 +89,7 @@ ALGOS = ['Random', 'DQN', 'A3C', 'KeyboardDoom']
 
 @pytest.fixture(params=ALGOS)
 def algo_cls(request):
-    return getattr(vizbot.algorithm, request.param)
+    return getattr(mindpark.algorithm, request.param)
 
 
 @pytest.fixture

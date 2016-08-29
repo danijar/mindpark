@@ -4,7 +4,7 @@ import subprocess
 import setuptools
 
 
-PACKAGES = ['vizbot']
+PACKAGES = ['mindpark']
 SETUP_REQUIRES = ['Sphinx']
 INSTALL_REQUIRES = ['numpy', 'matplotlib', 'gym', 'sqlalchemy']
 
@@ -113,7 +113,7 @@ setuptools.setup(
     name=PACKAGES[0],
     version='0.2.0',
     description='Testbed for deep reinforcement learning algorithms',
-    url='http://github.com/danijar/vizbot',
+    url='http://github.com/danijar/mindpark',
     install_requires=INSTALL_REQUIRES,
     packages=PACKAGES,
     cmdclass={

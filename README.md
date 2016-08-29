@@ -6,8 +6,8 @@ Testbed for deep reinforcement learning algorithms.
 ## Instructions
 
 ```shell
-python3 -O -m vizbot.run definition/full.yaml
-python3 -m vizbot.plot
+python3 -O -m mindpark.run definition/full.yaml
+python3 -m mindpark.plot
 ```
 
 The default result directory is `~/experiment/gym/<timestamp>-<experiment>/`.
@@ -16,7 +16,7 @@ It is used to store hyper parameters, evaluation scores, and videos.
 ## Options
 
 ```
-usage: vizbot [-h] [-o DIRECTORY] [-p PARALLEL] [-x] [-v VIDEOS] definition
+usage: mindpark [-h] [-o DIRECTORY] [-p PARALLEL] [-x] [-v VIDEOS] definition
 
 positional arguments:
   definition            YAML file describing the experiment
@@ -86,7 +86,7 @@ Run unit tests and integration test after changes.
 
 ```shell
 python setup.py test
-python -m vizbot.run definition/test.py -x
+python -m mindpark.run definition/test.py -x
 ```
 
 ## Contact

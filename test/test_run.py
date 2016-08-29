@@ -1,6 +1,6 @@
 import glob
 import os
-from vizbot.run import Definition
+from mindpark.run import Definition
 from test.fixtures import *
 
 

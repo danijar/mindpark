@@ -1,6 +1,6 @@
 import pytest
 import sqlalchemy as sql
-from vizbot.core import Metric
+from mindpark.core import Metric
 from test.fixtures import *
 
 
