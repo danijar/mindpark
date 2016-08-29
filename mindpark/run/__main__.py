@@ -8,7 +8,6 @@ def parse_args(args):
     parser = argparse.ArgumentParser(
         'mindpark run',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    nearest_int = lambda x: int(float(x))
     parser.add_argument(
         'definition',
         help='YAML file describing the experiment',
@@ -26,7 +25,7 @@ def parse_args(args):
         help='do not store any results',
         default=False)
     parser.add_argument(
-        '-v', '--videos', type=nearest_int,
+        '-v', '--videos', type=int,
         help='how many videos to capture per epoch',
         default=1)
     args = parser.parse_args(args)
@@ -35,9 +34,8 @@ def parse_args(args):
 
 def main(args):
     args = parse_args(args)
-    benchmark = Benchmark(
-        args.directory if not args.dry_run else None,
-        args.parallel, args.videos)
+    directory = (not args.dry_run) and args.directory
+    benchmark = Benchmark(directory, args.parallel, args.videos)
     logging.getLogger('gym').setLevel(logging.WARNING)
     benchmark(args.definition)
 

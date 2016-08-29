@@ -16,7 +16,7 @@ class Job:
         self._algo_def = algo_def
         self._prefix = prefix
         self._videos = videos
-        self._video = 0
+        self._remaining_videos = None
         self._envs = []
 
     def __call__(self, lock):
@@ -39,6 +39,7 @@ class Job:
                 env.close()
 
     def _epoch(self, algorithm, training, testing):
+        self._remaining_videos = self._videos
         algorithm.begin_epoch()
         self._task.change(self._test_task)
         score = testing()
@@ -76,12 +77,7 @@ class Job:
             print(self._prefix, message.format(*args))
 
     def _video_callback(self, ignore):
-        if self._task.training:
-            self._video = None
+        if not self._remaining_videos or self._task.training:
             return False
-        if self._video is None:
-            self._video = self._videos
-        if self._video:
-            self._video -= 1
-            return True
-        return False
+        self._remaining_videos -= 1
+        return True
