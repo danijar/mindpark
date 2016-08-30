@@ -1,0 +1,12 @@
+epochs: 100
+test_steps: 4e4
+repeats: 3
+envs:
+  - Breakout-v0
+algorithms:
+  -
+    name: DQN
+    type: DQN
+    train_steps: 2e5
+    config:
+      frame_skip: 2

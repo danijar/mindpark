@@ -1,0 +1,10 @@
+epochs: 200
+test_steps: 4e4
+repeats: 1
+envs:
+  - SimpleGather-v0
+algorithms:
+  -
+    name: DQN
+    type: DQN
+    train_steps: 2e5

@@ -30,13 +30,13 @@ class DQN(Algorithm, Experience):
         # Architecture.
         network = 'network_dqn_2015'
         replay_capacity = 1e5  # 1e6
-        start_learning = 1e5
+        start_learning = 5e4
         # Exploration.
         epsilon = dict(
             from_=1.0, to=0.1, test=0.05, over=1e6, offset=start_learning)
         # Learning.
         batch_size = 32
-        sync_target = 10000
+        sync_target = 2500
         # Optimizer.
         initial_learning_rate = 2.5e-4
         optimizer = tf.train.RMSPropOptimizer
@@ -46,6 +46,9 @@ class DQN(Algorithm, Experience):
 
     def __init__(self, task, config):
         Algorithm.__init__(self, task, config)
+        self.config.start_learning *= self.config.frame_skip
+        self.config.sync_target *= self.config.frame_skip
+        self.config.epsilon.over *= self.config.frame_skip
         self._preprocess = self._create_preprocess()
         Experience.__init__(self, self._preprocess.above_task)
         # Parse parameters (until YAML 1.2 support).
@@ -56,12 +59,13 @@ class DQN(Algorithm, Experience):
         self._model = Model(self._create_network)
         self._target = Model(self._create_network)
         self._target.weights = self._model.weights
-        self._sync_target = Every(config.sync_target, config.start_learning)
+        self._sync_target = Every(
+            self.config.sync_target, self.config.start_learning)
         # print(str(self._model))
         # Learning.
-        self._memory = Memory(int(float(config.replay_capacity)))
+        self._memory = Memory(int(float(self.config.replay_capacity)))
         self._learning_rate = Decay(
-            float(config.initial_learning_rate), 0, self.task.steps)
+            float(self.config.initial_learning_rate), 0, self.task.steps)
         self._cost_metric = Metric(self.task, 'dqn/cost', 1)
         self._learning_rate_metric = Metric(self.task, 'dqn/learning_rate', 1)
 
@@ -103,7 +107,7 @@ class DQN(Algorithm, Experience):
         policy = Sequential(self.task)
         if self.config.noop_max:
             policy.add(RandomStart, self.config.noop_max)
-        if self.config.frame_skip:
+        if self.config.frame_skip > 1:
             policy.add(Skip, self.config.frame_skip)
         if self.config.frame_max:
             policy.add(Maximum, self.config.frame_max)
