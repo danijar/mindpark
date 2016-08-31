@@ -46,23 +46,38 @@ class Metrics:
         tables = natural_sorted(tables.items(), key=lambda x: x[0])
         for axes, (title, table) in zip(ax, tables):
             axes.set_title(title)
-            rows = engine.execute(sql.select([table]))
-            rows = np.array([x for x in rows])
+            rows = self._collect_stats(engine, table)
             print('Plot', title)
-            if not len(rows):
-                print('No rows!')
+            if rows is None:
+                print('No rows.')
                 continue
             self._plot(axes, rows)
         fig.tight_layout(rect=[0, 0, 1, .94])
         fig.savefig(filepath)
 
+    def _collect_stats(self, engine, table):
+        result = engine.execute(sql.select([table]))
+        columns = np.array([x for x in result]).T
+        if not len(columns) or not columns.shape[1]:
+            return None
+        id_, timestamp, step, epoch, training, episode = columns[:6]
+        id_ = [int(x, 16) for x in id_]
+        order = np.lexsort([id_, step, episode, training, epoch])
+        rows = columns.T
+        rows = rows[order]
+        return rows
+
     def _plot(self, ax, rows):
-        id_, timestamp, step, epoch, training, episode = rows[:, :6].T
+        _, _, _, epoch, training, _ = rows.T[:6]
         values = rows[:, 6:].astype(float)
-        if values.shape[1] == 1:  # Scalar.
+        domain = np.linspace(0, epoch.max(), len(values))
+        if values.shape[1] == 1:  # Scalar
             value = values[:, 0]
-            ax.scatter(step, value)
-        # ...
+            ax.scatter(domain, value, c=training, alpha=0.1, lw=0)
+        elif np.allclose(values, values.astype(int)):
+            values = values.astype(int)
+            # TODO: Grid image.
+            pass
 
     def _subplots(self, amount, **kwargs):
         cols, rows = 3, int(np.ceil(amount / 3))
