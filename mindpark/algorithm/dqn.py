@@ -5,7 +5,7 @@ from mindpark import model as networks
 from mindpark.model import Model, dense
 from mindpark.step import (
     RandomStart, Grayscale, Subsample, Maximum, Skip, History, Normalize,
-    ClampReward, Delta, EpsilonRandom, ActionMax, Experience)
+    ClampReward, Delta, EpsilonGreedy, Experience)
 from mindpark.utility import Experience as Memory, Decay, Every, merge_dicts
 
 
@@ -46,15 +46,19 @@ class DQN(Algorithm, Experience):
 
     def __init__(self, task, config):
         Algorithm.__init__(self, task, config)
+        # Parse parameters (until YAML 1.2 support).
+        self.config.start_learning = int(float(self.config.start_learning))
+        self.config.sync_target = int(float(self.config.sync_target))
+        self.config.epsilon.over = int(float(self.config.epsilon.over))
+        # Scale parameters.
         self.config.start_learning *= self.config.frame_skip
         self.config.sync_target *= self.config.frame_skip
         self.config.epsilon.over *= self.config.frame_skip
+        assert self.config.start_learning <= self.config.replay_capacity
+        assert self.config.start_learning >= self.config.batch_size
+        # Preprocessing.
         self._preprocess = self._create_preprocess()
         Experience.__init__(self, self._preprocess.above_task)
-        # Parse parameters (until YAML 1.2 support).
-        self.config.start_learning = int(float(self.config.start_learning))
-        self.config.epsilon = {
-            k: float(v) for k, v in self.config.epsilon.items()}
         # Network.
         self._model = Model(self._create_network)
         self._target = Model(self._create_network)
@@ -82,7 +86,7 @@ class DQN(Algorithm, Experience):
         self._memory.append((observ, action, reward, successor))
         if len(self._memory) == 1:
             self._log_memory_size()
-        if len(self._memory) < self.config.start_learning:
+        if self.task.step < self.config.start_learning:
             return
         observ, action, reward, successor = \
             self._memory.sample(self.config.batch_size)
@@ -123,8 +127,7 @@ class DQN(Algorithm, Experience):
             policy.add(History, self.config.history)
         policy.add(Normalize)
         policy.add(ClampReward)
-        policy.add(EpsilonRandom, **self.config.epsilon)
-        policy.add(ActionMax)
+        policy.add(EpsilonGreedy, **self.config.epsilon)
         return policy
 
     def _create_network(self, model):

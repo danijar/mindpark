@@ -10,24 +10,19 @@ def parse_args(args):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'definition',
-        help='YAML file describing the experiment',
-        default='definition/full.yaml')
+        help='YAML file describing the experiment')
     parser.add_argument(
-        '-o', '--directory',
-        help='root folder for all experiments',
-        default='~/experiment/mindpark')
+        '-d', '--directory', default='~/experiment/mindpark',
+        help='root directory for all experiments')
     parser.add_argument(
-        '-p', '--parallel', type=int,
-        help='how many algorithms to train in parallel',
-        default=1)
+        '-p', '--parallel', type=int, default=1,
+        help='how many algorithms to train in parallel')
     parser.add_argument(
-        '-v', '--videos', type=int,
-        help='how many videos to capture per epoch',
-        default=1)
+        '-v', '--videos', type=int, default=1,
+        help='how many videos to capture per epoch')
     parser.add_argument(
-        '-x', '--dry-run', action='store_true',
-        help='do not store any results',
-        default=False)
+        '-x', '--dry-run', action='store_true', default=False,
+        help='do not store any results')
     args = parser.parse_args(args)
     return args
 

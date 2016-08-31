@@ -5,6 +5,7 @@ import functools
 import os
 import sys
 import yaml
+from mindpark.utility.attrdict import use_attrdicts
 
 
 def ensure_directory(directory):
@@ -72,10 +73,10 @@ def color_stack_trace():
     sys.excepthook = excepthook
 
 
-def natural_sorted(collection):
+def natural_sorted(collection, key=lambda x: x):
     convert = lambda text: int(text) if text.isdigit() else text.lower()
-    key = lambda key: [convert(x) for x in re.split('([0-9]+)', key)]
-    return sorted(collection, key=key)
+    natural_key = lambda x: [convert(y) for y in re.split('([0-9]+)', key(x))]
+    return sorted(collection, key=natural_key)
 
 
 def flatten(collection):
@@ -108,3 +109,9 @@ def print_headline(*message, style='-', minwidth=40):
     print('\n' + style * width)
     print(message)
     print(style * width + '\n', flush=True)
+
+
+def read_yaml(*path):
+    path = os.path.join(*path)
+    with open(path) as file_:
+        return use_attrdicts(yaml.load(file_))

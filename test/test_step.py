@@ -7,7 +7,7 @@ from test.fixtures import *
 
 STEPS = [
     'Identity', 'Maximum', 'Delta', 'Grayscale', 'Subsample', 'Skip',
-    'History', 'Normalize', 'ClampReward', 'EpsilonRandom', 'RandomStart',
+    'History', 'Normalize', 'ClampReward', 'EpsilonGreedy', 'RandomStart',
     'ActionSample', 'ActionMax']
 
 

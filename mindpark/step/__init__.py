@@ -2,7 +2,7 @@ from .action_max import ActionMax
 from .action_sample import ActionSample
 from .clamp_reward import ClampReward
 from .delta import Delta
-from .epsilon_random import EpsilonRandom
+from .epsilon_greedy import EpsilonGreedy
 from .experience import Experience
 from .filter import Filter
 from .grayscale import Grayscale

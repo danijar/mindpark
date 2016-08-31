@@ -5,7 +5,7 @@ import pyglet
 from mindpark.core import Algorithm, Policy, Sequential
 from mindpark.step import (
     Grayscale, Subsample, Maximum, Skip, History, Normalize, ClampReward,
-    Delta, EpsilonRandom)
+    Delta, EpsilonGreedy, ActionMax)
 from mindpark.utility import AttrDict, merge_dicts
 
 
@@ -71,7 +71,7 @@ class Keyboard(Algorithm, Policy):
         # # policy.add(Delta)
         # policy.add(History, 3)
         # policy.add(ClampReward)
-        # policy.add(EpsilonRandom, from_=0.5, to=0.5, test=0.5)
+        # policy.add(EpsilonGreedy, from_=0.5, to=0.5, test=0.5)
         policy.add(Normalize)
         return policy
 

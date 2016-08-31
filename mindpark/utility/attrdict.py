@@ -13,8 +13,7 @@ class AttrDict(dict):
 
 def use_attrdicts(obj):
     if isinstance(obj, dict):
-        obj = {k: use_attrdicts(v) for k, v in obj.items()}
-        return AttrDict(obj)
+        return AttrDict({k: use_attrdicts(v) for k, v in obj.items()})
     elif isinstance(obj, list):
         return [use_attrdicts(x) for x in obj]
     return obj
