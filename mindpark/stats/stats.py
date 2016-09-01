@@ -85,28 +85,29 @@ class Metrics:
         _, _, _, epoch, training, _ = rows.T[:6]
         values = rows[:, 6:].astype(float)
         categorical = np.allclose(values, values.astype(int))
-        domain = np.linspace(0, epoch.max() + 1, len(values))
+        resolution = 10
+        borders = np.linspace(0, len(values), resolution * epoch.max())
+        borders = borders.astype(int)
         if values.shape[1] == 1 and not categorical:
             value = values[:, 0]
+            domain = np.linspace(0, epoch.max() + 1, len(values))
             ax.scatter(domain, value, c=training, alpha=0.1, lw=0)
             ax.set_xlim(domain.min(), domain.max())
             padding = 0.05 * (value.max() - value.min())
             padding = padding or np.abs(np.log10(value[0])) / 100
             ax.set_ylim(value.min() - padding, value.max() + padding)
         elif values.shape[1] == 1 and categorical:
-            resolution = 10 * epoch.max()
             value = values[:, 0].astype(int)
-            borders = np.linspace(0, len(values), resolution).astype(int)
             reducer = functools.partial(np.bincount, minlength=value.max() + 1)
-            groups = self._aggregate(values, borders, reducer)
+            groups = self._aggregate(value, borders, reducer)
             groups = groups / groups.sum(1)[:, np.newaxis]
+            domain = np.linspace(0, epoch.max() + 1, resolution * len(groups))
             bar = self._plot_color_grid(ax, domain, groups)
             bar.set_ticks([])
         elif values.shape[1] > 1:
-            resolution = 10 * epoch.max()
-            borders = np.linspace(0, len(values), resolution).astype(int)
             reducer = functools.partial(np.mean, axis=0)
             groups = self._aggregate(values, borders, reducer)
+            domain = np.linspace(0, epoch.max() + 1, resolution * len(groups))
             self._plot_color_grid(ax, domain, groups)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
