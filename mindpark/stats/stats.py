@@ -2,6 +2,7 @@ import os
 import collections
 import functools
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 import sqlalchemy as sql
@@ -49,9 +50,7 @@ class Metrics:
         for axes, (title, table) in zip(ax, tables):
             axes.set_title(title)
             rows = self._collect_stats(engine, table)
-            print('Plot', title)
             if rows is None:
-                print('No rows.')
                 continue
             self._plot(axes, rows)
         fig.tight_layout(rect=[0, 0, 1, .94])
@@ -85,21 +84,27 @@ class Metrics:
             reducer = functools.partial(np.bincount, minlength=value.max() + 1)
             _, groups = self._aggrerate_consecutive(
                 value, [epoch, training], reducer)
+            groups = groups / groups.sum(1)[:, np.newaxis]
             domain = np.linspace(0, epoch.max() + 0.5, len(values))
-            self._plot_color_grid(ax, domain, groups)
+            bar = self._plot_color_grid(ax, domain, groups)
+            bar.set_ticks([])
         elif values.shape[1] > 1:
             resolution = 10 * epoch.max()
             borders = np.linspace(0, len(values), resolution).astype(int)
-            reducer = functools.partial(np.sum, axis=0)
+            reducer = functools.partial(np.mean, axis=0)
             groups = self._aggregate(values, borders, reducer)
-            domain = np.linspace(0, epoch.max() + 0.5, len(groups))
+            domain = np.linspace(0, epoch.max() + 0.2, len(values))
             self._plot_color_grid(ax, domain, groups)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     def _plot_color_grid(self, ax, domain, cells):
         extent = [domain.min(), domain.max(), -.5, cells.shape[1] - .5]
-        ax.matshow(cells.T, extent=extent, aspect='auto', cmap='Blues')
+        img = ax.matshow(cells.T, extent=extent, aspect='auto', cmap='Blues')
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='7%', pad=0.1)
+        bar = plt.colorbar(img, cax=cax)
         ax.xaxis.set_ticks_position('bottom')
+        return bar
 
     def _subplots(self, amount, **kwargs):
         cols, rows = 3, int(np.ceil(amount / 3))
