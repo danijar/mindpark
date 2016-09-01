@@ -1,6 +1,8 @@
 import os
 import collections
+import functools
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 import sqlalchemy as sql
 # from mindpark.plot.scatter import Scatter
@@ -70,14 +72,34 @@ class Metrics:
     def _plot(self, ax, rows):
         _, _, _, epoch, training, _ = rows.T[:6]
         values = rows[:, 6:].astype(float)
-        domain = np.linspace(0, epoch.max(), len(values))
-        if values.shape[1] == 1:  # Scalar
+        categorical = np.allclose(values, values.astype(int))
+        if values.shape[1] == 1 and not categorical:
             value = values[:, 0]
+            domain = np.linspace(0, epoch.max() + 0.2, len(values))
             ax.scatter(domain, value, c=training, alpha=0.1, lw=0)
-        elif np.allclose(values, values.astype(int)):
-            values = values.astype(int)
-            # TODO: Grid image.
-            pass
+            ax.set_xlim(domain.min(), domain.max())
+            padding = 0.05 * (value.max() - value.min())
+            ax.set_ylim(value.min() - padding, value.max() + padding)
+        elif values.shape[1] == 1 and categorical:
+            value = values[:, 0].astype(int)
+            reducer = functools.partial(np.bincount, minlength=value.max() + 1)
+            _, groups = self._aggrerate_consecutive(
+                value, [epoch, training], reducer)
+            domain = np.linspace(0, epoch.max() + 0.5, len(values))
+            self._plot_color_grid(ax, domain, groups)
+        elif values.shape[1] > 1:
+            resolution = 10 * epoch.max()
+            borders = np.linspace(0, len(values), resolution).astype(int)
+            reducer = functools.partial(np.sum, axis=0)
+            groups = self._aggregate(values, borders, reducer)
+            domain = np.linspace(0, epoch.max() + 0.5, len(groups))
+            self._plot_color_grid(ax, domain, groups)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+    def _plot_color_grid(self, ax, domain, cells):
+        extent = [domain.min(), domain.max(), -.5, cells.shape[1] - .5]
+        ax.matshow(cells.T, extent=extent, aspect='auto', cmap='Blues')
+        ax.xaxis.set_ticks_position('bottom')
 
     def _subplots(self, amount, **kwargs):
         cols, rows = 3, int(np.ceil(amount / 3))
@@ -93,3 +115,22 @@ class Metrics:
         metadata = sql.MetaData()
         metadata.reflect(engine)
         return metadata.tables
+
+    def _aggrerate_consecutive(self, values, keys, reducer):
+        if not isinstance(keys, np.ndarray):
+            keys = np.stack(keys, 1)
+        assert len(values) == len(keys)
+        changes = np.diff(keys, axis=0)
+        changes = np.abs(changes).max(1)
+        borders = np.where(changes > 0)[0]
+        borders = np.array([0] + borders.tolist() + [-1], dtype=int)
+        domain = keys[borders]
+        groups = self._aggregate(values, borders, reducer)
+        return domain, groups
+
+    def _aggregate(self, values, borders, reducer):
+        groups = []
+        for start, stop in zip(borders[:-1], borders[1:]):
+            groups.append(reducer(values[start: stop]))
+        groups = np.array(groups)
+        return groups
