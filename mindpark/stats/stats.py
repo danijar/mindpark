@@ -44,15 +44,28 @@ class Metrics:
     def _figure(self, stats, title, filepath):
         engine = sql.create_engine('sqlite:///{}'.format(stats))
         tables = self._get_tables(engine)
-        fig, ax = self._subplots(len(tables))
+        fig, ax = self._subplots(2, len(tables))
         fig.suptitle(title, fontsize=16)
         tables = natural_sorted(tables.items(), key=lambda x: x[0])
-        for axes, (title, table) in zip(ax, tables):
-            axes.set_title(title)
+        for index, (title, table) in enumerate(tables):
+            ax[0, index].set_title(title)
+            ax[1, index].set_title(title)
             rows = self._collect_stats(engine, table)
             if rows is None:
                 continue
-            self._plot(axes, rows)
+            test, train = rows[rows.T[4] == 0], rows[rows.T[4] == 1]
+            if test.size:
+                self._plot(ax[0, index], test)
+            else:
+                ax[0, index].tick_params(colors=(0, 0, 0, 0))
+            if train.size:
+                self._plot(ax[1, index], train)
+            else:
+                ax[1, index].tick_params(colors=(0, 0, 0, 0))
+        ax[0, 0].set_ylabel('Testing', fontsize=16)
+        ax[0, 0].yaxis.labelpad = 16
+        ax[1, 0].set_ylabel('Training', fontsize=16)
+        ax[1, 0].yaxis.labelpad = 16
         fig.tight_layout(rect=[0, 0, 1, .94])
         fig.savefig(filepath)
 
@@ -72,20 +85,19 @@ class Metrics:
         _, _, _, epoch, training, _ = rows.T[:6]
         values = rows[:, 6:].astype(float)
         categorical = np.allclose(values, values.astype(int))
+        domain = np.linspace(0, epoch.max() + 1, len(values))
         if values.shape[1] == 1 and not categorical:
             value = values[:, 0]
-            domain = np.linspace(0, epoch.max() + 0.2, len(values))
             ax.scatter(domain, value, c=training, alpha=0.1, lw=0)
             ax.set_xlim(domain.min(), domain.max())
             padding = 0.05 * (value.max() - value.min())
+            padding = padding or np.abs(np.log10(value[0])) / 100
             ax.set_ylim(value.min() - padding, value.max() + padding)
         elif values.shape[1] == 1 and categorical:
             value = values[:, 0].astype(int)
             reducer = functools.partial(np.bincount, minlength=value.max() + 1)
-            _, groups = self._aggrerate_consecutive(
-                value, [epoch, training], reducer)
+            _, groups = self._aggrerate_consecutive(value, [epoch], reducer)
             groups = groups / groups.sum(1)[:, np.newaxis]
-            domain = np.linspace(0, epoch.max() + 0.5, len(values))
             bar = self._plot_color_grid(ax, domain, groups)
             bar.set_ticks([])
         elif values.shape[1] > 1:
@@ -93,28 +105,29 @@ class Metrics:
             borders = np.linspace(0, len(values), resolution).astype(int)
             reducer = functools.partial(np.mean, axis=0)
             groups = self._aggregate(values, borders, reducer)
-            domain = np.linspace(0, epoch.max() + 0.2, len(values))
             self._plot_color_grid(ax, domain, groups)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     def _plot_color_grid(self, ax, domain, cells):
         extent = [domain.min(), domain.max(), -.5, cells.shape[1] - .5]
-        img = ax.matshow(cells.T, extent=extent, aspect='auto', cmap='Blues')
+        kwargs = dict(cmap='Blues')
+        img = ax.matshow(
+            cells.T, extent=extent, origin='lower', aspect='auto', **kwargs)
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='7%', pad=0.1)
         bar = plt.colorbar(img, cax=cax)
         ax.xaxis.set_ticks_position('bottom')
         return bar
 
-    def _subplots(self, amount, **kwargs):
-        cols, rows = 3, int(np.ceil(amount / 3))
+    def _subplots(self, rows, cols, **kwargs):
         size = [4 * cols, 3 * rows]
         fig, ax = plt.subplots(ncols=cols, nrows=rows, figsize=size, **kwargs)
-        if not hasattr(ax, '__len__'):
-            ax = [ax]
-        if hasattr(ax[0], '__len__'):
-            ax = [y for x in ax for y in x]
         return fig, ax
+        # if not hasattr(ax, '__len__'):
+        #     ax = [ax]
+        # if hasattr(ax[0], '__len__'):
+        #     ax = [y for x in ax for y in x]
+        # return fig, ax
 
     def _get_tables(self, engine):
         metadata = sql.MetaData()
