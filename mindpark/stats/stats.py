@@ -94,9 +94,11 @@ class Metrics:
             padding = padding or np.abs(np.log10(value[0])) / 100
             ax.set_ylim(value.min() - padding, value.max() + padding)
         elif values.shape[1] == 1 and categorical:
+            resolution = 10 * epoch.max()
             value = values[:, 0].astype(int)
+            borders = np.linspace(0, len(values), resolution).astype(int)
             reducer = functools.partial(np.bincount, minlength=value.max() + 1)
-            _, groups = self._aggrerate_consecutive(value, [epoch], reducer)
+            groups = self._aggregate(values, borders, reducer)
             groups = groups / groups.sum(1)[:, np.newaxis]
             bar = self._plot_color_grid(ax, domain, groups)
             bar.set_ticks([])
