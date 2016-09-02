@@ -16,8 +16,9 @@ Run = collections.namedtuple(
 
 class Metrics:
 
-    def __init__(self, type_):
+    def __init__(self, type_, metrics=None):
         self._type = type_
+        self._metrics = metrics
 
     def __call__(self, experiment):
         for run in self._collect_runs(experiment):
@@ -35,7 +36,7 @@ class Metrics:
 
     def _process(self, run):
         title = '{} on {} (Repeat {})'.format(
-            run.algorithm.title(), run.env.title(), run.repeat)
+            run.algorithm, run.env, run.repeat)
         filepath = '{}-{}-{}-{}.{}'.format(
             run.name, run.env, run.algorithm, run.repeat, self._type)
         filepath = os.path.join(run.experiment, filepath.lower())
@@ -44,30 +45,44 @@ class Metrics:
     def _figure(self, stats, title, filepath):
         engine = sql.create_engine('sqlite:///{}'.format(stats))
         tables = self._get_tables(engine)
+        tables = self._select_metrics(tables)
         fig, ax = self._subplots(2, len(tables))
         fig.suptitle(title, fontsize=16)
-        tables = natural_sorted(tables.items(), key=lambda x: x[0])
         for index, (title, table) in enumerate(tables):
-            ax[0, index].set_title(title)
-            ax[1, index].set_title(title)
             rows = self._collect_stats(engine, table)
             if rows is None:
                 continue
             test, train = rows[rows.T[4] == 0], rows[rows.T[4] == 1]
-            if test.size:
-                self._plot(ax[0, index], test)
-            else:
-                ax[0, index].tick_params(colors=(0, 0, 0, 0))
             if train.size:
-                self._plot(ax[1, index], train)
+                self._plot(ax[0, index], train)
+                ax[0, index].set_title(title)
             else:
-                ax[1, index].tick_params(colors=(0, 0, 0, 0))
-        ax[0, 0].set_ylabel('Testing', fontsize=16)
+                ax[0, index].set_axis_off()
+            if test.size:
+                self._plot(ax[1, index], test)
+                ax[1, index].set_title(title)
+            else:
+                ax[1, index].set_axis_off()
+        ax[0, 0].set_ylabel('Training', fontsize=16)
         ax[0, 0].yaxis.labelpad = 16
-        ax[1, 0].set_ylabel('Training', fontsize=16)
+        ax[1, 0].set_ylabel('Testing', fontsize=16)
         ax[1, 0].yaxis.labelpad = 16
         fig.tight_layout(rect=[0, 0, 1, .94])
         fig.savefig(filepath)
+
+    def _select_metrics(self, tables):
+        if not self._metrics:
+            return natural_sorted(tables.items(), key=lambda x: x[0])
+        selected = []
+        for metric in self._metrics:
+            matches = [x for x in tables.keys() if metric in x]
+            if not matches:
+                raise KeyError("found no metric for '{}'".format(metric))
+            if len(matches) > 1:
+                message = "found multiple metric for '{}'".format(metric)
+                raise KeyError(message)
+            selected.append((matches[0], tables[matches[0]]))
+        return selected
 
     def _collect_stats(self, engine, table):
         result = engine.execute(sql.select([table]))
@@ -113,7 +128,7 @@ class Metrics:
 
     def _plot_color_grid(self, ax, domain, cells):
         extent = [domain.min(), domain.max(), -.5, cells.shape[1] - .5]
-        kwargs = dict(cmap='Blues')
+        kwargs = dict(cmap='viridis')
         img = ax.matshow(
             cells.T, extent=extent, origin='lower', aspect='auto', **kwargs)
         divider = make_axes_locatable(ax)
@@ -125,12 +140,9 @@ class Metrics:
     def _subplots(self, rows, cols, **kwargs):
         size = [4 * cols, 3 * rows]
         fig, ax = plt.subplots(ncols=cols, nrows=rows, figsize=size, **kwargs)
+        if cols == 1:
+            ax = np.array([ax]).T
         return fig, ax
-        # if not hasattr(ax, '__len__'):
-        #     ax = [ax]
-        # if hasattr(ax[0], '__len__'):
-        #     ax = [y for x in ax for y in x]
-        # return fig, ax
 
     def _get_tables(self, engine):
         metadata = sql.MetaData()

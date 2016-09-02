@@ -19,12 +19,14 @@ def parse_args(args):
         '-t', '--type', default='pdf',
         help='file extension of the plots, determines the output format')
     parser.add_argument(
+        '-m', '--metrics', nargs='*', default=None,
+        help='names of the metrics to display; defaults to all metrics')
+    parser.add_argument(
         '-f', '--force', action='store_true', default=False,
         help='overwrite existing plots')
     parser.add_argument(
         '-r', '--resolution', type=int, default=1,
         help='amount of plotted points per epoch')
-
     args = parser.parse_args(args)
     return args
 
@@ -32,7 +34,7 @@ def parse_args(args):
 def main(args):
     args = parse_args(args)
     args.directory = os.path.expanduser(args.directory)
-    metrics = Metrics(args.type)
+    metrics = Metrics(args.type, args.metrics)
     for experiment in find_experiments(args):
         print('Plot stats for', experiment)
         metrics(experiment)
