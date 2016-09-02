@@ -3,6 +3,10 @@ Mindpark
 
 Testbed for deep reinforcement learning algorithms.
 
+![DQN playing Breakout](http://imgur.com/zmwTvUx.gif)&nbsp;&nbsp;
+![DQN playing Doom Health Gathering](http://imgur.com/ADsdHUM.gif)&nbsp;&nbsp;
+![DQN trying to play Doom Deathmatch](http://imgur.com/WKDVGtx.gif)
+
 ## Instructions
 
 Run an experiment to compare algorithms, hyper parameters and environments:
@@ -11,12 +15,15 @@ Run an experiment to compare algorithms, hyper parameters and environments:
 python3 -O -m mindpark run definition/breakout.yaml
 ```
 
-Videos and metrics are stored in a result directory. You can plot statistics
-while running:
+Videos and metrics are stored in a result directory, which is
+`~/experiment/mindpark/<timestamp>-breakout/` by default. You can plot
+statistics during or after the simulation by fuzzy matching an the folder name:
 
 ```shell
-python3 -m mindpark stats ~/experiment/mindpark/<timestamp>-breakout
+python3 -m mindpark stats breakout
 ```
+
+![DQN statistics on Breakout](http://imgur.com/sAbK3C7.png)
 
 To implement your own algorithm, subclass `mindpark.core.Algorithm`. Please
 refer to the existing algorithms for details, and ask if you have questions.
@@ -90,11 +97,19 @@ you run into problems, please install the dependencies manually via `pip3`:
 TensorFlow is only needed for the existing algorithms. You are free to use your
 libraries of choice to implement your own algorithms.
 
+## Algorithms
+
+- Deep Q-Network (Mnih et al. 2015, [PDF][dqn-paper])
+- Asynchronous Advantage Actor-Critic (Mnih et al. 2016, [PDF][a3c-paper])
+
+[dqn-paper]: https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
+[a3c-paper]: https://arxiv.org/pdf/1602.01783v2.pdf
+
 ## Contribution
 
 Pull requests are welcome. I will set up a contributors file then, and you can
 choose if you want to be listed. Please follow the existing code style, and run
-unit tests and integration test after changes:
+unit tests and the integration test after changes:
 
 ```shell
 python setup.py test
