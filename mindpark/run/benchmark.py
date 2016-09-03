@@ -54,7 +54,7 @@ class Benchmark:
         combinations = itertools.product(
             range(definition.repeats), definition.envs, definition.algorithms)
         for repeat, env_name, algo_def in combinations:
-            args = experiment, env_name, algo_def, repeat, definition
+            args = experiment, env_name, algo_def, repeat + 1, definition
             yield self._create_job(*args)
 
     def _create_job(self, experiment, env_name, algo_def, repeat, definition):

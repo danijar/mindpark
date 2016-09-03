@@ -1,7 +1,7 @@
 import os
 import sys
 import argparse
-from mindpark.stats.stats import Metrics
+from mindpark.stats.stats import Stats
 from mindpark.utility import get_subdirs
 
 
@@ -34,10 +34,9 @@ def parse_args(args):
 def main(args):
     args = parse_args(args)
     args.directory = os.path.expanduser(args.directory)
-    metrics = Metrics(args.type, args.metrics)
+    stats = Stats(args.type, args.metrics)
     for experiment in find_experiments(args):
-        print('Plot stats for', experiment)
-        metrics(experiment)
+        stats(experiment)
 
 
 def find_experiments(args):

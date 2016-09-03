@@ -1,12 +1,11 @@
 import os
 import collections
-import functools
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.ticker import MaxNLocator
 import numpy as np
 import sqlalchemy as sql
-# from mindpark.plot.scatter import Scatter
+from mindpark.stats.scatter import Scatter
+from mindpark.stats.histogram import Histogram
 from mindpark.utility import get_subdirs, natural_sorted, read_yaml
 
 
@@ -14,17 +13,21 @@ Run = collections.namedtuple(
     'Run', 'experiment name env algorithm repeat stats')
 
 
-class Metrics:
+class Stats:
 
     def __init__(self, type_, metrics=None):
         self._type = type_
         self._metrics = metrics
+        self._plot_scalar = Scatter()
+        self._plot_counts = Histogram()
+        self._plot_distribution = Histogram(normalize=True)
 
     def __call__(self, experiment):
         for run in self._collect_runs(experiment):
             self._process(run)
 
     def _collect_runs(self, experiment):
+        print('Read experiment', experiment)
         name = os.path.basename(experiment).title()
         for env_dir in get_subdirs(experiment):
             env = os.path.basename(env_dir)
@@ -39,15 +42,15 @@ class Metrics:
             run.algorithm, run.env, run.repeat)
         filepath = '{}-{}-{}-{}.{}'.format(
             run.name, run.env, run.algorithm, run.repeat, self._type)
-        filepath = os.path.join(run.experiment, filepath.lower())
-        print('', title)
+        filepath = os.path.join(run.experiment, filepath)
+        print(' Plot run', title)
         self._figure(run.stats, title, filepath)
 
     def _figure(self, stats, title, filepath):
         engine = sql.create_engine('sqlite:///{}'.format(stats))
         tables = self._get_tables(engine)
         if not tables:
-            print('  No metrics')
+            print('  No metrics found.')
             return
         tables = self._select_metrics(tables)
         fig, ax = self._subplots(2, len(tables))
@@ -81,12 +84,11 @@ class Metrics:
         for metric in self._metrics:
             matches = [x for x in tables.keys() if metric in x]
             if not matches:
-                print("  No metric matched by '{}'".format(metric))
+                print("  '{}' matches no metrics.".format(metric))
                 continue
             if len(matches) > 1:
-                message = "found multiple metric for '{}'".format(metric)
-                raise KeyError(message)
-            selected.append((matches[0], tables[matches[0]]))
+                print("  '{}' matches multiple metrics.".format(metric))
+            selected += [(x, tables[x]) for x in matches]
         return selected
 
     def _collect_stats(self, engine, table):
@@ -106,42 +108,14 @@ class Metrics:
         values = rows[:, 6:].astype(float)
         categorical = np.allclose(values, values.astype(int))
         categorical = categorical and np.unique(values.astype(int)).size <= 10
-        resolution = 10
-        borders = np.linspace(0, len(values), resolution * epoch.max())
-        borders = borders.astype(int)
         if values.shape[1] == 1 and not categorical:
-            value = values[:, 0]
-            domain = np.linspace(0, epoch.max() + 1, len(values))
-            ax.scatter(domain, value, c=training, alpha=0.1, lw=0)
-            ax.set_xlim(domain.min(), domain.max())
-            padding = 0.05 * (value.max() - value.min())
-            padding = padding or np.abs(np.log10(value[0])) / 100
-            ax.set_ylim(value.min() - padding, value.max() + padding)
-        elif values.shape[1] == 1 and categorical:
-            value = values[:, 0].astype(int)
-            reducer = functools.partial(np.bincount, minlength=value.max() + 1)
-            groups = self._aggregate(value, borders, reducer)
-            groups = groups / groups.sum(1)[:, np.newaxis]
-            domain = np.linspace(0, epoch.max() + 1, resolution * len(groups))
-            bar = self._plot_color_grid(ax, domain, groups)
-            bar.set_ticks([])
+            self._plot_scalar(ax, values[:, 0], epoch.max())
+        elif values.shape[1] == 1:
+            indices = values[:, 0].astype(int)
+            histograms = np.eye(indices.max() + 1)[indices]
+            self._plot_distribution(ax, histograms, epoch.max())
         elif values.shape[1] > 1:
-            reducer = functools.partial(np.mean, axis=0)
-            groups = self._aggregate(values, borders, reducer)
-            domain = np.linspace(0, epoch.max() + 1, resolution * len(groups))
-            self._plot_color_grid(ax, domain, groups)
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-
-    def _plot_color_grid(self, ax, domain, cells):
-        extent = [domain.min(), domain.max(), -.5, cells.shape[1] - .5]
-        kwargs = dict(cmap='viridis')
-        img = ax.matshow(
-            cells.T, extent=extent, origin='lower', aspect='auto', **kwargs)
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes('right', size='7%', pad=0.1)
-        bar = plt.colorbar(img, cax=cax)
-        ax.xaxis.set_ticks_position('bottom')
-        return bar
+            self._plot_counts(ax, values, epoch.max())
 
     def _subplots(self, rows, cols, **kwargs):
         size = [4 * cols, 3 * rows]
@@ -154,22 +128,3 @@ class Metrics:
         metadata = sql.MetaData()
         metadata.reflect(engine)
         return metadata.tables
-
-    def _aggrerate_consecutive(self, values, keys, reducer):
-        if not isinstance(keys, np.ndarray):
-            keys = np.stack(keys, 1)
-        assert len(values) == len(keys)
-        changes = np.diff(keys, axis=0)
-        changes = np.abs(changes).max(1)
-        borders = np.where(changes > 0)[0]
-        borders = np.array([0] + borders.tolist() + [-1], dtype=int)
-        domain = keys[borders]
-        groups = self._aggregate(values, borders, reducer)
-        return domain, groups
-
-    def _aggregate(self, values, borders, reducer):
-        groups = []
-        for start, stop in zip(borders[:-1], borders[1:]):
-            groups.append(reducer(values[start: stop]))
-        groups = np.array(groups)
-        return groups
