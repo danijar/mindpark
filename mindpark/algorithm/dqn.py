@@ -51,11 +51,11 @@ class DQN(Algorithm, Experience):
         self.config.sync_target = int(float(self.config.sync_target))
         self.config.epsilon.over = int(float(self.config.epsilon.over))
         # Scale parameters.
+        assert self.config.start_learning <= self.config.replay_capacity
+        assert self.config.start_learning >= self.config.batch_size
         self.config.start_learning *= self.config.frame_skip
         self.config.sync_target *= self.config.frame_skip
         self.config.epsilon.over *= self.config.frame_skip
-        assert self.config.start_learning <= self.config.replay_capacity
-        assert self.config.start_learning >= self.config.batch_size
         # Preprocessing.
         self._preprocess = self._create_preprocess()
         Experience.__init__(self, self._preprocess.above_task)

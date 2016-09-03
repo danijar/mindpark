@@ -1,9 +1,10 @@
-import re
-import traceback
 import errno
 import functools
 import os
+import re
 import sys
+import threading
+import traceback
 import yaml
 from mindpark.utility.attrdict import use_attrdicts
 
@@ -58,6 +59,7 @@ def get_subdirs(directory):
 
 
 def color_stack_trace():
+
     def excepthook(type_, value, trace):
         text = ''.join(traceback.format_exception(type_, value, trace))
         try:
@@ -70,7 +72,33 @@ def color_stack_trace():
         except Exception:
             sys.stderr.write(text)
             sys.stderr.write('Failed to colorize the traceback.')
+
     sys.excepthook = excepthook
+    setup_thread_excepthook()
+
+
+def setup_thread_excepthook():
+    """
+    Workaround for `sys.excepthook` thread bug from:
+    http://bugs.python.org/issue1230540
+
+    Call once from the main thread before creating any threads.
+    """
+    init_original = threading.Thread.__init__
+
+    def init(self, *args, **kwargs):
+        init_original(self, *args, **kwargs)
+        run_original = self.run
+
+        def run_with_except_hook(*args2, **kwargs2):
+            try:
+                run_original(*args2, **kwargs2)
+            except Exception:
+                sys.excepthook(*sys.exc_info())
+
+        self.run = run_with_except_hook
+
+    threading.Thread.__init__ = init
 
 
 def natural_sorted(collection, key=lambda x: x):

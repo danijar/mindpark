@@ -8,7 +8,7 @@ from test.fixtures import *
 STEPS = [
     'Identity', 'Maximum', 'Delta', 'Grayscale', 'Subsample', 'Skip',
     'History', 'Normalize', 'ClampReward', 'EpsilonGreedy', 'RandomStart',
-    'ActionSample', 'ActionMax']
+    'ActionSample', 'ActionMax', 'Score']
 
 
 @pytest.fixture(params=STEPS)

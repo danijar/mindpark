@@ -14,3 +14,4 @@ from .random import Random
 from .random_start import RandomStart
 from .skip import Skip
 from .subsample import Subsample
+from .score import Score

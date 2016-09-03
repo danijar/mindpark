@@ -1,4 +1,4 @@
-epochs: 2
+epochs: 3
 test_steps: 1000
 repeats: 1
 envs:
@@ -14,20 +14,20 @@ algorithms:
         from_: 1.0
         to: 0.1
         test: 0.05
-        over: 1000
+        over: 500
         offset: 100
       initial_learning_rate: 1e-3
       start_learning: 80
       sync_target: 50
       replay_capacity: 90
-  -
-    name: A3C
-    type: A3C
-    train_steps: 2000
-    config:
-      learners: 2
-      initial_learning_rate: 1e-3
-      frame_skip: 2
+#  -
+#    name: A3C
+#    type: A3C
+#    train_steps: 2000
+#    config:
+#      learners: 2
+#      initial_learning_rate: 1e-3
+#      frame_skip: 2
   -
     name: Random
     type: Random

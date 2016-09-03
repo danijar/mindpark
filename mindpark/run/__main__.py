@@ -2,6 +2,7 @@ import sys
 import argparse
 import logging
 from mindpark.run.benchmark import Benchmark
+from mindpark.utility import color_stack_trace
 
 
 def parse_args(args):
@@ -28,6 +29,7 @@ def parse_args(args):
 
 
 def main(args):
+    color_stack_trace()
     args = parse_args(args)
     directory = (not args.dry_run) and args.directory
     benchmark = Benchmark(directory, args.parallel, args.videos)

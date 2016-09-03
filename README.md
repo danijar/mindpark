@@ -9,7 +9,8 @@ Testbed for deep reinforcement learning algorithms.
 
 ## Instructions
 
-Run an experiment to compare algorithms, hyper parameters and environments:
+Run an experiment to compare between algorithms, hyper parameters, and
+environments:
 
 ```shell
 python3 -O -m mindpark run definition/breakout.yaml

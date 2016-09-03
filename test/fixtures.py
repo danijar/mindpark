@@ -22,7 +22,7 @@ def task(request, env, tmpdir):
         env.observs, env.actions, str(tmpdir), env.duration, 3, request.param)
 
 
-@pytest.fixture(params=range(9))
+@pytest.fixture(params=range(10))
 def policy(request, task):
     policy = Sequential(task)
     if request.param == 0:
@@ -43,7 +43,7 @@ def policy(request, task):
         policy.add(Skip, 3)
         policy.add(Identity)
     elif request.param == 4:
-        # Nested ones.
+        # Nested once.
         policy.add(Skip, 2)
         inner = Sequential(policy.above_task)
         inner.add(Skip, 2)
@@ -76,9 +76,25 @@ def policy(request, task):
         for _ in range(5):
             inner = Sequential(policy.above_task)
             policy.add(inner)
+    elif request.param == 9:
+        # Prepended.
+        policy.add(Skip, 2)
+        outer = Sequential(policy.task)
+        outer.add(Skip, 2)
+        outer.add(policy)
+        policy = outer
+    elif request.param == 10:
+        # Wrapped.
+        policy.add(Skip, 2)
+        outer = Sequential(policy.task)
+        outer.add(Skip, 2)
+        outer.add(policy)
+        policy.add(Random)
+        policy = outer
     else:
         assert False
-    policy.add(Random)
+    if policy.above_task:
+        policy.add(Random)
     steps = policy.recursive_steps
     print('Steps:', ', '.join([type(x).__name__ for x in steps]))
     return policy

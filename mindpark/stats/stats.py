@@ -40,11 +40,15 @@ class Metrics:
         filepath = '{}-{}-{}-{}.{}'.format(
             run.name, run.env, run.algorithm, run.repeat, self._type)
         filepath = os.path.join(run.experiment, filepath.lower())
+        print('', title)
         self._figure(run.stats, title, filepath)
 
     def _figure(self, stats, title, filepath):
         engine = sql.create_engine('sqlite:///{}'.format(stats))
         tables = self._get_tables(engine)
+        if not tables:
+            print('  No metrics')
+            return
         tables = self._select_metrics(tables)
         fig, ax = self._subplots(2, len(tables))
         fig.suptitle(title, fontsize=16)
@@ -57,12 +61,12 @@ class Metrics:
                 self._plot(ax[0, index], train)
                 ax[0, index].set_title(title)
             else:
-                ax[0, index].set_axis_off()
+                ax[0, index].tick_params(colors=(0, 0, 0, 0))
             if test.size:
                 self._plot(ax[1, index], test)
                 ax[1, index].set_title(title)
             else:
-                ax[1, index].set_axis_off()
+                ax[1, index].tick_params(colors=(0, 0, 0, 0))
         ax[0, 0].set_ylabel('Training', fontsize=16)
         ax[0, 0].yaxis.labelpad = 16
         ax[1, 0].set_ylabel('Testing', fontsize=16)
@@ -77,7 +81,8 @@ class Metrics:
         for metric in self._metrics:
             matches = [x for x in tables.keys() if metric in x]
             if not matches:
-                raise KeyError("found no metric for '{}'".format(metric))
+                print("  No metric matched by '{}'".format(metric))
+                continue
             if len(matches) > 1:
                 message = "found multiple metric for '{}'".format(metric)
                 raise KeyError(message)
@@ -100,6 +105,7 @@ class Metrics:
         _, _, _, epoch, training, _ = rows.T[:6]
         values = rows[:, 6:].astype(float)
         categorical = np.allclose(values, values.astype(int))
+        categorical = categorical and np.unique(values.astype(int)).size <= 10
         resolution = 10
         borders = np.linspace(0, len(values), resolution * epoch.max())
         borders = borders.astype(int)

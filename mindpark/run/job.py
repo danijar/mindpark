@@ -1,5 +1,6 @@
 import traceback
-from mindpark.core import Simulator
+from mindpark.core import Simulator, Sequential
+from mindpark.step import Score
 from mindpark.utility import Proxy, dump_yaml, print_headline
 from mindpark.run.gym_env import GymEnv
 
@@ -53,11 +54,12 @@ class Job:
 
     def _create_training(self, algorithm):
         policies = algorithm.train_policies
+        policies = [self._prepend_score_step(x) for x in policies]
         envs = [self._create_env() for _ in policies]
         return Simulator(self._train_task, policies, envs)
 
     def _create_testing(self, algorithm):
-        policies = [algorithm.test_policy]
+        policies = [self._prepend_score_step(algorithm.test_policy)]
         envs = [self._create_env(self._task.directory)]
         return Simulator(self._test_task, policies, envs)
 
@@ -65,6 +67,12 @@ class Job:
         env = GymEnv(self._env_name, directory, self._video_callback)
         self._envs.append(env)
         return env
+
+    def _prepend_score_step(self, policy):
+        combined = Sequential(policy.task)
+        combined.add(Score)
+        combined.add(policy)
+        return combined
 
     def _print_score(self, score):
         score = score and round(score, 2)

@@ -30,7 +30,8 @@ class Experience(Partial):
         super().observe(observ)
         action = self.perform(observ)
         self._last_action = action
-        assert self.task.actions.contains(action)
+        assert self.task.actions.contains(action), (
+            action, self.task.actions)
         return action
 
     def receive(self, reward, final):

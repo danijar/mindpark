@@ -21,10 +21,10 @@ class Metric:
     def __call__(self, *values):
         values = self._parse_values(values)
         row = dict(
-            step=self._task.step.value,
-            epoch=self._task.epoch.value,
-            training=self._task.training,
-            episode=self._task.episode.value)
+            step=int(self._task.step),
+            epoch=int(self._task.epoch),
+            training=bool(self._task.training),
+            episode=int(self._task.episode))
         row.update(values)
         self._buffer.append(row)
         if time.time() >= self._last_flush + self._flush_interval:
