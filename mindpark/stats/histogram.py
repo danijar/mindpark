@@ -2,12 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mindpark.stats.plot import Plot
 
 
-class Histogram(Plot):
+class Histogram:
 
     def __init__(self, resolution=10, normalize=False):
+        super().__init__()
         self._resolution = resolution
         self._normalize = normalize
 
@@ -31,3 +31,10 @@ class Histogram(Plot):
         bar = plt.colorbar(img, cax=cax)
         ax.xaxis.set_ticks_position('bottom')
         return bar
+
+    def _aggregate(self, values, borders, reducer):
+        groups = []
+        for start, stop in zip(borders[:-1], borders[1:]):
+            groups.append(reducer(values[start: stop]))
+        groups = np.array(groups)
+        return groups
