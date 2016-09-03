@@ -1,7 +1,6 @@
 import os
 import collections
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import sqlalchemy as sql
 from mindpark.stats.scatter import Scatter
@@ -112,7 +111,8 @@ class Stats:
             self._plot_scalar(ax, values[:, 0], epoch.max())
         elif values.shape[1] == 1:
             indices = values[:, 0].astype(int)
-            histograms = np.eye(indices.max() + 1)[indices]
+            min_, max_ = indices.min(), indices.max()
+            histograms = np.eye(max_ - min_ + 1)[indices - min_]
             self._plot_distribution(ax, histograms, epoch.max())
         elif values.shape[1] > 1:
             self._plot_counts(ax, values, epoch.max())
