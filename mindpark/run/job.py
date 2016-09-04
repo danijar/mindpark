@@ -1,3 +1,4 @@
+import os
 import traceback
 from mindpark.core import Simulator, Sequential
 from mindpark.step import Score
@@ -32,9 +33,13 @@ class Job:
             for _ in range(self._epochs):
                 self._epoch(algorithm, training, testing)
         except Exception as e:
+            message = '{} ({})'.format(e, type(e).__name__)
+            filepath = os.path.join(self._task.directory, 'errors.txt')
+            with open(filepath, 'a') as log:
+                log.write(message + ':\n')
+                log.write(traceback.format_exc() + '\n\n')
             with lock:
-                print(self._prefix, 'Failed due to exception:', e)
-                traceback.print_exc()
+                print(self._prefix, message)
         finally:
             for env in self._envs:
                 env.close()
