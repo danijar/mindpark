@@ -63,10 +63,13 @@ class Reader:
         if not len(columns) or not columns.shape[1]:
             return None
         columns = Metric(
-            id=columns[0], timestamp=columns[1], step=columns[2],
-            epoch=columns[3], training=columns[4], episode=columns[5],
+            id=np.array([int(x, 16) for x in columns[0]]),
+            timestamp=columns[1],
+            step=columns[2].astype(int),
+            epoch=columns[3].astype(int),
+            training=columns[4].astype(bool),
+            episode=columns[5].astype(int),
             data=columns[6:].T.astype(float))
-        columns.id = np.array([int(x, 16) for x in columns.id])
         columns = self._sort_columns(columns)
         return columns
 

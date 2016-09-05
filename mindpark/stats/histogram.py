@@ -6,17 +6,20 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class Histogram:
 
-    def __init__(self, resolution=10, normalize=False):
+    def __init__(self, resolution=25, normalize=False):
         super().__init__()
         self._resolution = resolution
         self._normalize = normalize
 
-    def __call__(self, ax, counts, ticks):
-        borders = np.linspace(0, len(counts), self._resolution * ticks)
-        borders = borders.astype(int)
-        groups = self._aggregate(counts, borders, lambda x: np.mean(x, axis=0))
-        domain = np.linspace(0, ticks + 1, self._resolution * len(groups))
-        bar = self._plot_grid(ax, domain, groups)
+    def __call__(self, ax, domain, count):
+        assert len(domain) == len(count)
+        assert domain[0] < domain[-1]
+        order = np.argsort(domain)
+        domain, count = domain[order], count[order]
+        borders = np.linspace(0, domain.max(), self._resolution)
+        borders = np.digitize(borders, domain)
+        groups = self._aggregate(count, borders, lambda x: np.mean(x, axis=0))
+        bar = self._plot_grid(ax, domain[borders - 1], groups)
         if self._normalize:
             bar.set_ticks([])
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))

@@ -20,7 +20,7 @@ class Stats:
 
     def __init__(self, type_, selectors=None):
         self._type = type_
-        self._read_scores = lambda x: next(Reader(['score'])(x))[1].data
+        self._read_scores = lambda x: next(Reader(['score'])(x))[1]
         self._plot_scores = Scores()
         self._read_metrics = Reader(selectors)
         self._plot_metrics = Metrics()
@@ -40,7 +40,8 @@ class Stats:
             for algo, runs in algos.items():
                 scores[env][algo] = [self._read_scores(x.stats) for x in runs]
         name = os.path.basename(runs[0].experiment)
-        title = ' '.join(re.findall(r'[A-Za-z]+', name))
+        title = re.findall(r'[A-Za-z]{2,}', name)
+        title = ' '.join(x.title() for x in title)
         filepath = os.path.join(runs[0].experiment, name)
         self._plot_scores(scores, title, filepath)
 
