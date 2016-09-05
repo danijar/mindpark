@@ -16,7 +16,7 @@ def parse_args(args):
         '-d', '--directory', default='~/experiment/mindpark/',
         help='root directory for all experiments')
     parser.add_argument(
-        '-t', '--type', default='pdf',
+        '-t', '--type', default='png',
         help='file extension of the plots, determines the output format')
     parser.add_argument(
         '-m', '--metrics', nargs='*', default=None,
@@ -34,9 +34,9 @@ def parse_args(args):
 def main(args):
     args = parse_args(args)
     args.directory = os.path.expanduser(args.directory)
-    stats = Stats(args.type, args.metrics)
+    plot_stats = Stats(args.type, args.metrics)
     for experiment in find_experiments(args):
-        stats(experiment)
+        plot_stats(experiment)
 
 
 def find_experiments(args):

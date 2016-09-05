@@ -1,11 +1,10 @@
 import os
 import collections
-import matplotlib.pyplot as plt
 import numpy as np
 import sqlalchemy as sql
-from mindpark.stats.scatter import Scatter
-from mindpark.stats.histogram import Histogram
-from mindpark.utility import get_subdirs, natural_sorted, read_yaml
+from mindpark.stats.metrics import Metrics
+from mindpark.utility import natural_sorted
+from mindpark.utility import get_subdirs, read_yaml
 
 
 Run = collections.namedtuple(
@@ -14,16 +13,15 @@ Run = collections.namedtuple(
 
 class Stats:
 
-    def __init__(self, type_, metrics=None):
+    def __init__(self, type_, selectors=None):
         self._type = type_
-        self._metrics = metrics
-        self._plot_scalar = Scatter()
-        self._plot_counts = Histogram()
-        self._plot_distribution = Histogram(normalize=True)
+        self._selectors = selectors
+        self._plot_metrics = Metrics(type_)
 
     def __call__(self, experiment):
+        # TODO: Plot scores here.
         for run in self._collect_runs(experiment):
-            self._process(run)
+            self._process_run(run)
 
     def _collect_runs(self, experiment):
         print('Read experiment', experiment)
@@ -36,61 +34,44 @@ class Stats:
                 stats = os.path.join(directory, 'stats.db')
                 yield Run(experiment, name, env, algorithm, repeat, stats)
 
-    def _process(self, run):
+    def _process_run(self, run):
         title = '{} on {} (Repeat {})'.format(
             run.algorithm, run.env, run.repeat)
+        print(' Plot run', title)
+        metrics = list(self._collect_metrics(run))
+        if not metrics:
+            print('  No metrics found.')
+            return
         filepath = '{}-{}-{}-{}.{}'.format(
             run.name, run.env, run.algorithm, run.repeat, self._type)
         filepath = os.path.join(run.experiment, filepath)
-        print(' Plot run', title)
-        self._figure(run.stats, title, filepath)
+        self._plot_metrics(metrics, title, filepath)
 
-    def _figure(self, stats, title, filepath):
-        engine = sql.create_engine('sqlite:///{}'.format(stats))
-        tables = self._get_tables(engine)
-        if not tables:
-            print('  No metrics found.')
-            return
-        tables = self._select_metrics(tables)
-        fig, ax = self._subplots(2, len(tables))
-        fig.suptitle(title, fontsize=16)
-        for index, (title, table) in enumerate(tables):
-            rows = self._collect_stats(engine, table)
+    def _collect_metrics(self, run):
+        engine = sql.create_engine('sqlite:///{}'.format(run.stats))
+        metadata = sql.MetaData()
+        metadata.reflect(engine)
+        for name in self._select_metrics(metadata.tables.keys()):
+            rows = self._collect_rows(engine, metadata.tables[name])
             if rows is None:
                 continue
-            test, train = rows[rows.T[4] == 0], rows[rows.T[4] == 1]
-            if train.size:
-                self._plot(ax[0, index], train)
-                ax[0, index].set_title(title)
-            else:
-                ax[0, index].tick_params(colors=(0, 0, 0, 0))
-            if test.size:
-                self._plot(ax[1, index], test)
-                ax[1, index].set_title(title)
-            else:
-                ax[1, index].tick_params(colors=(0, 0, 0, 0))
-        ax[0, 0].set_ylabel('Training', fontsize=16)
-        ax[0, 0].yaxis.labelpad = 16
-        ax[1, 0].set_ylabel('Testing', fontsize=16)
-        ax[1, 0].yaxis.labelpad = 16
-        fig.tight_layout(rect=[0, 0, 1, .94])
-        fig.savefig(filepath)
+            yield name, rows
 
-    def _select_metrics(self, tables):
-        if not self._metrics:
-            return natural_sorted(tables.items(), key=lambda x: x[0])
+    def _select_metrics(self, metrics):
+        if not self._selectors:
+            return natural_sorted(metrics)
         selected = []
-        for metric in self._metrics:
-            matches = [x for x in tables.keys() if metric in x]
+        for metric in self._selectors:
+            matches = [x for x in metrics if metric in x]
             if not matches:
                 print("  '{}' matches no metrics.".format(metric))
                 continue
             if len(matches) > 1:
                 print("  '{}' matches multiple metrics.".format(metric))
-            selected += [(x, tables[x]) for x in matches]
+            selected += matches
         return selected
 
-    def _collect_stats(self, engine, table):
+    def _collect_rows(self, engine, table):
         result = engine.execute(sql.select([table]))
         columns = np.array([x for x in result]).T
         if not len(columns) or not columns.shape[1]:
@@ -101,30 +82,3 @@ class Stats:
         rows = columns.T
         rows = rows[order]
         return rows
-
-    def _plot(self, ax, rows):
-        _, _, _, epoch, training, _ = rows.T[:6]
-        values = rows[:, 6:].astype(float)
-        categorical = np.allclose(values, values.astype(int))
-        categorical = categorical and np.unique(values.astype(int)).size <= 10
-        if values.shape[1] == 1 and not categorical:
-            self._plot_scalar(ax, values[:, 0], epoch.max())
-        elif values.shape[1] == 1:
-            indices = values[:, 0].astype(int)
-            min_, max_ = indices.min(), indices.max()
-            histograms = np.eye(max_ - min_ + 1)[indices - min_]
-            self._plot_distribution(ax, histograms, epoch.max())
-        elif values.shape[1] > 1:
-            self._plot_counts(ax, values, epoch.max())
-
-    def _subplots(self, rows, cols, **kwargs):
-        size = [4 * cols, 3 * rows]
-        fig, ax = plt.subplots(ncols=cols, nrows=rows, figsize=size, **kwargs)
-        if cols == 1:
-            ax = np.array([ax]).T
-        return fig, ax
-
-    def _get_tables(self, engine):
-        metadata = sql.MetaData()
-        metadata.reflect(engine)
-        return metadata.tables

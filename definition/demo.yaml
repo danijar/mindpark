@@ -3,6 +3,7 @@ test_steps: 3000
 repeats: 2
 envs:
   - Breakout-v0
+  - Pong-v0
 algorithms:
   -
     name: DQN
@@ -20,3 +21,15 @@ algorithms:
         over: 5e3
         offset: 5e3
       frame_skip: 2
+  -
+    name: A3C
+    type: A3C
+    train_steps: 10000
+    config:
+      learners: 2
+      initial_learning_rate: 1e-3
+      frame_skip: 2
+  -
+    name: Random
+    type: Random
+    train_steps: 0
