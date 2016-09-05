@@ -24,11 +24,11 @@ class Metrics(Figure):
         self._label_columns(ax, names)
         self._label_rows(ax, ['Training', 'Evaluation'])
         for index, metric in enumerate(metrics):
-            ticks = metric.episode.max()
             train = metric[metric.training == 1]
             test = metric[metric.training == 0]
-            self._process_metric(ax[0, index], train, ticks)
-            self._process_metric(ax[1, index], test, ticks)
+            test.epoch -= 1
+            self._process_metric(ax[0, index], train)
+            self._process_metric(ax[1, index], test)
         self._save(fig, filepath)
 
     def _validate_input(self, metrics):
@@ -37,11 +37,11 @@ class Metrics(Figure):
             assert isinstance(name, str)
             assert all(isinstance(x, np.ndarray) for x in metric.values())
 
-    def _process_metric(self, ax, metric, ticks):
+    def _process_metric(self, ax, metric):
         if not metric.data.size:
             ax.tick_params(colors=(0, 0, 0, 0))
             return
-        domain = self._domain(metric, ticks)
+        domain = self._domain(metric)
         categorical = self._is_categorical(metric.data)
         if metric.data.shape[1] == 1 and not categorical:
             self._plot_scalar(ax, domain, metric.data[:, 0])

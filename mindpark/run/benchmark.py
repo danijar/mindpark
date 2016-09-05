@@ -51,10 +51,11 @@ class Benchmark:
             print('Find results in', experiment)
 
     def _create_jobs(self, experiment, definition):
+        repeats = range(1, definition.repeats + 1)
         combinations = itertools.product(
-            range(definition.repeats), definition.envs, definition.algorithms)
+            repeats, definition.envs, definition.algorithms)
         for repeat, env_name, algo_def in combinations:
-            args = experiment, env_name, algo_def, repeat + 1, definition
+            args = experiment, env_name, algo_def, repeat, definition
             yield self._create_job(*args)
 
     def _create_job(self, experiment, env_name, algo_def, repeat, definition):

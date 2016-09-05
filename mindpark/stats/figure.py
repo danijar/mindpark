@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from mindpark.stats.reader import Metric
 
 
 class Figure:
@@ -8,9 +9,19 @@ class Figure:
         fig.tight_layout(rect=[0, 0, 1, .94])
         fig.savefig(filepath)
 
-    def _domain(self, metric, ticks):
-        domain = (metric.step - metric.step.min()) / (metric.step.max() or 1)
-        domain = domain * (ticks + 1)
+    def _domain(self, line):
+        display = line.epoch  # line.episode
+        # Choose two points to linearly fit display qunatity.
+        display_1, display_2 = np.unique(display)[[1, -1]]
+        index_1 = np.argmax(display == display_1)
+        index_2 = np.argmax(display == display_2)
+        step_1, step_2 = line.step[index_1], line.step[index_2]
+        # Linearly transform steps onto display quantity.
+        slope = (display_2 - display_1) / (step_2 - step_1)
+        offset = display_1 - slope * step_1
+        domain = slope * line.step + offset
+        # Start counting at index one.
+        domain += 1
         return domain
 
     def _label_columns(self, ax, labels):
@@ -28,3 +39,10 @@ class Figure:
         if cols == 1:
             ax = np.array([ax]).T
         return fig, ax
+
+    def _concat_metrics(self, metrics):
+        keys = [list(x.keys()) for x in metrics]
+        keys = set(keys[0]).union(*keys[1:])
+        assert all((y in x for y in keys) for x in metrics)
+        metric = {x: np.concatenate([y[x] for y in metrics]) for x in keys}
+        return Metric(metric)

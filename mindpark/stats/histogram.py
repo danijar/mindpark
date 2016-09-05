@@ -16,7 +16,7 @@ class Histogram:
         assert domain[0] < domain[-1]
         order = np.argsort(domain)
         domain, count = domain[order], count[order]
-        borders = np.linspace(0, domain.max(), self._resolution)
+        borders = np.linspace(domain[0], domain[-1], self._resolution)
         borders = np.digitize(borders, domain)
         groups = self._aggregate(count, borders, lambda x: np.mean(x, axis=0))
         bar = self._plot_grid(ax, domain[borders - 1], groups)
