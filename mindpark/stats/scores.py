@@ -1,6 +1,7 @@
 import numpy as np
 from mindpark.stats.figure import Figure
 from mindpark.stats.scatter import Scatter
+from mindpark.stats.quantile import Quantile
 from mindpark.utility import natural_sorted
 
 
@@ -12,7 +13,8 @@ class Scores(Figure):
     """
 
     def __init__(self):
-        self._plot_score = Scatter(True, dict(alpha=0.5))
+        # self._plot_score = Scatter(True)
+        self._plot_score = Quantile(True)
 
     def __call__(self, scores, title, filepath):
         self._validate_input(scores)
