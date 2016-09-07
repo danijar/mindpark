@@ -7,12 +7,29 @@ Testbed for deep reinforcement learning algorithms.
 ![DQN playing Doom Health Gathering](http://imgur.com/ADsdHUM.gif)&nbsp;&nbsp;
 ![DQN trying to play Doom Deathmatch](http://imgur.com/WKDVGtx.gif)
 
+## Introduction
+
+Reinforcement learning is a fundamental problem in artificial intelligence. In
+this setting, an agent interacts with an environment in order to maximize a
+reward. For example, we show our bot pixel screens of a game and want it to
+choose actions that result in a high score.
+
+Mindpark is an environment for prototyping, testing, and comparing algorithms
+that do reinforcement learning. It integrates well with TensorFlow, Theano, and
+other deep learning libraries, and with OpenAI's gym environments.
+
 ## Instructions
 
-Run an experiment to compare between algorithms, hyper parameters, and
-environments:
+To get started, clone the repository and navigate into it:
 
-```shell
+```sh
+git clone git@github.com:danijar/mindpark.git && cd mindpark
+```
+
+Run an experiment to compare between algorithms, hyper parameters, and
+environments (`-O` for Python's optimizations):
+
+```sh
 python3 -O -m mindpark run definition/breakout.yaml
 ```
 
@@ -20,7 +37,7 @@ Videos and metrics are stored in a result directory, which is
 `~/experiment/mindpark/<timestamp>-breakout/` by default. You can plot
 statistics during or after the simulation by fuzzy matching an the folder name:
 
-```shell
+```sh
 python3 -m mindpark stats breakout
 ```
 
@@ -87,7 +104,7 @@ optional arguments:
 ## Dependencies
 
 Mindpark is a Python 3 package, and there are no plans to support Python 2. If
-you run into problems, please install the dependencies manually via `pip3`:
+you run into problems, please manually install the dependencies via `pip3`:
 
 - TensorFlow
 - Gym
@@ -112,9 +129,9 @@ Pull requests are welcome. I will set up a contributors file then, and you can
 choose if you want to be listed. Please follow the existing code style, and run
 unit tests and the integration test after changes:
 
-```shell
-python setup.py test
-python -m mindpark run definition/test.py -x
+```sh
+python3 setup.py test
+python3 -m mindpark run definition/test.py -x
 ```
 
 ## Contact
