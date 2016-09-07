@@ -10,7 +10,7 @@ class Figure:
         fig.savefig(filepath)
 
     def _domain(self, line):
-        display = line.epoch  # line.episode
+        display = line.episode  # line.epoch
         # Choose two points to linearly fit display qunatity.
         display_1, display_2 = np.unique(display)[[1, -1]]
         index_1 = np.argmax(display == display_1)

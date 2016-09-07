@@ -1,7 +1,8 @@
 import numpy as np
+from matplotlib import cm
 from mindpark.stats.figure import Figure
-from mindpark.stats.scatter import Scatter
-from mindpark.stats.histogram import Histogram
+from mindpark.plot import Scalar, Histogram
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 class Metrics(Figure):
@@ -12,7 +13,7 @@ class Metrics(Figure):
     """
 
     def __init__(self):
-        self._plot_scalar = Scatter(legend=False)
+        self._plot_scalar = Scalar()
         self._plot_counts = Histogram()
         self._plot_distribution = Histogram(normalize=True)
 
@@ -40,6 +41,10 @@ class Metrics(Figure):
     def _process_metric(self, ax, metric):
         if not metric.data.size:
             ax.tick_params(colors=(0, 0, 0, 0))
+            ax.set_axis_bgcolor(cm.get_cmap('viridis')(0))
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes('right', size='7%', pad=0.1)
+            cax.axis('off')
             return
         domain = self._domain(metric)
         categorical = self._is_categorical(metric.data)

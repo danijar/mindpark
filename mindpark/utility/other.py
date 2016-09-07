@@ -1,3 +1,4 @@
+import numpy as np
 import errno
 import functools
 import os
@@ -143,3 +144,11 @@ def read_yaml(*path):
     path = os.path.join(*path)
     with open(path) as file_:
         return use_attrdicts(yaml.load(file_))
+
+
+def aggregate(values, borders, reducer):
+    groups = []
+    for start, stop in zip(borders[:-1], borders[1:]):
+        groups.append(reducer(values[start: stop]))
+    groups = np.array(groups)
+    return groups
