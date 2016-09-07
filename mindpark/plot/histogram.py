@@ -1,9 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
 from matplotlib import cm
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mindpark.utility import aggregate
+from mindpark.utility import aggregate, add_color_bar
 
 
 class Histogram:
@@ -22,18 +19,14 @@ class Histogram:
         borders = np.linspace(domain[0], domain[-1], resolution)
         borders = np.digitize(borders, domain)
         groups = aggregate(count, borders, lambda x: np.mean(x, axis=0))
-        bar = self._plot_grid(ax, domain[borders - 1], groups)
-        if self._normalize:
-            bar.set_ticks([])
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        self._plot_grid(ax, domain[borders - 1], groups)
+        ax.set_yticks(np.arange(count.shape[1]))
 
     def _plot_grid(self, ax, domain, cells):
         extent = [domain.min(), domain.max(), -.5, cells.shape[1] - .5]
-        kwargs = dict(cmap='viridis')
-        img = ax.matshow(
-            cells.T, extent=extent, origin='lower', aspect='auto', **kwargs)
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes('right', size='7%', pad=0.1)
-        bar = plt.colorbar(img, cax=cax)
-        ax.xaxis.set_ticks_position('bottom')
-        return bar
+        img = ax.imshow(
+            cells.T, extent=extent, origin='lower', aspect='auto',
+            interpolation='nearest', cmap='viridis')
+        bar = add_color_bar(ax, img)
+        if self._normalize:
+            bar.set_ticks([])

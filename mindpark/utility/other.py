@@ -7,6 +7,8 @@ import sys
 import threading
 import traceback
 import yaml
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mindpark.utility.attrdict import use_attrdicts
 
 
@@ -152,3 +154,10 @@ def aggregate(values, borders, reducer):
         groups.append(reducer(values[start: stop]))
     groups = np.array(groups)
     return groups
+
+
+def add_color_bar(ax, img):
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='7%', pad=0.1)
+    bar = plt.colorbar(img, cax=cax)
+    return bar

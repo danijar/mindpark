@@ -43,8 +43,7 @@ class Metrics(Figure):
             ax.tick_params(colors=(0, 0, 0, 0))
             ax.set_axis_bgcolor(cm.get_cmap('viridis')(0))
             divider = make_axes_locatable(ax)
-            cax = divider.append_axes('right', size='7%', pad=0.1)
-            cax.axis('off')
+            divider.append_axes('right', size='7%', pad=0.1).axis('off')
             return
         domain = self._domain(metric)
         categorical = self._is_categorical(metric.data)

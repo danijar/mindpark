@@ -31,7 +31,7 @@ class Figure:
     def _label_rows(self, ax, labels):
         for index, label in enumerate(labels):
             ax[index, 0].set_ylabel(label, fontsize=16)
-            ax[index, 0].yaxis.labelpad = 16
+            ax[index, 0].yaxis.set_label_coords(-.15, 0.5)
 
     def _create_subplots(self, rows, cols, **kwargs):
         size = [4 * cols, 3 * rows]

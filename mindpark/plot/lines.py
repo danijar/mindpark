@@ -33,8 +33,6 @@ class Lines:
         padding = 0.1 * (max_ - min_) or np.abs(np.log10(min_)) / 100
         ax.set_ylim(min_ - padding, max_ + padding)
 
-        # self._locate_ticks(ax)
-
     def _plot_line(self, ax, domain, line, label, color, marker):
         order = np.argsort(domain)
         domain, line = domain[order], line[order]
