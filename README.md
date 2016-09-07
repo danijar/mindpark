@@ -24,7 +24,7 @@ statistics during or after the simulation by fuzzy matching an the folder name:
 python3 -m mindpark stats breakout
 ```
 
-![DQN statistics on Breakout](http://imgur.com/sAbK3C7.png)
+![DQN statistics on Breakout](http://i.imgur.com/eh1K0Zl.png)
 
 To implement your own algorithm, subclass `mindpark.core.Algorithm`. Please
 refer to the existing algorithms for details, and ask if you have questions.
