@@ -15,8 +15,19 @@ reward. For example, we show our bot pixel screens of a game and want it to
 choose actions that result in a high score.
 
 Mindpark is an environment for prototyping, testing, and comparing algorithms
-that do reinforcement learning. It integrates well with TensorFlow, Theano, and
-other deep learning libraries, and with OpenAI's gym environments.
+that do reinforcement learning. The library makes it easy to reuse part of
+behavior between algorithms, and monitor all kinds of metrics about your
+algorithms. It integrates well with TensorFlow, Theano, and other deep learning
+libraries, and with OpenAI's gym environments.
+
+These are the algorithms that I implemented so far (feel free to contribute to
+this list):
+
+- Deep Q-Network (Mnih et al. 2015, [PDF][dqn-paper])
+- Asynchronous Advantage Actor-Critic (Mnih et al. 2016, [PDF][a3c-paper])
+
+[dqn-paper]: https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
+[a3c-paper]: https://arxiv.org/pdf/1602.01783v2.pdf
 
 ## Instructions
 
@@ -26,8 +37,8 @@ To get started, clone the repository and navigate into it:
 git clone git@github.com:danijar/mindpark.git && cd mindpark
 ```
 
-Run an experiment to compare between algorithms, hyper parameters, and
-environments (`-O` for Python's optimizations):
+An experiment compares between algorithms, hyper parameters, and environments.
+To start an experiment, run (`-O` turns on Python's optimizations):
 
 ```sh
 python3 -O -m mindpark run definition/breakout.yaml
@@ -41,10 +52,27 @@ statistics during or after the simulation by fuzzy matching an the folder name:
 python3 -m mindpark stats breakout
 ```
 
+## Statistics
+
+Let's take a look at what the previous command creates:
+
 ![DQN statistics on Breakout](http://i.imgur.com/eh1K0Zl.png)
 
-To implement your own algorithm, subclass `mindpark.core.Algorithm`. Please
-refer to the existing algorithms for details, and ask if you have questions.
+Experiments consist of interleaved phases of training and evaluation. For
+example, an algorithm might use a lower exploration rate in favor of
+exploitation while being evaluated. The stats outputs two rows of diagrams for
+that:
+
+| Metric | Description |
+| ------ | ----------- |
+| `score` | During the first 80 episodes of training (the time when I ran `mindpark stats`), the algorithm manages to get a score of 9, but usually get scores around 3 and 4. Below is the score during evaluation. It's lower because the algorithm hasn't learned much yet and performs worse than the random exploration done during training. |
+| `dqn/cost` | The training cost of the neural network. It starts at episode 10. That's when the training starts, before that, DQN builds up its replay memory. I don't train the neural network during evaluation, so that plot is empty. |
+| `epsilion_greedy/values` | That's the Q-values that the dqn behavior sends to epsilon_greedy to act greedily on. You can see that they evolve over time: Action 4 seems to be quite good. But that's only for a short run, so we shouldn't conclude too much. |
+| `epsilion_greedy/random` | A histogram whether the current action was chosen randomly or greedy wrt the predicted Q-values. During training, epsilon is annealed, so you see a shift in the distribution. During testing, epsilon is always 0.05, so not many random actions there. |
+
+The metric names are prefixed by the class they come from. That's because
+algorithms are composed of reusable partial behaviors. See the [Algorithms
+section](#algorithms) for details.
 
 ## Definitions
 
@@ -80,31 +108,26 @@ Each algorithm will be trained on each environment for the specified number of
 repeats. A simulation is divided into epochs that consist of a training and an
 evaluation phase.
 
-## Arguments
+## Algorithms
 
-```
-usage: mindpark run [-h] [-o DIRECTORY] [-p PARALLEL] [-v VIDEOS] [-x]
-                    definition
+To implement your own algorithm, subclass `mindpark.core.Algorithm`. Please
+refer to the existing algorithms for details, and ask if you have questions.
+Algorithms are composed of partial behaviors that can do preprocessing,
+exploration, learning, and more. To create a reusable chunk of behavior,
+subclass `mindpark.core.Partial`.
 
-positional arguments:
-  definition            YAML file describing the experiment
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -o DIRECTORY, --directory DIRECTORY
-                        root folder for all experiments (default:
-                        ~/experiment/mindpark)
-  -p PARALLEL, --parallel PARALLEL
-                        how many algorithms to train in parallel (default: 1)
-  -v VIDEOS, --videos VIDEOS
-                        how many videos to capture per epoch (default: 1)
-  -x, --dry-run         do not store any results (default: False)
-```
+There are quite a few existing behaviors that you can import from
+`mindpark.step` and reuse in your algorithms. For more details, please look at
+the according Python files or open an issue. Current behaviors include:
+`ActionMax`, `ActionSample`, `ClampReward`, `Delta`, `EpsilonGreedy`,
+`Experience`, `Filter`, `Grayscale`, `History`, `Identity`, `Maximum`,
+`Normalize`, `Random`, `RandomStart`, `Resize`, `Score`, `Skip`, `Subsample`.
 
 ## Dependencies
 
-Mindpark is a Python 3 package, and there are no plans to support Python 2. If
-you run into problems, please manually install the dependencies via `pip3`:
+Mindpark is a Python 3 package, and there are no plans to support Python 2 from
+my side. If you run into problems, please manually install the dependencies via
+`pip3`:
 
 - TensorFlow
 - Gym
@@ -115,19 +138,13 @@ you run into problems, please manually install the dependencies via `pip3`:
 TensorFlow is only needed for the existing algorithms. You are free to use your
 libraries of choice to implement your own algorithms.
 
-## Algorithms
+## Contributions
 
-- Deep Q-Network (Mnih et al. 2015, [PDF][dqn-paper])
-- Asynchronous Advantage Actor-Critic (Mnih et al. 2016, [PDF][a3c-paper])
+Your pull request is very welcome. I will set up a contributors file in that
+case, and you can choose if and how you want to be listed.
 
-[dqn-paper]: https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
-[a3c-paper]: https://arxiv.org/pdf/1602.01783v2.pdf
-
-## Contribution
-
-Pull requests are welcome. I will set up a contributors file then, and you can
-choose if you want to be listed. Please follow the existing code style, and run
-unit tests and the integration test after changes:
+Please follow the existing code style, and run unit tests and the integration
+test after changes:
 
 ```sh
 python3 setup.py test
@@ -136,4 +153,5 @@ python3 -m mindpark run definition/test.py -x
 
 ## Contact
 
-Feel free to reach out if you have any questions.
+Feel free to reach out at [mail@danijar.com](mailto:mail@danijar.com) or open
+an issue here on Github if you have any questions.
