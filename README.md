@@ -54,25 +54,32 @@ python3 -m mindpark stats breakout
 
 ## Statistics
 
-Let's take a look at what the previous command creates:
-
-![DQN statistics on Breakout](http://i.imgur.com/eh1K0Zl.png)
+Let's take a look at what the previous command creates.
 
 Experiments consist of interleaved phases of training and evaluation. For
 example, an algorithm might use a lower exploration rate in favor of
-exploitation while being evaluated. The stats outputs two rows of diagrams for
-that:
+exploitation while being evaluated. Therefore, we display the metrics in two
+rows:
+
+![DQN statistics on Breakout](http://i.imgur.com/eh1K0Zl.png)
+
+This illustrates the metrics after a few episodes of training, as you can see
+on the horizontal axes. This small example is good for explanation. But if you
+want to take a look, here are the [metrics of a longer
+experiment][metrics-long].
 
 | Metric | Description |
 | ------ | ----------- |
 | `score` | During the first 80 episodes of training (the time when I ran `mindpark stats`), the algorithm manages to get a score of 9, but usually get scores around 3 and 4. Below is the score during evaluation. It's lower because the algorithm hasn't learned much yet and performs worse than the random exploration done during training. |
-| `dqn/cost` | The training cost of the neural network. It starts at episode 10. That's when the training starts, before that, DQN builds up its replay memory. I don't train the neural network during evaluation, so that plot is empty. |
+| `dqn/cost` | The training cost of the neural network. It starts at episode 10 which is when the training starts, before that, DQN builds up its replay memory. We don't train the neural network during evaluation, so that plot is empty. |
 | `epsilion_greedy/values` | That's the Q-values that the dqn behavior sends to epsilon_greedy to act greedily on. You can see that they evolve over time: Action 4 seems to be quite good. But that's only for a short run, so we shouldn't conclude too much. |
 | `epsilion_greedy/random` | A histogram whether the current action was chosen randomly or greedy wrt the predicted Q-values. During training, epsilon is annealed, so you see a shift in the distribution. During testing, epsilon is always 0.05, so not many random actions there. |
 
-The metric names are prefixed by the class they come from. That's because
+The metric names are prefixed by the classes they come from. That's because
 algorithms are composed of reusable partial behaviors. See the [Algorithms
 section](#algorithms) for details.
+
+[metrics-long]: http://i.imgur.com/qZBR7nB.png
 
 ## Definitions
 
