@@ -96,7 +96,8 @@ def network_a3c_lstm(model, x):
 
 
 def network_test(model, x):
-    x = dense(x, 10, tf.nn.relu)
+    x = dense(x, 8, tf.nn.relu)
+    x = dense(x, 8, tf.nn.relu)
     return x
 
 

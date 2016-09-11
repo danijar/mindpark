@@ -45,7 +45,7 @@ class Benchmark:
             dump_yaml(definition, experiment, name + '.yaml')
 
     def _log_finish(self, experiment, duration):
-        message = 'Congratulations, benchmark finished after {} hours'
+        message = 'Benchmark finished after {} hours'
         print_headline(message.format(duration), style='=')
         if experiment:
             print('Find results in', experiment)

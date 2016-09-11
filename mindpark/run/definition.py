@@ -57,5 +57,7 @@ class Definition:
         if not all(hasattr(x, 'train_steps') for x in definition.algorithms):
             raise KeyError('each algorithm must have a training duration')
         testing = hasattr(sys, '_called_from_test')
-        if definition.epochs > 4 and not sys.flags.optimize and not testing:
+        timesteps = sum(x.train_steps for x in definition.algorithms)
+        timesteps = definition.epochs * (timesteps + definition.test_steps)
+        if timesteps > 1e5 and not sys.flags.optimize and not testing:
             raise KeyError('use optimize flag when running many epochs')

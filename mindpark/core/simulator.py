@@ -1,3 +1,4 @@
+import sys
 from threading import Thread
 
 
@@ -13,6 +14,7 @@ class Simulator:
         self._validate_input(policies, envs)
         self._policies = policies
         self._envs = envs
+        self._exc_info = None
 
     def __iter__(self):
         while True:
@@ -39,11 +41,22 @@ class Simulator:
             thread.start()
         for thread in threads:
             thread.join()
+        self._reraise_if_available()
         return sum(scores) / len(scores) if scores else None
 
+    def _reraise_if_available(self):
+        if not self._exc_info:
+            return
+        traceback = self._exc_info[1], self._exc_info[2]
+        exception = self._exc_info[0].with_traceback(*traceback)
+        raise exception
+
     def _worker(self, target, env, policy, scores):
-        while self._task.step < target:
-            score = self._episode(env, policy)
+        while self._task.step < target and not self._exc_info:
+            try:
+                score = self._episode(env, policy)
+            except Exception:
+                self._exc_info = sys.exc_info()
             scores.append(score)
 
     def _episode(self, env, policy):
@@ -62,7 +75,7 @@ class Simulator:
             self._task.step.increment()
             score += reward
         policy.end_episode()
-        # We undo the episode override after the task finishes..
+        # We undo the episode override after the task finishes.
         del policy.task.episode
         return score
 

@@ -1,3 +1,4 @@
+import numpy as np
 from mindpark.step.filter import Filter
 
 
@@ -12,7 +13,7 @@ class Grayscale(Filter):
         super().__init__(task)
         if len(weighting) != self.task.observs.shape[-1]:
             raise ValueError('weighting must match last axis of observations')
-        self._weighting = weighting
+        self._weighting = np.array(weighting) / sum(weighting)
 
     def filter(self, observ):
         return (self._weighting * observ).sum(-1)

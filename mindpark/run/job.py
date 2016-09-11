@@ -24,25 +24,35 @@ class Job:
     def __call__(self, lock):
         with lock:
             print_headline(self._prefix, 'Start job')
-        self._task.directory and dump_yaml(
-            self._algo_def, self._task.directory, 'algorithm.yaml')
         try:
-            algorithm = self._create_algorithm()
-            training = self._create_training(algorithm)
-            testing = self._create_testing(algorithm)
-            for _ in range(self._epochs):
-                self._epoch(algorithm, training, testing)
+            self._execute()
         except Exception as e:
-            message = '{} ({})'.format(e, type(e).__name__)
-            filepath = os.path.join(self._task.directory, 'errors.txt')
-            with open(filepath, 'a') as log:
-                log.write(message + ':\n')
-                log.write(traceback.format_exc() + '\n\n')
-            with lock:
-                print(self._prefix, message)
+            self._handle_error(lock, e)
         finally:
             for env in self._envs:
                 env.close()
+
+    def _execute(self):
+        self._task.directory and dump_yaml(
+            self._algo_def, self._task.directory, 'algorithm.yaml')
+        algorithm = self._create_algorithm()
+        training = self._create_training(algorithm)
+        testing = self._create_testing(algorithm)
+        for _ in range(self._epochs):
+            self._epoch(algorithm, training, testing)
+
+    def _handle_error(self, lock, e):
+        message = '{} ({})'.format(e, type(e).__name__)
+        stacktrace = traceback.format_exc()
+        with lock:
+            print(self._prefix, message)
+            print(stacktrace)
+        if not self._task.directory:
+            return
+        filepath = os.path.join(self._task.directory, 'errors.txt')
+        with open(filepath, 'a') as log:
+            log.write(message + ':\n')
+            log.write(stacktrace + '\n')
 
     def _epoch(self, algorithm, training, testing):
         self._remaining_videos = self._videos
