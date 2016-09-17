@@ -55,20 +55,23 @@ class Simulator:
         while self._task.step < target and not self._exc_info:
             try:
                 score = self._episode(env, policy)
+                scores.append(score)
             except Exception:
                 self._exc_info = sys.exc_info()
-            scores.append(score)
 
     def _episode(self, env, policy):
         score = 0
         episode = self._task.episode.increment()
-        policy.begin_episode(episode, self._task.training)
         # Other policies might run in parallel and update the episode counter
         # in the background. For the policy to see its own episode in the task,
         # we override the episode of this policy's task proxy.
         policy.task.episode = episode
+        policy.begin_episode(int(policy.task.episode), policy.task.training)
         observ = env.reset()
         while observ is not None:
+            # Abort immediately if any of the worker threads failed.
+            if self._exc_info:
+                return
             action = policy.observe(observ)
             reward, observ = env.step(action)
             policy.receive(reward, observ is None)

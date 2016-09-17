@@ -56,7 +56,7 @@ class Keyboard(Algorithm, Policy):
 
     @property
     def policy(self):
-        policy = Sequential(self.task)
+        policy = Sequential(self._preprocess.task)
         policy.add(self._preprocess)
         policy.add(self)
         return policy

@@ -40,6 +40,7 @@ class Monitored(core.Policy):
         super().begin_episode(episode, training)
         # Store primitive types so that we capture the actual value, not a
         # reference to the possibly wrapping objects.
+        # self.episode = int(self.task.episode)
         self.episode = int(self.task.episode)
         self.training = bool(self.task.training)
 

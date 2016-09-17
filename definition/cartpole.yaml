@@ -1,6 +1,6 @@
 epochs: 10
 test_steps: 1000
-repeats: 2
+repeats: 1
 envs:
   - CartPole-v0
 algorithms:
@@ -21,4 +21,4 @@ algorithms:
         over: 20000
         offset: 500
       frame_skip: 1
-      history: 3
+      history: 1

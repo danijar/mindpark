@@ -149,7 +149,9 @@ class Train(Experience):
         self._config = config
         self._master = master
         self._model = model
-        self._batch = Memory(self._config.apply_gradient)
+        observ_shape = self.task.observs.shape
+        shapes = (observ_shape, tuple(), tuple(), observ_shape)
+        self._batch = Memory(self._config.apply_gradient, shapes)
         self._context_last_batch = None
 
     def begin_episode(self, episode, training):

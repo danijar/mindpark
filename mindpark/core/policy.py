@@ -59,6 +59,8 @@ class Policy(ABC):
         """
         self._assert_state(State.begin, State.received)
         self._state = State.observed
+        # message = '{} {}'.format(self.task.observs.high, observ)
+        # assert self.task.observs.contains(observ), message
         if not self.task.observs.contains(observ):
             message = '{} received an invalid observation'
             raise ValueError(message.format(self))

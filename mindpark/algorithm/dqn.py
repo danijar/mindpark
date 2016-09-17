@@ -50,6 +50,7 @@ class DQN(Algorithm, Experience):
         self.config.start_learning = int(float(self.config.start_learning))
         self.config.sync_target = int(float(self.config.sync_target))
         self.config.epsilon.over = int(float(self.config.epsilon.over))
+        self.config.replay_capacity = int(float(self.config.replay_capacity))
         # Scale parameters.
         assert self.config.start_learning <= self.config.replay_capacity
         assert self.config.start_learning >= self.config.batch_size
@@ -67,7 +68,10 @@ class DQN(Algorithm, Experience):
             self.config.sync_target, self.config.start_learning)
         print(str(self._model))
         # Learning.
-        self._memory = Memory(int(float(self.config.replay_capacity)))
+        observ_shape = self._preprocess.above_task.observs.shape
+        shapes = (observ_shape, tuple(), tuple(), observ_shape)
+        self._memory = Memory(self.config.replay_capacity, shapes)
+        self._log_memory_size()
         self._learning_rate = Decay(
             float(self.config.initial_learning_rate), 0, self.task.steps)
         self._cost_metric = Metric(self.task, 'dqn/cost', 1)
@@ -84,8 +88,6 @@ class DQN(Algorithm, Experience):
     def experience(self, observ, action, reward, successor):
         action = action.argmax()
         self._memory.append((observ, action, reward, successor))
-        if len(self._memory) == 1:
-            self._log_memory_size()
         if self.task.step < self.config.start_learning:
             return
         observ, action, reward, successor = \
@@ -102,6 +104,7 @@ class DQN(Algorithm, Experience):
 
     @property
     def policy(self):
+        # TODO: Why doesn't self.task work here?
         policy = Sequential(self._preprocess.task)
         policy.add(self._preprocess)
         policy.add(self)
@@ -116,16 +119,16 @@ class DQN(Algorithm, Experience):
             policy.add(Skip, self.config.frame_skip)
         if self.config.frame_max:
             policy.add(Maximum, self.config.frame_max)
-        if self.config.history:
+        if self.config.history > 1:
             channels = policy.above_task.observs.shape[-1]
             policy.add(Grayscale, (0.299, 0.587, 0.114)[:channels])
         if self.config.subsample > 1:
             sub = self.config.subsample
-            amount = (sub, sub) if self.config.history else (sub, sub, 1)
+            amount = (sub, sub) if self.config.history > 1 else (sub, sub, 1)
             policy.add(Subsample, amount)
         if self.config.delta:
             policy.add(Delta)
-        if self.config.history:
+        if self.config.history > 1:
             policy.add(History, self.config.history)
         policy.add(Normalize)
         policy.add(ClampReward)

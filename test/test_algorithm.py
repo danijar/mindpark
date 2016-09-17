@@ -10,8 +10,11 @@ class TestAlgorithm:
         policies = algo.train_policies if task.training else [algo.test_policy]
         envs = [copy.deepcopy(env) for _ in policies]
         simulator = Simulator(task, policies, envs)
+        algo.begin_epoch()
         for score in simulator:
             assert score is not None
+            algo.end_epoch()
+            algo.begin_epoch()
 
     def test_unknown_config_key(self, task, algo_cls):
         config = dict(foo=42)

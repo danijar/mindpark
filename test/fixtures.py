@@ -22,7 +22,7 @@ def task(request, env, tmpdir):
         env.observs, env.actions, str(tmpdir), env.duration, 3, request.param)
 
 
-@pytest.fixture(params=range(10))
+@pytest.fixture(params=range(11))
 def policy(request, task):
     policy = Sequential(task)
     if request.param == 0:

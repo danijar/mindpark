@@ -5,8 +5,9 @@ from mindpark.core.partial import Partial
 class Sequential(Partial):
 
     def __init__(self, task):
-        super().__init__(task)
+        self._task = None
         self.steps = []
+        super().__init__(task)
 
     def add(self, policy, *args, **kwargs):
         """
@@ -17,11 +18,27 @@ class Sequential(Partial):
             policy = policy(self.above_task, *args, **kwargs)
         elif args or kwargs:
             raise ValueError('unexpected args for an instantiated policy')
+        policy.task = self.above_task
         if self.steps:
             self.steps[-1].set_above(policy)
         self.steps.append(policy)
         if self.above:
             policy.set_above(self.above)
+
+    @property
+    def task(self):
+        return self._task
+
+    @task.setter
+    def task(self, task):
+        if self._task is task:
+            return
+        self._task = task
+        if not self.steps:
+            return
+        self.steps[0].task = task
+        for below, step in zip(self.steps[:-1], self.steps[1:]):
+            step.task = below.above_task
 
     @property
     def recursive_steps(self):

@@ -5,12 +5,11 @@ from mindpark.utility.other import ensure_directory
 
 class Experience:
 
-    def __init__(self, maxlen):
+    def __init__(self, maxlen, shapes):
         self._maxlen = maxlen
         self._random = np.random.RandomState(seed=0)
-        # Tuple of four Numpy arrays holding transition tuple column-based.
-        self._columns = None
-        self._index = None
+        self._columns = [np.zeros((self._maxlen,) + x) for x in shapes]
+        self._index = 0
 
     def __len__(self):
         if not self._columns:
@@ -23,9 +22,10 @@ class Experience:
 
     def append(self, transition):
         assert len(transition) == 4
-        if not self._columns:
-            self._initialize(transition)
         for column, entry in zip(self._columns, transition):
+            if entry is None:
+                entry = np.empty(column.shape[1:])
+                entry.fill(np.nan)
             entry = np.array(entry)
             if entry.shape != column.shape[1:]:
                 message = 'experience shape {} does not match previous {}'
@@ -51,11 +51,4 @@ class Experience:
         return states, actions, rewards, successors
 
     def clear(self):
-        self._index = 0
-
-    def _initialize(self, transition):
-        shapes = [x.shape if hasattr(x, 'shape') else tuple()
-                  for x in transition]
-        shapes = [(self._maxlen,) + x for x in shapes]
-        self._columns = [np.empty(x) for x in shapes]
         self._index = 0
