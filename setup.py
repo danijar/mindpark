@@ -121,4 +121,10 @@ setuptools.setup(
         'lint': LintCommand,
         'format': FormatCommand,
         'docs': SphinxCommand,
-    })
+    },
+    classifiers=[
+        'Programming Language :: Python :: 3 :: Only',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Intended Audience :: Science/Research',
+    ])
