@@ -101,6 +101,13 @@ def network_test(model, x):
     return x
 
 
+def network_control(model, x):
+    x = dense(x, 32, tf.nn.relu)
+    x = dense(x, 32, tf.nn.relu)
+    x = dense(x, 32, tf.nn.relu)
+    return x
+
+
 def network_1(model, x):
     x = conv2d(x, 16, 8, 2, tf.nn.relu, 2)
     x = conv2d(x, 32, 3, 1, tf.nn.relu, 2)

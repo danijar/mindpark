@@ -7,18 +7,21 @@ algorithms:
   -
     name: DQN
     type: DQN
-    train_steps: 5000
+    train_steps: 10000
     config:
-      network: network_test
-      initial_learning_rate: 1e-1
-      replay_capacity: 5000
-      start_learning: 500
-      sync_target: 200
+      discount: 0.95
       epsilon:
         from_: 1.0
-        to: 0.1
-        test: 0.05
-        over: 20000
-        offset: 500
+        offset: 1000
+        over: 50000
+        test: 0.0
+        to: 0.05
       frame_skip: 1
-      history: 1
+      history: 4
+      noop_max: 5
+      initial_learning_rate: 1e-3
+      network: network_control
+      replay_capacity: 1000
+      start_learning: 1000
+      sync_target: 50
+      batch_size: 128
