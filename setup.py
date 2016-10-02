@@ -5,8 +5,16 @@ import setuptools
 
 
 PACKAGES = ['mindpark']
+
 SETUP_REQUIRES = ['Sphinx']
-INSTALL_REQUIRES = ['numpy', 'matplotlib', 'gym', 'sqlalchemy']
+
+INSTALL_REQUIRES = [
+    'numpy',
+    'matplotlib',
+    'gym',
+    'sqlalchemy',
+    'ruamel.yaml',
+]
 
 
 class Command(setuptools.Command):

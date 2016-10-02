@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import layers
+from tensorflow.contrib import slim
 
 
 def conv2d(x, filters, size, stride, activation=tf.nn.relu, pool=None):
-    x = layers.convolution2d(
-        x, filters, [size, size], stride, 'VALID', activation)
+    x = slim.conv2d(x, filters, [size, size], stride, 'VALID', 1, activation)
     if pool:
         pool = [1, pool, pool, 1]
         x = tf.nn.max_pool(x, pool, pool, 'VALID')
@@ -102,7 +102,6 @@ def network_test(model, x):
 
 
 def network_control(model, x):
-    x = dense(x, 32, tf.nn.relu)
     x = dense(x, 32, tf.nn.relu)
     x = dense(x, 32, tf.nn.relu)
     return x

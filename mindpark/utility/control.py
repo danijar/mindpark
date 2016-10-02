@@ -1,7 +1,7 @@
 class Every:
 
     def __init__(self, every, offset=0):
-        self._every = int(float(every))
+        self._every = every
         self._offset = offset
         self._last = None
 
@@ -20,7 +20,7 @@ class Decay:
     def __init__(self, start, stop, steps):
         self._start = start
         self._stop = stop
-        self._steps = int(float(steps)) or 1
+        self._steps = steps or 1
         assert self._start >= self._stop
         assert self._steps
 
@@ -34,7 +34,7 @@ class Statistic:
 
     def __init__(self, template, every=10000):
         self._template = template
-        self._every = int(float(every))
+        self._every = every
         self._values = []
 
     def __call__(self, value):

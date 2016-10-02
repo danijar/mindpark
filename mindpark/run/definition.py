@@ -1,6 +1,6 @@
 import os
 import sys
-import yaml
+import ruamel.yaml as yaml
 import mindpark.env  # Register custom envs.
 import gym
 import mindpark.algorithm
@@ -13,9 +13,6 @@ class Definition:
         with open(os.path.expanduser(filepath)) as file_:
             definition = yaml.load(file_)
         definition = use_attrdicts(definition)
-        definition.epochs = int(float(definition.epochs))
-        definition.test_steps = int(float(definition.test_steps))
-        definition.repeats = int(float(definition.repeats))
         definition.envs = list(cls._load_envs(definition.envs))
         definition.algorithms = [
             cls._load_algorithm(x) for x in definition.algorithms]
@@ -37,7 +34,6 @@ class Definition:
             raise KeyError(message.format(algorithm.type))
         algorithm.type = getattr(mindpark.algorithm, algorithm.type)
         algorithm.name = str(algorithm.name)
-        algorithm.train_steps = int(float(algorithm.train_steps))
         if 'config' not in algorithm:
             algorithm['config'] = {}
         if not issubclass(algorithm.type, mindpark.core.Algorithm):

@@ -1,4 +1,4 @@
-epochs: 10
+epochs: 20
 test_steps: 1000
 repeats: 1
 envs:
@@ -12,7 +12,7 @@ algorithms:
       discount: 0.95
       epsilon:
         from_: 1.0
-        offset: 1000
+        offset: 10000
         over: 50000
         test: 0.0
         to: 0.05

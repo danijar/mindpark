@@ -1,4 +1,3 @@
-import numpy as np
 import errno
 import functools
 import os
@@ -6,7 +5,8 @@ import re
 import sys
 import threading
 import traceback
-import yaml
+import ruamel.yaml as yaml
+import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mindpark.utility.attrdict import use_attrdicts
@@ -161,3 +161,17 @@ def add_color_bar(ax, img):
     cax = divider.append_axes('right', size='7%', pad=0.1)
     bar = plt.colorbar(img, cax=cax)
     return bar
+
+
+class OptionalContext:
+
+    def __init__(self, context):
+        self._context = context
+
+    def __enter__(self, *args, **kwargs):
+        if self._context:
+            self._context.__enter__(*args, **kwargs)
+
+    def __exit__(self, *args, **kwargs):
+        if self._context:
+            self._context.__exit__(*args, **kwargs)

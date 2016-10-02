@@ -46,11 +46,6 @@ class DQN(Algorithm, Experience):
 
     def __init__(self, task, config):
         Algorithm.__init__(self, task, config)
-        # Parse parameters (until YAML 1.2 support).
-        self.config.start_learning = int(float(self.config.start_learning))
-        self.config.sync_target = int(float(self.config.sync_target))
-        self.config.epsilon.over = int(float(self.config.epsilon.over))
-        self.config.replay_capacity = int(float(self.config.replay_capacity))
         # Scale parameters.
         assert self.config.start_learning <= self.config.replay_capacity
         assert self.config.start_learning >= self.config.batch_size
@@ -73,7 +68,7 @@ class DQN(Algorithm, Experience):
         self._memory = Memory(self.config.replay_capacity, shapes)
         self._log_memory_size()
         self._learning_rate = Decay(
-            float(self.config.initial_learning_rate), 0, self.task.steps)
+            self.config.initial_learning_rate, 0, self.task.steps)
         self._cost_metric = Metric(self.task, 'dqn/cost', 1)
         self._learning_rate_metric = Metric(self.task, 'dqn/learning_rate', 1)
 
@@ -150,7 +145,7 @@ class DQN(Algorithm, Experience):
         model.add_output('value', tf.reduce_max(values, 1))
         # Opimization.
         learning_rate = model.add_option(
-            'learning_rate', float(self.config.initial_learning_rate))
+            'learning_rate', self.config.initial_learning_rate)
         model.set_optimizer(self.config.optimizer(
             learning_rate=learning_rate,
             decay=self.config.rms_decay,

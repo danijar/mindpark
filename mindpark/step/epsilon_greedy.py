@@ -15,7 +15,7 @@ class EpsilonGreedy(Partial):
     def __init__(self, task,
                  from_=1, to=0.1, test=0.05, over=100, offset=0):
         super().__init__(task)
-        self._offset = int(float(offset))
+        self._offset = offset
         self._test = test
         self._epsilon = Decay(from_, to, over)
         self._metric_epsilon = Metric(

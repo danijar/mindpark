@@ -1,22 +1,25 @@
-import glob
 import os
+from threading import Lock
 import tensorflow as tf
-from mindpark.utility import ensure_directory
+from mindpark.utility import OptionalContext, ensure_directory
 
 
 class Graph:
+
     """
     Interface for a TensorFlow graph. Supports saving, loading, and restoring
     the whole graph from disk. Nodes are added by name and will be added to
     graph collections internally, so that they are available after loading.
     """
 
-    def __init__(self, threads=None):
+    def __init__(self, threads=None, locking=True):
         self._graph = tf.Graph()
-        config = threads and tf.ConfigProto(intra_op_parallelism_threads=threads)
+        config = threads and tf.ConfigProto(
+            intra_op_parallelism_threads=threads)
         self._sess = tf.Session('', self._graph, config)
         self._saver = None
         self._scope = None
+        self._lock = OptionalContext(locking and Lock())
 
     def __enter__(self):
         self._assert_modifiable()
@@ -91,7 +94,8 @@ class Graph:
         data = data or {}
         data = {self[k] if isinstance(k, str) else k: v
                 for k, v in data.items()}
-        results = self._sess.run(ops, data)
+        with self._lock:
+            results = self._sess.run(ops, data)
         if single:
             results = results[0]
         return results

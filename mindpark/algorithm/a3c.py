@@ -1,3 +1,4 @@
+from threading import Lock
 import numpy as np
 import tensorflow as tf
 from mindpark.core import Algorithm, Policy, Sequential
@@ -47,6 +48,7 @@ class A3C(Algorithm):
         # print(str(self.model))
         self.learning_rate = Decay(
             float(config.initial_learning_rate), 0, self.task.steps)
+        self.lock = Lock()
         self.costs = None
         self.values = None
         self.choices = None
@@ -56,6 +58,7 @@ class A3C(Algorithm):
         trainers = []
         for _ in range(self.config.learners):
             config = AttrDict(self.config.copy())
+            # TODO: Use single model to share RMSProp statistics.
             model = Model(self._create_network, threads=1)
             model.weights = self.model.weights
             policy = Sequential(self.task)
@@ -116,7 +119,7 @@ class A3C(Algorithm):
         learning_rate = model.add_option(
             'learning_rate', float(self.config.initial_learning_rate))
         model.set_optimizer(self.config.optimizer(
-            learning_rate, self.config.rms_decay))
+            learning_rate, self.config.rms_decay, use_locking=True))
         model.add_cost('cost', critic - actor)
 
     def _create_preprocess(self):

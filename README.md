@@ -155,7 +155,7 @@ test after changes:
 
 ```sh
 python3 setup.py test
-python3 -m mindpark run definition/test.py -x
+python3 -m mindpark run definition/test.yaml -x
 ```
 
 ## Contact

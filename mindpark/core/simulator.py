@@ -32,8 +32,11 @@ class Simulator:
             return None
         self._task.epoch.increment()
         threads, scores = [], []
+
+        # TODO: Compute without dead reckoning.
         amount = self._task.steps / self._task.epochs
         target = min(self._task.step + amount, self._task.steps)
+
         for env, policy in zip(self._envs, self._policies):
             args = target, env, policy, scores
             threads.append(Thread(target=self._worker, args=args))
