@@ -57,7 +57,7 @@ class A3C(mp.Algorithm):
     def test_policy(self):
         policy = mp.Sequential(self.task)
         policy.add(self._preprocess)
-        policy.add(Test, self.model)
+        policy.add(Test, self.model, self)
         return policy
 
     def end_epoch(self):
@@ -79,7 +79,6 @@ class A3C(mp.Algorithm):
 
     def _create_preprocess(self):
         policy = mp.Sequential(self.task)
-        print(dir(mp))
         preprocess = getattr(mp.part.preprocess, self.config.preprocess)
         policy.add(preprocess, self.config.preprocess_config)
         return policy
@@ -161,9 +160,10 @@ class Train(mp.step.Experience):
 
 class Test(mp.Policy):
 
-    def __init__(self, task, model):
+    def __init__(self, task, model, master):
         super().__init__(task)
         self._model = model
+        self._master = master
 
     def begin_episode(self, episode, training):
         super().begin_episode(episode, training)
@@ -173,7 +173,11 @@ class Test(mp.Policy):
     def observe(self, observ):
         super().observe(observ)
         assert not self.training
-        return self._model.compute('choice', state=observ)
+        choice, value = self._model.compute(
+            ('choice', 'value'), state=observ)
+        self._master.choice_metric(choice)
+        self._master.value_metric(value)
+        return choice
 
     def receive(self, reward, final):
         super().receive(reward, final)

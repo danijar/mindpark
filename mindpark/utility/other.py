@@ -35,11 +35,17 @@ def use_attrdicts(obj):
 
 def merge_dicts(*mappings):
     """
-    Join mapping objects. Later keys override earlier occurrences.
+    Recursively join mapping objects. Later values override earlier ones.
     """
     merged = {}
     for mapping in mappings:
-        merged.update(mapping)
+        for key, value in mapping.items():
+            if key in merged:
+                if isinstance(merged[key], dict) != isinstance(value, dict):
+                    raise ValueError('Cannot merge dict with value.')
+                if isinstance(merged[key], dict):
+                    value = merge_dicts(merged[key], value)
+            merged[key] = value
     return merged
 
 

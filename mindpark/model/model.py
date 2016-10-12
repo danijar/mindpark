@@ -28,11 +28,9 @@ class Model:
         if load_path:
             try:
                 self._graph.load(load_path)
-                print('Loaded model')
                 return
             except IOError:
                 pass
-        print('Create model')
         with self._graph:
             creator(self)
             self._create_set_weight()
