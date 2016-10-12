@@ -9,7 +9,7 @@ algorithms:
     type: A3C
     train_steps: 10000
     config:
-      learners: 1  # 16
+      learners: 16
       discount: 0.95
       preprocess: default
       preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}

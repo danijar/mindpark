@@ -61,7 +61,6 @@ def sum_dicts(*mappings):
 
 def lazy_property(function):
     attribute = '_' + function.__name__
-
     @property
     @functools.wraps(function)
     def wrapper(self):
@@ -178,6 +177,22 @@ def add_color_bar(ax, img):
     cax = divider.append_axes('right', size='7%', pad=0.1)
     bar = plt.colorbar(img, cax=cax)
     return bar
+
+
+def synchronized(function):
+    """
+    Decorator for methods to restrict the parallel access per instance.
+    For classmethods, the restriction is per class, making it global. The
+    decorator should not be used for staticmethods.
+    """
+    @functools.wraps(function)
+    def decorator(self, *args, **kwargs):
+        lock = '_{}_lock'.format(function.__name__)
+        if not hasattr(self, lock):
+            setattr(self, lock, threading.Lock())
+        with getattr(self, lock):
+            function(self, *args, **kwargs)
+    return decorator
 
 
 class OptionalContext:

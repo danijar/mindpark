@@ -1,7 +1,9 @@
+from threading import Lock
 from datetime import datetime
 import time
 import uuid
 import sqlalchemy as sql
+import mindpark as mp
 from mindpark.utility import Uuid
 
 
@@ -17,6 +19,7 @@ class Metric:
         self._engine = self._get_engine()
         self._table = self._create_table(self.columns)
         self._insert = self._table.insert()
+        self._lock = Lock()
 
     def __call__(self, *values):
         values = self._parse_values(values)
@@ -30,6 +33,7 @@ class Metric:
         if time.time() >= self._last_flush + self._flush_interval:
             self.flush()
 
+    @mp.utility.synchronized
     def flush(self):
         if not self._buffer:
             return
@@ -66,7 +70,7 @@ class Metric:
     def _create_table(self, names):
         metadata = sql.MetaData()
         columns = [
-            sql.Column('id', Uuid, primary_key=True, default=uuid.uuid4),
+            sql.Column('id', mp.utility.Uuid, primary_key=True, default=uuid.uuid4),
             sql.Column('timestamp', sql.DateTime, default=datetime.now),
             sql.Column('step', sql.Integer),
             sql.Column('epoch', sql.Integer),
