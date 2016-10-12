@@ -52,3 +52,6 @@ class Experience:
 
     def clear(self):
         self._index = 0
+
+    def log_memory_size(self):
+        print('Replay memory size', round(self.nbytes / (1024 ** 3), 2), 'GB')

@@ -1,5 +1,6 @@
 import numpy as np
 import gym
+import gym_pull
 from gym.core import Env
 from gym.spaces import Discrete
 from doom_py import ScreenResolution

@@ -1,4 +1,5 @@
-import inspect
+import mindpark as mp
+from mindpark.core.policy import Policy
 from mindpark.core.partial import Partial
 
 
@@ -14,7 +15,7 @@ class Sequential(Partial):
         Add a policy to the sequential behavior. If the policy provides no
         interface, no further policies can be added.
         """
-        if inspect.isclass(policy):
+        if not isinstance(policy, Policy):
             policy = policy(self.above_task, *args, **kwargs)
         elif args or kwargs:
             raise ValueError('unexpected args for an instantiated policy')

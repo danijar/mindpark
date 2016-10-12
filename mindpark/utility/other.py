@@ -9,7 +9,7 @@ import ruamel.yaml as yaml
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mindpark.utility.attrdict import use_attrdicts
+from mindpark.utility.attrdict import AttrDict
 
 
 def ensure_directory(directory):
@@ -25,7 +25,18 @@ def clamp(value, min_, max_):
     return max(min_, min(value, max_))
 
 
+def use_attrdicts(obj):
+    if isinstance(obj, dict):
+        return AttrDict({k: use_attrdicts(v) for k, v in obj.items()})
+    elif isinstance(obj, list):
+        return [use_attrdicts(x) for x in obj]
+    return obj
+
+
 def merge_dicts(*mappings):
+    """
+    Join mapping objects. Later keys override earlier occurrences.
+    """
     merged = {}
     for mapping in mappings:
         merged.update(mapping)

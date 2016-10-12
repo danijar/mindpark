@@ -115,10 +115,12 @@ def algo_config(algo_cls):
         config.replay_capacity = 100
         config.batch_size = 5
         config.start_learning = 10
-        config.network = 'network_test'
+        config.network = 'test'
+        config.preprocess_config = dict(frame_skip=2)
     if algo_cls.__name__ == 'A3C':
         config.learners = 2
-        config.network = 'network_test'
+        config.network = 'test'
+        config.preprocess_config = dict(frame_skip=2)
     if algo_cls.__name__ == 'KeyboardDoom':
         config.viewer = MockViewer
     return config

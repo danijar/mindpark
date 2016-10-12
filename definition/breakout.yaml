@@ -9,13 +9,13 @@ algorithms:
     type: A3C
     train_steps: 8e5
     config:
-      frame_skip: 2
+      preprocess_config: {frame_skip: 2}
   -
     name: DQN
     type: DQN
     train_steps: 2e5
     config:
-      frame_skip: 2
+      preprocess_config: {frame_skip: 2}
   -
     name: Random
     type: Random

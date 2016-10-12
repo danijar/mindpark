@@ -11,7 +11,7 @@ algorithms:
     train_steps: 8e5
     config:
       initial_learning_rate: 2e-5
-      frame_skip: 3
+      preprocess_config: {frame_skip: 3}
       discount: 0.998
   -
     name: DQN
@@ -20,7 +20,7 @@ algorithms:
     config:
       initial_learning_rate: 2e-5
       batch_size: 32
-      frame_skip: 3
+      preprocess_config: {frame_skip: 3}
       discount: 0.998
   -
     name: Random

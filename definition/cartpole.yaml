@@ -10,18 +10,13 @@ algorithms:
     train_steps: 10000
     config:
       discount: 0.95
-      epsilon:
-        from_: 1.0
-        offset: 10000
-        over: 50000
-        test: 0.0
-        to: 0.05
-      frame_skip: 1
-      history: 4
-      noop_max: 5
+      epsilon: {from_: 1.0, offset: 10000, over: 50000, test: 0.0, to: 0.05}
+      preprocess: default
+      preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}
       initial_learning_rate: 1e-3
-      network: network_control
+      network: control
       replay_capacity: 1000
       start_learning: 1000
       sync_target: 50
       batch_size: 128
+

@@ -31,10 +31,11 @@ this list):
 
 ## Instructions
 
-To get started, clone the repository and navigate into it:
+To get started, clone the repository and install dependencies:
 
 ```sh
 git clone git@github.com:danijar/mindpark.git && cd mindpark
+sudo -H pip3 install .
 ```
 
 An experiment compares between algorithms, hyper parameters, and environments.
@@ -133,14 +134,12 @@ the according Python files or open an issue. Current behaviors include:
 ## Dependencies
 
 Mindpark is a Python 3 package, and there are no plans to support Python 2 from
-my side. If you run into problems, please manually install the dependencies via
-`pip3`:
+my side. Please install `gym_doom` manually.
 
-- TensorFlow
-- Gym
-- PyYaml
-- Matplotlib
-- SQLAlchemy
+```sh
+sudo apt-get install -y gtk2.0-dev libsdl2-dev libfluidsynth-dev libopenal-dev libboost-all-dev
+sudo -H python3 -c "import gym_pull; gym_pull.pull('github.com/ppaquette/gym-doom')"
+```
 
 TensorFlow is only needed for the existing algorithms. You are free to use your
 libraries of choice to implement your own algorithms.

@@ -1,7 +1,7 @@
-from mindpark.utility import use_attrdicts
+from mindpark.utility import Configurable
 
 
-class Algorithm:
+class Algorithm(Configurable):
 
     @classmethod
     def defaults(self):
@@ -9,8 +9,8 @@ class Algorithm:
         return locals()
 
     def __init__(self, task, config):
+        super().__init__(config)
         self.task = task
-        self.config = self._override_config(config)
 
     @property
     def policy(self):
@@ -29,13 +29,3 @@ class Algorithm:
 
     def end_epoch(self):
         pass
-
-    @classmethod
-    def _override_config(cls, overrides):
-        config = cls.defaults()
-        for key in overrides:
-            if key not in config:
-                raise KeyError("unknown config key '{}'".format(key))
-        config.update(overrides)
-        config = use_attrdicts(config)
-        return config

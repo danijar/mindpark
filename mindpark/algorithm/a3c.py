@@ -1,16 +1,10 @@
 from threading import Lock
 import numpy as np
 import tensorflow as tf
-from mindpark.core import Algorithm, Policy, Sequential
-from mindpark import model as networks
-from mindpark.model import Model, dense
-from mindpark.step import (
-    RandomStart, Grayscale, Subsample, Maximum, Skip, History, Normalize,
-    ClampReward, Delta, Experience)
-from mindpark.utility import AttrDict, Experience as Memory, Decay, merge_dicts
+import mindpark as mp
 
 
-class A3C(Algorithm):
+class A3C(mp.Algorithm):
 
     """
     Algorithm: Asynchronous Advantage Actor Critic (A3C)
@@ -21,47 +15,39 @@ class A3C(Algorithm):
 
     @classmethod
     def defaults(cls):
-        # Preprocessing.
-        subsample = 2
-        frame_skip = 4
-        history = 4
-        delta = False
-        frame_max = 2
-        noop_max = 30
-        # Architecture.
+        preprocess = 'dqn_2015'
+        preprocess_config = dict()
+        network = 'a3c_lstm'
         learners = 16
+        actor_critic = dict(scale_critic_loss=0.5, regularize=0.01)
         apply_gradient = 5
-        network = 'network_a3c_lstm'
-        scale_critic_loss = 0.5
-        regularize = 0.01
-        # Optimizer.
         initial_learning_rate = 7e-4
         optimizer = tf.train.RMSPropOptimizer
-        rms_decay = 0.99
-        rms_epsilon = 0.1
-        return merge_dicts(super().defaults(), locals())
+        optimizer_config = dict(decay=0.99, epsilon=0.1)
+        return mp.utility.merge_dicts(super().defaults(), locals())
 
     def __init__(self, task, config):
         super().__init__(task, config)
         self._preprocess = self._create_preprocess()
-        self.model = Model(self._create_network)
+        self.model = mp.model.Model(self._create_network)
         # print(str(self.model))
-        self.learning_rate = Decay(
+        self.learning_rate = mp.utility.Decay(
             float(config.initial_learning_rate), 0, self.task.steps)
         self.lock = Lock()
-        self.costs = None
-        self.values = None
-        self.choices = None
+        self.cost_metric = mp.Metric(self.task, 'a3c/cost', 1)
+        self.value_metric = mp.Metric(self.task, 'a3c/value', 1)
+        self.choice_metric = mp.Metric(self.task, 'a3c/choice', 1)
 
     @property
     def train_policies(self):
         trainers = []
         for _ in range(self.config.learners):
-            config = AttrDict(self.config.copy())
-            # TODO: Use single model to share RMSProp statistics.
-            model = Model(self._create_network, threads=1)
+            config = mp.utility.AttrDict(self.config.copy())
+            # TODO: Use single model to share RMSProp statistics. Does RMSProp
+            # use statistics in compute_gradients() or apply_gradients()?
+            model = mp.model.Model(self._create_network, threads=1)
             model.weights = self.model.weights
-            policy = Sequential(self.task)
+            policy = mp.Sequential(self.task)
             policy.add(self._create_preprocess())
             policy.add(Train, config, self, model)
             trainers.append(policy)
@@ -69,83 +55,37 @@ class A3C(Algorithm):
 
     @property
     def test_policy(self):
-        policy = Sequential(self.task)
+        policy = mp.Sequential(self.task)
         policy.add(self._preprocess)
         policy.add(Test, self.model)
         return policy
 
-    def begin_epoch(self):
-        super().begin_epoch()
-        self.costs = []
-        self.values = []
-        self.choices = []
-
     def end_epoch(self):
         super().end_epoch()
-        if self.costs:
-            average = sum(self.costs) / len(self.costs)
-            print('Cost  {:12.5f}'.format(average))
-        if self.values:
-            average = sum(self.values) / len(self.values)
-            print('Value {:12.5f}'.format(average))
-        if self.choices:
-            dist = np.bincount(self.choices) / len(self.choices)
-            dist = ' '.join('{:.2f}'.format(x) for x in dist)
-            print('Choices [{}]'.format(dist))
         if self.task.directory:
             self.model.save(self.task.directory, 'model')
 
     def _create_network(self, model):
-        observs = self._preprocess.above_task.observs
-        actions = self._preprocess.above_task.actions
-        # Perception.
-        state = model.add_input('state', observs.shape)
-        hidden = getattr(networks, self.config.network)(model, state)
-        value = model.add_output(
-            'value', tf.squeeze(dense(hidden, 1, tf.identity), [1]))
-        policy = dense(value, actions.n, tf.nn.softmax)
-        model.add_output(
-            'choice', tf.squeeze(tf.multinomial(tf.log(policy), 1), [1]))
-        # Objectives.
-        action = model.add_input('action', type_=tf.int32)
-        action = tf.one_hot(action, actions.n)
-        return_ = model.add_input('return_')
-        logprob = tf.log(tf.reduce_sum(policy * action, 1) + 1e-13)
-        entropy = -tf.reduce_sum(tf.log(policy + 1e-13) * policy)
-        advantage = tf.stop_gradient(return_ - value)
-        actor = advantage * logprob + self.config.regularize * entropy
-        critic = self.config.scale_critic_loss * (return_ - value) ** 2 / 2
-        # Training.
         learning_rate = model.add_option(
-            'learning_rate', float(self.config.initial_learning_rate))
+            'learning_rate', self.config.initial_learning_rate)
         model.set_optimizer(self.config.optimizer(
-            learning_rate, self.config.rms_decay, use_locking=True))
-        model.add_cost('cost', critic - actor)
+            learning_rate=learning_rate, use_locking=True,
+            **self.config.optimizer_config))
+        network = getattr(mp.part.network, self.config.network)
+        observs = self._preprocess.above_task.observs.shape
+        actions = self._preprocess.above_task.actions.n
+        mp.part.approximation.actor_critic(
+            model, network, observs, actions, self.config.actor_critic)
 
     def _create_preprocess(self):
-        policy = Sequential(self.task)
-        if self.config.noop_max:
-            policy.add(RandomStart, self.config.noop_max)
-        if self.config.frame_skip:
-            policy.add(Skip, self.config.frame_skip)
-        if self.config.frame_max:
-            policy.add(Maximum, self.config.frame_max)
-        if self.config.history:
-            policy.add(Grayscale)
-        if self.config.subsample > 1:
-            sub = self.config.subsample
-            amount = (sub, sub) if self.config.history else (sub, sub, 1)
-            policy.add(Subsample, amount)
-        if self.config.delta:
-            policy.add(Delta)
-        if self.config.history:
-            policy.add(History, self.config.history)
-        policy.add(ClampReward)
-        policy.add(Normalize)
+        policy = mp.Sequential(self.task)
+        print(dir(mp))
+        preprocess = getattr(mp.part.preprocess, self.config.preprocess)
+        policy.add(preprocess, self.config.preprocess_config)
         return policy
 
 
-class Train(Experience):
+class Train(mp.step.Experience):
 
     def __init__(self, task, config, master, model):
         super().__init__(task)
@@ -154,7 +94,7 @@ class Train(Experience):
         self._model = model
         observ_shape = self.task.observs.shape
         shapes = (observ_shape, tuple(), tuple(), observ_shape)
-        self._batch = Memory(self._config.apply_gradient, shapes)
+        self._batch = mp.utility.Experience(self._config.apply_gradient, shapes)
         self._context_last_batch = None
 
     def begin_episode(self, episode, training):
@@ -167,8 +107,8 @@ class Train(Experience):
         assert self.training
         choice, value = self._model.compute(
             ('choice', 'value'), state=observ)
-        self._master.choices.append(choice)
-        self._master.values.append(value)
+        self._master.choice_metric(choice)
+        self._master.value_metric(value)
         return choice
 
     def experience(self, observ, action, reward, successor):
@@ -196,7 +136,7 @@ class Train(Experience):
             'cost', action=actions, state=observs, return_=returns)
         # self._log_gradient(delta)
         self._master.model.apply(delta)
-        self._master.costs.append(cost)
+        self._master.cost_metric(cost)
         if self._model.has_option('context'):
             self._context_last_batch = self._model.get_option('context')
 
@@ -210,17 +150,16 @@ class Train(Experience):
 
     def _decay_learning_rate(self):
         learning_rate = self._master.learning_rate(self._master.task.step)
-        self._model.set_option('learning_rate', learning_rate)  # Remove.
         self._master.model.set_option('learning_rate', learning_rate)
 
-    def _log_gradient(self, delta):
-        keys = sorted(delta.keys())
-        vals = [delta[x].mean() for x in keys]
-        for key, val in zip(keys, vals):
-            print('{:<40} {:20.16f}'.format(key, val))
+    # def _log_gradient(self, delta):
+    #     keys = sorted(delta.keys())
+    #     vals = [delta[x].mean() for x in keys]
+    #     for key, val in zip(keys, vals):
+    #         print('{:<40} {:20.16f}'.format(key, val))
 
 
-class Test(Policy):
+class Test(mp.Policy):
 
     def __init__(self, task, model):
         super().__init__(task)

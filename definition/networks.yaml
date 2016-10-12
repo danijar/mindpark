@@ -10,40 +10,40 @@ algorithms:
     type: A3C
     train_steps: 8e5
     config:
-      network: 'network_drqn'
+      network: 'drqn'
   -
     name: A3C (A3C-LSTM)
     type: A3C
     train_steps: 8e5
     config:
-      network: 'network_a3c_lstm'
+      network: 'a3c_lstm'
   -
     name: A3C (Doom L)
     type: A3C
     train_steps: 8e5
     config:
-      network: 'network_doom_large'
+      network: 'doom_large'
   -
     name: A3C (Minecraft S)
     type: A3C
     train_steps: 8e5
     config:
-      network: 'network_minecraft_small'
+      network: 'minecraft_small'
   -
     name: A3C (My FF 1)
     type: A3C
     train_steps: 8e5
     config:
-      network: 'network_1'
+      network: '1'
   -
     name: A3C (My RNN 2)
     type: A3C
     train_steps: 8e5
     config:
-      network: 'network_2'
+      network: '2'
   -
     name: A3C (My RNN 3)
     type: A3C
     train_steps: 8e5
     config:
-      network: 'network_3'
+      network: '3'

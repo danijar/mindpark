@@ -14,6 +14,8 @@ INSTALL_REQUIRES = [
     'gym',
     'sqlalchemy',
     'ruamel.yaml',
+    'Pygments',
+    'gym-pull',
 ]
 
 
