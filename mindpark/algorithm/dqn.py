@@ -4,6 +4,7 @@ import mindpark as mp
 import mindpark.part.preprocess
 import mindpark.part.approximation
 import mindpark.part.network
+import mindpark.part.replay
 
 
 class DQN(mp.Algorithm, mp.step.Experience):
@@ -58,7 +59,7 @@ class DQN(mp.Algorithm, mp.step.Experience):
 
     def experience(self, observ, action, reward, successor):
         action = action.argmax()
-        self._memory.append((observ, action, reward, successor))
+        self._memory.push(observ, action, reward, successor)
         if self.task.step < self.config.start_learning:
             return
         self._train_network()
@@ -76,7 +77,7 @@ class DQN(mp.Algorithm, mp.step.Experience):
             'learning_rate', self._learning_rate(self.task.step))
         self._learning_rate_metric(self._model.get_option('learning_rate'))
         observ, action, reward, successor = \
-            self._memory.sample(self.config.batch_size)
+            self._memory.batch(self.config.batch_size)
         target = self._compute_target(reward, successor)
         if self._sync_target(self.task.step):
             self._target.weights = self._model.weights
@@ -97,7 +98,7 @@ class DQN(mp.Algorithm, mp.step.Experience):
     def _create_memory(self):
         observ_shape = self._preprocess.above_task.observs.shape
         shapes = (observ_shape, tuple(), tuple(), observ_shape)
-        memory = mp.utility.Experience(self.config.replay_capacity, shapes)
+        memory = mp.part.replay.Random(self.config.replay_capacity, shapes)
         memory.log_memory_size()
         return memory
 
@@ -117,7 +118,7 @@ class DQN(mp.Algorithm, mp.step.Experience):
         network = getattr(mp.part.network, self.config.network)
         observs = self._preprocess.above_task.observs.shape
         actions = self._preprocess.above_task.actions.shape[0]
-        mp.part.approximation.q_learning(model, network, observs, actions)
+        mp.part.approximation.q_function(model, network, observs, actions)
 
     def _parse_config(self):
         if self.config.start_learning > self.config.replay_capacity:

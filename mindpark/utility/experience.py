@@ -6,7 +6,7 @@ from mindpark.utility.other import ensure_directory
 class Experience:
 
     def __init__(self, maxlen, shapes):
-        self._maxlen = maxlen
+        self._maxlen = int(maxlen)
         self._random = np.random.RandomState(seed=0)
         self._columns = [np.zeros((self._maxlen,) + x) for x in shapes]
         self._index = 0

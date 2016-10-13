@@ -19,7 +19,7 @@ class A3C(mp.Algorithm):
         preprocess_config = dict()
         network = 'a3c_lstm'
         learners = 16
-        actor_critic = dict(scale_critic_loss=0.5, regularize=0.01)
+        approximation = dict(scale_critic_loss=0.5, regularize=0.01)
         apply_gradient = 5
         initial_learning_rate = 7e-4
         optimizer = tf.train.RMSPropOptimizer
@@ -74,8 +74,8 @@ class A3C(mp.Algorithm):
         network = getattr(mp.part.network, self.config.network)
         observs = self._preprocess.above_task.observs.shape
         actions = self._preprocess.above_task.actions.n
-        mp.part.approximation.actor_critic(
-            model, network, observs, actions, self.config.actor_critic)
+        mp.part.approximation.value_policy_gradient(
+            model, network, observs, actions, self.config.approximation)
 
     def _create_preprocess(self):
         policy = mp.Sequential(self.task)
@@ -93,7 +93,7 @@ class Train(mp.step.Experience):
         self._model = model
         observ_shape = self.task.observs.shape
         shapes = (observ_shape, tuple(), tuple(), observ_shape)
-        self._batch = mp.utility.Experience(self._config.apply_gradient, shapes)
+        self._batch = mp.part.replay.Sequential(self._config.apply_gradient, shapes)
         self._context_last_batch = None
 
     def begin_episode(self, episode, training):
@@ -111,13 +111,13 @@ class Train(mp.step.Experience):
         return choice
 
     def experience(self, observ, action, reward, successor):
-        self._batch.append((observ, action, reward, successor))
+        self._batch.push(observ, action, reward, successor)
         done = (successor is None)
         if not done and len(self._batch) < self._config.apply_gradient:
             return
         return_ = (
             0 if done else self._model.compute('value', state=observ))
-        self._train(self._batch.access(), return_)
+        self._train(self._batch[:], return_)
         self._batch.clear()
         self._model.weights = self._master.model.weights
 
