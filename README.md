@@ -23,11 +23,15 @@ libraries, and with OpenAI's gym environments.
 These are the algorithms that I implemented so far (feel free to contribute to
 this list):
 
-- Deep Q-Network (Mnih et al. 2015, [PDF][dqn-paper])
-- Asynchronous Advantage Actor-Critic (Mnih et al. 2016, [PDF][a3c-paper])
+| Algorithm | Publication | Status |
+| :-------- | :---------: | :----- |
+| Deep Q-Network (DQN) | Mnih et al. 2015 ([PDF][paper-dqn]) | Working consistently. |
+| Asynchronous Advantage Actor-Critic (A3C) | Mnih et al. 2016 ([PDF][paper-a3c]) | Partly working. |
+| Reinforce | Williams 1992 ([PDF][paper-reinforce]) | Currently being tested. |
 
-[dqn-paper]: https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
-[a3c-paper]: https://arxiv.org/pdf/1602.01783v2.pdf
+[paper-dqn]: https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
+[paper-a3c]: https://arxiv.org/pdf/1602.01783v2.pdf
+[paper-reinforce]: http://www-anw.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf
 
 ## Instructions
 
@@ -133,8 +137,8 @@ the according Python files or open an issue. Current behaviors include:
 
 ## Dependencies
 
-Mindpark is a Python 3 package, and there are no plans to support Python 2 from
-my side. Please install `gym_doom` manually.
+Mindpark is a Python 3 package, and there are no plans to support Python 2.
+Please install `gym_doom` manually.
 
 ```sh
 sudo apt-get install -y gtk2.0-dev libsdl2-dev libfluidsynth-dev libopenal-dev libboost-all-dev

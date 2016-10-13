@@ -5,11 +5,11 @@ envs:
   - CartPole-v0
 algorithms:
   -
-    name: A3C
-    type: A3C
+    name: Reinforce
+    type: Reinforce
     train_steps: 10000
     config:
-      learners: 16
+      heads: 16
       discount: 0.95
       preprocess: default
       preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}
@@ -30,3 +30,14 @@ algorithms:
       start_learning: 1000
       sync_target: 50
       batch_size: 128
+  -
+    name: A3C
+    type: A3C
+    train_steps: 10000
+    config:
+      learners: 16
+      discount: 0.95  # 0.5
+      preprocess: default
+      preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}
+      initial_learning_rate: 1e-3
+      network: control

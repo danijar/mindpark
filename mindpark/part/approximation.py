@@ -14,10 +14,10 @@ def q_function(model, network, observs, actions, config=None):
     # Training.
     action = model.add_input('action', type_=tf.int32)
     action = tf.one_hot(action, actions)
-    target = model.add_input('target')
+    return_ = model.add_input('return_')
     model.add_output('value', tf.reduce_max(values, 1))
     model.add_cost(
-        'cost', (tf.reduce_sum(action * values, 1) - target) ** 2)
+        'cost', (tf.reduce_sum(action * values, 1) - return_) ** 2)
 
 
 def value_policy_gradient(model, network, observs, actions, config):

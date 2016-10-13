@@ -9,4 +9,6 @@ algorithms:
     type: DQN
     train_steps: 2e5
     config:
+      replay_capacity: 2.5e4
+      start_learning: 1e4
       preprocess_config: {frame_skip: 2}

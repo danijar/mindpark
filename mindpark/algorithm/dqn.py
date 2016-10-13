@@ -78,26 +78,26 @@ class DQN(mp.Algorithm, mp.step.Experience):
         self._learning_rate_metric(self._model.get_option('learning_rate'))
         observ, action, reward, successor = \
             self._memory.batch(self.config.batch_size)
-        target = self._compute_target(reward, successor)
+        return_ = self._estimated_return(reward, successor)
         if self._sync_target(self.task.step):
             self._target.weights = self._model.weights
         cost = self._model.train(
-            'cost', state=observ, action=action, target=target)
+            'cost', state=observ, action=action, return_=return_)
         self._cost_metric(cost)
 
-    def _compute_target(self, reward, successor):
+    def _estimated_return(self, reward, successor):
         terminal = np.isnan(successor.reshape((len(successor), -1))).any(1)
         successor = np.nan_to_num(successor)
         assert np.isfinite(successor).all()
         future = self._target.compute('value', state=successor)
         future[terminal] = 0
-        target = reward + self.config.discount * future
-        assert np.isfinite(target).all()
-        return target
+        return_ = reward + self.config.discount * future
+        assert np.isfinite(return_).all()
+        return return_
 
     def _create_memory(self):
         observ_shape = self._preprocess.above_task.observs.shape
-        shapes = (observ_shape, tuple(), tuple(), observ_shape)
+        shapes = observ_shape, tuple(), tuple(), observ_shape
         memory = mp.part.replay.Random(self.config.replay_capacity, shapes)
         memory.log_memory_size()
         return memory

@@ -90,7 +90,7 @@ class RingBuffer:
     def _wrap_index(self, key):
         key = self.tail + key if key < 0 else key
         if not (self.head <= key <= self.tail):
-            message ='index {} must be in range {} to {}.'
+            message ='Index {} must be in range {} to {}.'
             raise IndexError(message.format(key, self.head, self.tail))
         if key == self.tail:
             return (key - 1) % self._capacity + 1
@@ -141,7 +141,8 @@ class Random(RingBuffer):
         self._replace = replace
 
     def batch(self, amount):
-        if amount > len(self):
-            raise RuntimeError('Not enough elements to form batch.')
+        if not self._replace and amount > len(self):
+            message = "Can't sample {} from {} transitions without replacement"
+            raise RuntimeError(message.format(amount, len(self)))
         selection = self._random.choice(len(self), amount, self._replace)
         return self[self._head + selection]

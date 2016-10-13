@@ -100,7 +100,7 @@ def policy(request, task):
     return policy
 
 
-ALGOS = ['Random', 'DQN', 'A3C', 'KeyboardDoom']
+ALGOS = ['Random', 'DQN', 'A3C', 'KeyboardDoom', 'Reinforce']
 
 
 @pytest.fixture(params=ALGOS)
@@ -123,6 +123,10 @@ def algo_config(algo_cls):
         config.preprocess_config = dict(frame_skip=2)
     if algo_cls.__name__ == 'KeyboardDoom':
         config.viewer = MockViewer
+    if algo_cls.__name__ == 'Reinforce':
+        config.update_every = 10
+        config.batch_size = 5
+        config.network = 'test'
     return config
 
 
