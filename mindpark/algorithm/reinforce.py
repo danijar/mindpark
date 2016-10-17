@@ -62,6 +62,8 @@ class Reinforce(mp.Algorithm):
         if len(self._memory) < self.config.update_every:
             return
         with self._lock:
+            # TODO: Check if memory hasn't been emptied in the meantime or use
+            # locking for the check above already.
             self._decay_learning_rate()
             self._memory.shuffle()
             while len(self._memory) >= self.config.batch_size:
