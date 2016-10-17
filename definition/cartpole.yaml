@@ -41,4 +41,12 @@ algorithms:
       preprocess: default
       preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}
       initial_learning_rate: 1e-3
+      heads: 10
+      update_every: 10000
+      batch_size: 50
+      preprocess: default
+      preprocess_config: {subsample: 0, frame_skip: 1, history: 4, noop_max: 5}
+      approximation: {scale_critic_loss: 0.5, regularize: 0.01}
+      gradient_clipping: 1
+      initial_learning_rate: 1e-4
       network: control

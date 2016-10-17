@@ -22,19 +22,24 @@ class Reinforce(mp.Algorithm):
         preprocess = 'default'
         preprocess_config = dict()
         network = 'dqn_2015'
-        approximation = dict(scale_critic_loss=0.5, regularize=0.01)
         update_every = 10000
         batch_size = 32
         heads = 16
+        discount = 0.999
         initial_learning_rate = 2.5e-4
-        optimizer = tf.train.RMSPropOptimizer
-        optimizer_config = dict(decay=0.95, epsilon=0.1)
+        optimizer = tf.train.AdamOptimizer
+        gradient_clipping = 10  # 1e-2
+        optimizer_config = dict()
+        approximation = 'advantage_policy_gradient'
+        approximation_config = dict(scale_critic_loss=0.5, regularize=0.01)
         return mp.utility.merge_dicts(super().defaults(), locals())
 
     def __init__(self, task, config):
-        mp.Algorithm.__init__(self, task, config)
+        super().__init__(task, config)
+        self._parse_config()
         self._preprocess = self._create_preprocess()
-        self.model = mp.model.Model(self._create_network)
+        self.model = mp.model.Model(
+            self._create_network, clip_delta=self.config.gradient_clipping)
         print(str(self.model))
         self._learning_rate = mp.utility.Decay(
             self.config.initial_learning_rate, 0, self.task.steps)
@@ -110,11 +115,11 @@ class Reinforce(mp.Algorithm):
         model.set_optimizer(self.config.optimizer(
             learning_rate=learning_rate,
             **self.config.optimizer_config))
-        network = getattr(mp.part.network, self.config.network)
         observs = self._preprocess.above_task.observs.shape
         actions = self._preprocess.above_task.actions.n
-        mp.part.approximation.value_policy_gradient(
-            model, network, observs, actions, self.config.approximation)
+        self.config.approximation(
+            model, self.config.network, observs, actions,
+            self.config.approximation_config)
 
     def _create_memory(self):
         observ_shape = self._preprocess.above_task.observs.shape
@@ -124,8 +129,7 @@ class Reinforce(mp.Algorithm):
         return memory
 
     def _compute_eligibilities(self, rewards):
-        returns = []
-        return_ = 0
+        return_, returns = 0, []
         for reward in reversed(rewards):
             return_ = reward + self.config.discount * return_
             returns.append(return_)
@@ -135,6 +139,14 @@ class Reinforce(mp.Algorithm):
     def _decay_learning_rate(self):
         learning_rate = self._learning_rate(self.task.step)
         self.model.set_option('learning_rate', learning_rate)
+
+    def _parse_config(self):
+        self.config.optimizer = getattr(
+            tf.train, self.config.optimizer)
+        self.config.network = getattr(
+            mp.part.network, self.config.network)
+        self.config.approximation = getattr(
+            mp.part.approximation, self.config.approximation)
 
 
 class Head(mp.step.Experience):

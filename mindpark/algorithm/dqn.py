@@ -55,7 +55,7 @@ class DQN(mp.Algorithm, mp.step.Experience):
             self._model.save(self.task.directory, 'model')
 
     def perform(self, observ):
-        return self._model.compute('values', state=observ)
+        return self._model.compute('qvalues', state=observ)
 
     def experience(self, observ, action, reward, successor):
         action = action.argmax()

@@ -74,7 +74,7 @@ class A3C(mp.Algorithm):
         network = getattr(mp.part.network, self.config.network)
         observs = self._preprocess.above_task.observs.shape
         actions = self._preprocess.above_task.actions.n
-        mp.part.approximation.value_policy_gradient(
+        mp.part.approximation.advantage_policy_gradient(
             model, network, observs, actions, self.config.approximation)
 
     def _create_preprocess(self):

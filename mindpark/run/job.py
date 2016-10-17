@@ -1,18 +1,17 @@
 import os
 import traceback
-from mindpark.core import Simulator, Sequential
-from mindpark.step import Score
-from mindpark.utility import Proxy, dump_yaml, print_headline
+import mindpark as mp
 from mindpark.run.gym_env import GymEnv
 
 
 class Job:
 
     def __init__(
-            self, train_task, test_task, env_name, algo_def, prefix, videos):
+            self, train_task, test_task, env_name, algo_def, prefix,
+            videos=False, lock=None):
         self._train_task = train_task
         self._test_task = test_task
-        self._task = Proxy(train_task)
+        self._task = mp.utility.Proxy(train_task)
         self._epochs = max(train_task.epochs, test_task.epochs)
         self._env_name = env_name
         self._algo_def = algo_def
@@ -20,31 +19,36 @@ class Job:
         self._videos = videos
         self._remaining_videos = None
         self._envs = []
+        self._lock = mp.utility.OptionalContext(lock)
 
-    def __call__(self, lock):
-        with lock:
-            print_headline(self._prefix, 'Start job')
+    def __call__(self):
+        for score in self:
+            pass
+
+    def __iter__(self):
+        with self._lock:
+            mp.utility.print_headline(self._prefix, 'Start job')
         try:
-            self._execute()
+            yield from self._execute()
         except Exception as e:
-            self._handle_error(lock, e)
+            self._handle_error(e)
         finally:
             for env in self._envs:
                 env.close()
 
     def _execute(self):
-        self._task.directory and dump_yaml(
+        self._task.directory and mp.utility.dump_yaml(
             self._algo_def, self._task.directory, 'algorithm.yaml')
         algorithm = self._create_algorithm()
         training = self._create_training(algorithm)
         testing = self._create_testing(algorithm)
         for _ in range(self._epochs):
-            self._epoch(algorithm, training, testing)
+            yield self._epoch(algorithm, training, testing)
 
-    def _handle_error(self, lock, e):
+    def _handle_error(self, e):
         message = '{} ({})'.format(e, type(e).__name__)
         stacktrace = traceback.format_exc()
-        with lock:
+        with self._lock:
             print(self._prefix, message)
             print(stacktrace)
         if not self._task.directory:
@@ -63,6 +67,7 @@ class Job:
         self._task.change(self._train_task)
         training()
         algorithm.end_epoch()
+        return score
 
     def _create_algorithm(self):
         return self._algo_def.type(self._task, self._algo_def.config)
@@ -71,12 +76,12 @@ class Job:
         policies = algorithm.train_policies
         policies = [self._prepend_score_step(x) for x in policies]
         envs = [self._create_env() for _ in policies]
-        return Simulator(self._train_task, policies, envs)
+        return mp.Simulator(self._train_task, policies, envs)
 
     def _create_testing(self, algorithm):
         policies = [self._prepend_score_step(algorithm.test_policy)]
         envs = [self._create_env(self._task.directory)]
-        return Simulator(self._test_task, policies, envs)
+        return mp.Simulator(self._test_task, policies, envs)
 
     def _create_env(self, directory=None):
         env = GymEnv(self._env_name, directory, self._video_callback)
@@ -84,8 +89,8 @@ class Job:
         return env
 
     def _prepend_score_step(self, policy):
-        combined = Sequential(policy.task)
-        combined.add(Score)
+        combined = mp.Sequential(policy.task)
+        combined.add(mp.step.Score)
         combined.add(policy)
         return combined
 

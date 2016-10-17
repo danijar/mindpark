@@ -35,7 +35,7 @@ class Benchmark:
         jobs = self._create_jobs(experiment, definition)
         with ThreadPoolExecutor(max_workers=self._parallel) as executor:
             for job in jobs:
-                executor.submit(job, self._lock)
+                executor.submit(job)
         duration = round((time.time() - start) / 3600, 1)
         self._log_finish(experiment, duration)
 
@@ -71,7 +71,8 @@ class Benchmark:
             (definition.epochs + 1) * definition.test_steps,
             definition.epochs + 1, False)
         prefix = '{} on {} ({}):'.format(algo_def.name, env_name, repeat)
-        return Job(train, test, env_name, algo_def, prefix, self._videos)
+        return Job(
+            train, test, env_name, algo_def, prefix, self._videos, self._lock)
 
     def _start_experiment(self, name):
         print_headline('Start experiment', style='=')
