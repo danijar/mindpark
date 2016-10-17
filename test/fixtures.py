@@ -113,7 +113,7 @@ def algo_config(algo_cls):
     config = use_attrdicts(algo_cls.defaults())
     if algo_cls.__name__ == 'DQN':
         config.replay_capacity = 100
-        config.batch_size = 5
+        config.batch_size = 3
         config.start_learning = 10
         config.network = 'test'
         config.preprocess_config = dict(frame_skip=2)

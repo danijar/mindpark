@@ -63,6 +63,7 @@ class Reinforce(mp.Algorithm):
             return
         with self._lock:
             self._decay_learning_rate()
+            self._memory.shuffle()
             while len(self._memory) >= self.config.batch_size:
                 batch = self._memory.batch(self.config.batch_size)
                 self._train_network(batch)

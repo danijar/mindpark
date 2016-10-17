@@ -122,6 +122,8 @@ class Sequential(RingBuffer):
         return batch
 
     def shuffle(self):
+        if not len(self):
+            return
         order = self._head + self._random.permutation(len(self))
         order = self._wrap_key(order)
         for buffer in self._buffers:
