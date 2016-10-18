@@ -26,10 +26,12 @@ this list):
 | Algorithm | Publication | Status |
 | :-------- | :---------: | :----- |
 | Deep Q-Network (DQN) | Mnih et al. 2015 ([PDF][paper-dqn]) | Working consistently. |
+| Double Deep Q-Network (DDQN) | Hasselt, Guez, Silver. 2015 ([PDF][paper-ddqn]) | Working consistently. |
 | Asynchronous Advantage Actor-Critic (A3C) | Mnih et al. 2016 ([PDF][paper-a3c]) | Partly working. |
 | Reinforce | Williams 1992 ([PDF][paper-reinforce]) | Currently being tested. |
 
 [paper-dqn]: https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
+[paper-ddqn]: https://arxiv.org/pdf/1509.06461v3.pdf
 [paper-a3c]: https://arxiv.org/pdf/1602.01783v2.pdf
 [paper-reinforce]: http://www-anw.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf
 

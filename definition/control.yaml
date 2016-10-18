@@ -1,0 +1,68 @@
+epochs: 20
+test_steps: 1000
+repeats: 1
+envs:
+  - CartPole-v0
+  - Acrobot-v1
+algorithms:
+  -
+    name: DDQN
+    type: DDQN
+    train_steps: 10000
+    config:
+      discount: 0.95
+      epsilon: {from_: 1.0, offset: 10000, over: 50000, test: 0.0, to: 0.05}
+      preprocess: default
+      preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}
+      initial_learning_rate: 1e-3
+      network: control
+      replay_capacity: 1000
+      start_learning: 1000
+      sync_target: 50
+      batch_size: 128
+  -
+    name: DQN
+    type: DQN
+    train_steps: 10000
+    config:
+      discount: 0.95
+      epsilon: {from_: 1.0, offset: 10000, over: 50000, test: 0.0, to: 0.05}
+      preprocess: default
+      preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}
+      initial_learning_rate: 1e-3
+      network: control
+      replay_capacity: 1000
+      start_learning: 1000
+      sync_target: 50
+      batch_size: 128
+#  -
+#    name: Reinforce
+#    type: Reinforce
+#    train_steps: 20000
+#    config:
+#      heads: 32
+#      discount: 0.99
+#      update_every: 10000
+#      preprocess: default
+#      preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}
+#      initial_learning_rate: 1e-2
+#      network: control
+#  -
+#    name: A3C
+#    type: A3C
+#    train_steps: 10000
+#    config:
+#      learners: 16
+#      discount: 0.95  # 0.5
+#      preprocess: default
+#      preprocess_config: {subsample: 1, frame_skip: 1, history: 4, noop_max: 5}
+#      initial_learning_rate: 1e-3
+#      heads: 10
+#      update_every: 10000
+#      batch_size: 50
+#      preprocess: default
+#      preprocess_config: {subsample: 0, frame_skip: 1, history: 4, noop_max: 5}
+#      approximation: {scale_critic_loss: 0.5, regularize: 0.01}
+#      gradient_clipping: 1
+#      initial_learning_rate: 1e-4
+#      network: control

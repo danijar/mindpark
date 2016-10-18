@@ -19,7 +19,8 @@ class A3C(mp.Algorithm):
         preprocess_config = dict()
         network = 'a3c_lstm'
         learners = 16
-        approximation = dict(scale_critic_loss=0.5, regularize=0.01)
+        approximation_config = dict(
+            actor_weight=1.0, critic_weight=0.5, entropy_weight=0.01)
         apply_gradient = 5
         initial_learning_rate = 7e-4
         optimizer = tf.train.RMSPropOptimizer
@@ -75,7 +76,7 @@ class A3C(mp.Algorithm):
         observs = self._preprocess.above_task.observs.shape
         actions = self._preprocess.above_task.actions.n
         mp.part.approximation.advantage_policy_gradient(
-            model, network, observs, actions, self.config.approximation)
+            model, network, observs, actions, self.config.approximation_config)
 
     def _create_preprocess(self):
         policy = mp.Sequential(self.task)

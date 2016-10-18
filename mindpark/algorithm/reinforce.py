@@ -27,11 +27,12 @@ class Reinforce(mp.Algorithm):
         heads = 16
         discount = 0.999
         initial_learning_rate = 2.5e-4
-        optimizer = tf.train.AdamOptimizer
-        gradient_clipping = 10  # 1e-2
+        optimizer = 'AdamOptimizer'
+        gradient_clipping = 10
         optimizer_config = dict()
         approximation = 'advantage_policy_gradient'
-        approximation_config = dict(scale_critic_loss=0.5, regularize=0.01)
+        approximation_config = dict(
+            actor_weight=1.0, critic_weight=1.0, entropy_weight=1.0)
         return mp.utility.merge_dicts(super().defaults(), locals())
 
     def __init__(self, task, config):

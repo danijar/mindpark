@@ -11,10 +11,14 @@ algorithms:
     config:
       heads: 32
       preprocess: default
-      preprocess_config: {subsample: 1, frame_skip: 1, history: 2, noop_max: 3}
-      approximation: 'advantage_policy_gradient'
-      approximation_config: {scale_critic_loss: 0.5, regularize: 0.01}
-      discount: 0.95
+      preprocess_config: {subsample: 1, frame_skip: 1, history: 3, noop_max: 5}
+      approximation: advantage_policy_gradient
+      approximation_config:
+        actor_weight: 1.0
+        critic_weight: 1.0
+        entropy_weight: 1.0
+      # TODO: Add eligibility parameter.
+      discount: 1  # 0.95
       network: control
       update_every: 10000
       batch_size: 32

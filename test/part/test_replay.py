@@ -78,6 +78,16 @@ class TestSequential:
         assert (np.sort(batch) == list(range(10, 20))).all()
         assert not (batch == list(range(10, 20))).all()
 
+    def test_shuffle_underfull(self):
+        random = np.random.RandomState(0)
+        memory = mp.part.replay.Sequential(20, [[]], random)
+        for number in range(10):
+            memory.push(number)
+        memory.shuffle()
+        batch = memory.batch(10)[0]
+        assert (np.sort(batch) == list(range(10))).all()
+        assert not (batch == list(range(10))).all()
+
 
 class TestRandom:
 

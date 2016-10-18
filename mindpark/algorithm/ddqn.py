@@ -7,13 +7,13 @@ import mindpark.part.network
 import mindpark.part.replay
 
 
-class DQN(mp.Algorithm, mp.step.Experience):
+class DDQN(mp.Algorithm, mp.step.Experience):
 
     """
-    Algorithm: Deep Q-Network (DQN)
-    Paper: Human-level control through deep reinforcement learning
-    Authors: Mnih et al. 2015
-    PDF: https://goo.gl/Y3e373
+    Algorithm: Double Deep Q-Network (DDQN)
+    Paper: Deep Reinforcement Learning with Double Q-learning
+    Authors: Hasselt, Guez, Silver. 2015
+    PDF: https://arxiv.org/pdf/1509.06461v3.pdf
     """
 
     @classmethod
@@ -46,7 +46,9 @@ class DQN(mp.Algorithm, mp.step.Experience):
         self._learning_rate = mp.utility.Decay(
             self.config.initial_learning_rate, 0, self.task.steps)
         self._cost_metric = mp.Metric(self.task, 'dqn/cost', 1)
-        self._learning_rate_metric = mp.Metric(self.task, 'dqn/learning_rate', 1)
+        self._sync_target_metric = mp.Metric(self.task, 'dqn/sync_target', 1)
+        self._learning_rate_metric = mp.Metric(
+            self.task, 'dqn/learning_rate', 1)
         self._memory = self._create_memory()
 
     def end_epoch(self):
@@ -79,17 +81,23 @@ class DQN(mp.Algorithm, mp.step.Experience):
         observ, action, reward, successor = \
             self._memory.batch(self.config.batch_size)
         return_ = self._estimated_return(reward, successor)
-        if self._sync_target(self.task.step):
-            self._target.weights = self._model.weights
         cost = self._model.train(
             'cost', state=observ, action=action, return_=return_)
         self._cost_metric(cost)
+        if self._sync_target(self.task.step):
+            self._target.weights = self._model.weights
+            self._sync_target_metric(True)
+        else:
+            self._sync_target_metric(False)
 
     def _estimated_return(self, reward, successor):
         terminal = np.isnan(successor.reshape((len(successor), -1))).any(1)
         successor = np.nan_to_num(successor)
         assert np.isfinite(successor).all()
-        future = self._target.compute('qvalue', state=successor)
+        # NOTE: Swapping the models below seems to work similarly well.
+        future = self._target.compute('qvalues', state=successor)
+        choice = self._model.compute('choice', state=successor)
+        future = choice.choose(future.T)
         future[terminal] = 0
         return_ = reward + self.config.discount * future
         assert np.isfinite(return_).all()

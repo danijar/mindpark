@@ -102,6 +102,7 @@ class Model:
     def train(self, cost, batch=None, epochs=1, **data):
         costs = []
         for batch in self._chunks(data, batch, epochs):
+            # TODO: See if training directly is more efficient.
             delta, cost = self.delta(cost, **data)
             self.apply(delta)
             costs.append(cost)

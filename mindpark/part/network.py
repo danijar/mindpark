@@ -75,6 +75,8 @@ def test(model, x):
 
 
 def control(model, x):
-    x = dense(x, 100, tf.nn.relu)
-    x = dense(x, 50, tf.nn.relu)
+    # x = dense(x, 100, tf.nn.relu)
+    # x = dense(x, 50, tf.nn.relu)
+    x = dense(x, 32, tf.nn.relu)
+    x = dense(x, 32, tf.nn.relu)
     return x
