@@ -9,7 +9,7 @@ class GymEnv(Env):
         self._env = gym.make(env_name)
         self._directory = directory
         if self._directory:
-            self._env.monitor.start(self._directory, videos)
+            self._env = gym.wrappers.Monitor(self._env, directory)
 
     @property
     def observs(self):
@@ -34,6 +34,4 @@ class GymEnv(Env):
         return reward, observation
 
     def close(self):
-        if self._directory:
-            self._env.monitor.close()
         self._env.close()

@@ -29,7 +29,7 @@ class Graph:
 
     def __exit__(self, type_, value, traceback):
         self._saver = tf.train.Saver()
-        self._sess.run(tf.initialize_variables(self.variables))
+        self._sess.run(tf.variables_initializer(self.variables))
         self._graph.finalize()
         self._scope.__exit__(type_, value, traceback)
 
@@ -55,7 +55,7 @@ class Graph:
 
     @property
     def variables(self):
-        return self._graph.get_collection(tf.GraphKeys.VARIABLES)
+        return self._graph.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
 
     @property
     def weights(self):

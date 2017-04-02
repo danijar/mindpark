@@ -11,7 +11,7 @@ class Definition:
 
     def __new__(cls, filepath):
         with open(os.path.expanduser(filepath)) as file_:
-            definition = yaml.load(file_)
+            definition = yaml.safe_load(file_)
         definition = use_attrdicts(definition)
         definition.envs = list(cls._load_envs(definition.envs))
         definition.algorithms = [

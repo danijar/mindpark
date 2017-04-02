@@ -33,7 +33,7 @@ class A3C(mp.Algorithm):
         self.model = mp.model.Model(self._create_network)
         # print(str(self.model))
         self.learning_rate = mp.utility.Decay(
-            float(config.initial_learning_rate), 0, self.task.steps)
+            float(self.config.initial_learning_rate), 0, self.task.steps)
         self.lock = Lock()
         self.cost_metric = mp.Metric(self.task, 'a3c/cost', 1)
         self.value_metric = mp.Metric(self.task, 'a3c/value', 1)
@@ -94,7 +94,8 @@ class Train(mp.step.Experience):
         self._model = model
         observ_shape = self.task.observs.shape
         shapes = (observ_shape, tuple(), tuple(), observ_shape)
-        self._batch = mp.part.replay.Sequential(self._config.apply_gradient, shapes)
+        self._batch = mp.part.replay.Sequential(
+            self._config.apply_gradient, shapes)
         self._context_last_batch = None
 
     def begin_episode(self, episode, training):
