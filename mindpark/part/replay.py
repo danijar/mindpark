@@ -12,7 +12,8 @@ class RingBuffer:
     def __init__(self, capacity, shapes):
         self._capacity = int(capacity)
         self._shapes = tuple(tuple(x) for x in shapes)
-        self._buffers = tuple(np.zeros((capacity,) + x) for x in self._shapes)
+        self._buffers = tuple(np.zeros((int(capacity),) + x)
+                              for x in self._shapes)
         self._head = 0
         self._tail = 0
 
@@ -90,7 +91,7 @@ class RingBuffer:
     def _wrap_index(self, key):
         key = self.tail + key if key < 0 else key
         if not (self.head <= key <= self.tail):
-            message ='Index {} must be in range {} to {}.'
+            message = 'Index {} must be in range {} to {}.'
             raise IndexError(message.format(key, self.head, self.tail))
         if key == self.tail:
             return (key - 1) % self._capacity + 1

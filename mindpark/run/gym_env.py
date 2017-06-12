@@ -9,7 +9,7 @@ class GymEnv(Env):
         self._env = gym.make(env_name)
         self._directory = directory
         if self._directory:
-            self._env = gym.wrappers.Monitor(self._env, directory)
+            self._env = gym.wrappers.Monitor(self._env, self._directory, videos)
 
     @property
     def observs(self):
